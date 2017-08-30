@@ -77,6 +77,7 @@ func criticalSection(ctx context.Context) {
 
     xray.AddMetadata(ctx1, "ResourceResult", result)
   })
+}
 ```
 
 **HTTP Handler**
