@@ -56,7 +56,7 @@ import (
 
 func init() {
   xray.Configure(xray.Config{
-	DaemonAddr:       "127.0.0.1:2000", // default
+    DaemonAddr:       "127.0.0.1:2000", // default
     LogLevel:         "info",           // default
     ServiceVersion:   "1.2.3",
   })
