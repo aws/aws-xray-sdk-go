@@ -24,7 +24,7 @@ Or by individually calling `go get` for each of the required dependencies.
 
 Please use these community resources for getting help. We use the GitHub issues for tracking bugs and feature requests.
 
-* Ask a question on [StackOverflow](http://stackoverflow.com/) and tag it with the [`aws-xray`](http://stackoverflow.com/questions/tagged/aws-xray) tag.
+* Ask a question in the [AWS X-Ray Forum](https://forums.aws.amazon.com/forum.jspa?forumID=241&start=0).
 * Open a support ticket with [AWS Support](http://docs.aws.amazon.com/awssupport/latest/user/getting-started.html).
 * If you think you may have found a bug, please open an [issue](https://github.com/aws/aws-xray-sdk-go/issues/new).
 
@@ -38,7 +38,7 @@ The GitHub issues are intended for bug reports and feature requests. For help an
 
 The [developer guide](https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-go.html) proivdes in-depth guidance on using the AWS X-Ray service and the AWS X-Ray SDK for Go.
 
-#### Quick Start
+## Quick Start
 
 **Configuration**
 
