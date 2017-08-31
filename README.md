@@ -12,14 +12,6 @@ Install the SDK using the following command:
 go get -u github.com/aws/aws-xray-sdk-go
 ```
 
-Some external dependencies are required. They may be installed using:
-
-```
-glide install
-```
-
-Or by individually calling `go get` for each of the required dependencies.
-
 ## Getting Help
 
 Please use these community resources for getting help. We use the GitHub issues for tracking bugs and feature requests.
