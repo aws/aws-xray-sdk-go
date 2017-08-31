@@ -30,6 +30,11 @@ type jsonMap struct {
 	object interface{}
 }
 
+const (
+	requestKeyword = iota
+	responseKeyword
+)
+
 func beginSubsegment(r *request.Request, name string) {
 	ctx, _ := BeginSubsegment(r.HTTPRequest.Context(), name)
 	r.HTTPRequest = r.HTTPRequest.WithContext(ctx)
@@ -287,8 +292,8 @@ func (j *jsonMap) childrenMap() (map[string]interface{}, error) {
 func extractRequestParameters(r *request.Request, whitelist *jsonMap) map[string]interface{} {
 	valueMap := make(map[string]interface{})
 
-	extractParameters("request_parameters", r, whitelist, valueMap)
-	extractDescriptors("request_descriptors", r, whitelist, valueMap)
+	extractParameters("request_parameters", requestKeyword, r, whitelist, valueMap)
+	extractDescriptors("request_descriptors", requestKeyword, r, whitelist, valueMap)
 
 	return valueMap
 }
@@ -296,13 +301,13 @@ func extractRequestParameters(r *request.Request, whitelist *jsonMap) map[string
 func extractResponseParameters(r *request.Request, whitelist *jsonMap) map[string]interface{} {
 	valueMap := make(map[string]interface{})
 
-	extractParameters("response_parameters", r, whitelist, valueMap)
-	extractDescriptors("response_descriptors", r, whitelist, valueMap)
+	extractParameters("response_parameters", responseKeyword, r, whitelist, valueMap)
+	extractDescriptors("response_descriptors", responseKeyword, r, whitelist, valueMap)
 
 	return valueMap
 }
 
-func extractParameters(whitelistKey string, r *request.Request, whitelist *jsonMap, valueMap map[string]interface{}) {
+func extractParameters(whitelistKey string, rType int, r *request.Request, whitelist *jsonMap, valueMap map[string]interface{}) {
 	params := whitelist.search("services", r.ClientInfo.ServiceName, "operations", r.Operation.Name, whitelistKey)
 	if params != nil {
 		children, err := params.children()
@@ -312,7 +317,12 @@ func extractParameters(whitelistKey string, r *request.Request, whitelist *jsonM
 		}
 		for _, child := range children {
 			if child != nil {
-				value := keyValue(r.Data, child.(string))
+				var value interface{}
+				if rType == requestKeyword {
+					value = keyValue(r.Params, child.(string))
+				} else if rType == responseKeyword {
+					value = keyValue(r.Data, child.(string))
+				}
 				if (value != reflect.Value{}) {
 					valueMap[child.(string)] = value
 				}
@@ -321,7 +331,7 @@ func extractParameters(whitelistKey string, r *request.Request, whitelist *jsonM
 	}
 }
 
-func extractDescriptors(whitelistKey string, r *request.Request, whitelist *jsonMap, valueMap map[string]interface{}) {
+func extractDescriptors(whitelistKey string, rType int, r *request.Request, whitelist *jsonMap, valueMap map[string]interface{}) {
 	responseDtr := whitelist.search("services", r.ClientInfo.ServiceName, "operations", r.Operation.Name, whitelistKey)
 	if responseDtr != nil {
 		items, err := responseDtr.childrenMap()
@@ -331,7 +341,11 @@ func extractDescriptors(whitelistKey string, r *request.Request, whitelist *json
 		}
 		for k := range items {
 			descriptorMap, _ := whitelist.search("services", r.ClientInfo.ServiceName, "operations", r.Operation.Name, "response_descriptors", k).childrenMap()
-			insertDescriptorValuesIntoMap(k, r.Data, descriptorMap, valueMap)
+			if rType == requestKeyword {
+				insertDescriptorValuesIntoMap(k, r.Params, descriptorMap, valueMap)
+			} else if rType == responseKeyword {
+				insertDescriptorValuesIntoMap(k, r.Data, descriptorMap, valueMap)
+			}
 		}
 	}
 }
@@ -367,7 +381,6 @@ func insertDescriptorValuesIntoMap(key string, data interface{}, descriptorMap m
 			valueMap[strings.ToLower(key)] = keySlice
 		}
 	} else if descriptorType == "list" {
-
 		var count int
 		l := keyValue(data, key)
 		val := reflect.ValueOf(l)
