@@ -102,7 +102,7 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 
 		trace := parseHeaders(r.Header)
 		if trace["Root"] != "" {
-			seg.TraceID = trace["Root"]
+			seg.TraceID = strings.ToLower(trace["Root"])
 			seg.RequestWasTraced = true
 		}
 		if trace["Parent"] != "" {
@@ -112,7 +112,7 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 		// send back the root and possibly sampled values.
 		var respHeader bytes.Buffer
 		respHeader.WriteString("Root=")
-		respHeader.WriteString(seg.TraceID)
+		respHeader.WriteString(strings.ToLower(seg.TraceID))
 		switch trace["Sampled"] {
 		case "0":
 			seg.Sampled = false

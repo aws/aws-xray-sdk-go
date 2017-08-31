@@ -13,6 +13,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
@@ -114,8 +115,9 @@ func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (c
 	con, seg := BeginSegment(ctx, name)
 
 	if h.TraceID != "" {
-		seg.TraceID = h.TraceID
+		seg.TraceID = strings.ToLower(h.TraceID)
 	}
+
 	if h.ParentID != "" {
 		seg.ParentID = h.ParentID
 	}
