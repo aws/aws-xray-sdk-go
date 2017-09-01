@@ -36,7 +36,7 @@ The GitHub issues are intended for bug reports and feature requests. For help an
 
 ## Documentation
 
-The [developer guide](https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-go.html) proivdes in-depth guidance on using the AWS X-Ray service and the AWS X-Ray SDK for Go.
+The [developer guide](https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-go.html) provides in-depth guidance on using the AWS X-Ray service and the AWS X-Ray SDK for Go.
 
 ## Quick Start
 
