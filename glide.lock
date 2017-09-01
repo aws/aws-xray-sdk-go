@@ -1,8 +1,8 @@
-hash: 9829c0ee790c94ce43f2e4d37fe25087e357a9deffc79d2e85359d070cdcf462
-updated: 2017-08-30T04:25:24.103514578-07:00
+hash: 0f0e5ad14d275aae889a4cb9d074ef304cf4779d1cebe829d46ecd1312b64aca
+updated: 2017-09-01T14:43:49.25238217-07:00
 imports:
 - name: github.com/aws/aws-sdk-go
-  version: 5b4d64c21c9af31b5c870528001cd2e3ef37bfe0
+  version: 2dd0010a66ff968eb03c2507cfb5deab080c5d93
   subpackages:
   - aws
   - aws/awserr
@@ -35,8 +35,6 @@ imports:
   version: c787282c39ac1fc618827141a1f762240def08a3
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
-- name: github.com/kisielk/sqlstruct
-  version: 648daed35d49dac24a4bff253b190a80da3ab6a5
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/stretchr/testify

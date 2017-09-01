@@ -8,7 +8,5 @@ import:
   version: 1.1.x
 - package: github.com/cihub/seelog
   version: 2.6.x
-- package: github.com/kisielk/sqlstruct
-  version: 648daed35d49dac24a4bff253b190a80da3ab6a5
 - package: github.com/DATA-DOG/go-sqlmock
   version: 1.2.x

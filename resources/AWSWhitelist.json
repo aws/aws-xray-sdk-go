@@ -331,7 +331,7 @@
         "CreateBucket": {
           "request_descriptors": {
             "Bucket": {
-              "value": "true",
+              "value": true,
               "rename_to": "bucket_name"
             }
           }
@@ -339,7 +339,7 @@
         "DeleteBucket": {
           "request_descriptors": {
             "Bucket": {
-              "value": "true",
+              "value": true,
               "rename_to": "bucket_name"
             }
           }
@@ -350,7 +350,7 @@
           ],
           "request_descriptors": {
             "Bucket": {
-              "value": "true",
+              "value": true,
               "rename_to": "bucket_name"
             }
           }
@@ -361,7 +361,7 @@
           ],
           "request_descriptors": {
             "Bucket": {
-              "value": "true",
+              "value": true,
               "rename_to": "bucket_name"
             }
           },
@@ -372,7 +372,7 @@
         "DeleteObjects": {
           "request_descriptors": {
             "Bucket": {
-              "value": "true",
+              "value": true,
               "rename_to": "bucket_name"
             }
           },
@@ -396,7 +396,7 @@
         "ListObjects": {
           "request_descriptors": {
             "Bucket": {
-              "value": "true",
+              "value": true,
               "rename_to": "bucket_name"
             }
           },
@@ -414,7 +414,7 @@
           ],
           "request_descriptors": {
             "Bucket": {
-              "value": "true",
+              "value": true,
               "rename_to": "bucket_name"
             }
           }
@@ -422,7 +422,7 @@
         "PutBucketLogging": {
           "request_descriptors": {
             "Bucket": {
-              "value": "true",
+              "value": true,
               "rename_to": "bucket_name"
             }
           }
@@ -433,7 +433,7 @@
           ],
           "request_descriptors": {
             "Bucket": {
-              "value": "true",
+              "value": true,
               "rename_to": "bucket_name"
             }
           }
@@ -441,7 +441,7 @@
         "PutBucketTagging": {
           "request_descriptors": {
             "Bucket": {
-              "value": "true",
+              "value": true,
               "rename_to": "bucket_name"
             }
           }

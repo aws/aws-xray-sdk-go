@@ -340,7 +340,7 @@ func extractDescriptors(whitelistKey string, rType int, r *request.Request, whit
 			return
 		}
 		for k := range items {
-			descriptorMap, _ := whitelist.search("services", r.ClientInfo.ServiceName, "operations", r.Operation.Name, "response_descriptors", k).childrenMap()
+			descriptorMap, _ := whitelist.search("services", r.ClientInfo.ServiceName, "operations", r.Operation.Name, whitelistKey, k).childrenMap()
 			if rType == requestKeyword {
 				insertDescriptorValuesIntoMap(k, r.Params, descriptorMap, valueMap)
 			} else if rType == responseKeyword {
