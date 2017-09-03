@@ -83,18 +83,20 @@ func FromString(s string) *Header {
 	for i := range parts {
 		p := strings.TrimSpace(parts[i])
 		value, valid := valueFromKeyValuePair(p)
-		if valid {
-			if strings.HasPrefix(p, RootPrefix) {
-				ret.TraceID = value
-			} else if strings.HasPrefix(p, ParentPrefix) {
-				ret.ParentID = value
-			} else if strings.HasPrefix(p, SampledPrefix) {
-				ret.SamplingDecision = samplingDecision(p)
-			} else if !strings.HasPrefix(p, SelfPrefix) {
-				key, valid := keyFromKeyValuePair(p)
-				if valid {
-					ret.AdditionalData[key] = value
-				}
+		if !valid {
+			continue
+		}
+
+		if strings.HasPrefix(p, RootPrefix) {
+			ret.TraceID = value
+		} else if strings.HasPrefix(p, ParentPrefix) {
+			ret.ParentID = value
+		} else if strings.HasPrefix(p, SampledPrefix) {
+			ret.SamplingDecision = samplingDecision(p)
+		} else if !strings.HasPrefix(p, SelfPrefix) {
+			key, valid := keyFromKeyValuePair(p)
+			if valid {
+				ret.AdditionalData[key] = value
 			}
 		}
 	}
@@ -112,7 +114,7 @@ func (h Header) String() string {
 	}
 	p = append(p, []byte(h.SamplingDecision))
 	for key := range h.AdditionalData {
-		p = append(p, []byte(key+"="+string(h.AdditionalData[key])))
+		p = append(p, []byte(key+"="+h.AdditionalData[key]))
 	}
 	return string(bytes.Join(p, []byte(";")))
 }

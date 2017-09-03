@@ -13,7 +13,7 @@ import (
 )
 
 // InstancePluginMetadata points to the PluginMetadata struct.
-var InstancePluginMetadata *PluginMetadata = &PluginMetadata{}
+var InstancePluginMetadata = &PluginMetadata{}
 
 // PluginMetadata struct contains items to record information
 // about the AWS infrastructure hosting the traced application.

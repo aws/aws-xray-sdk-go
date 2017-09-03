@@ -9,7 +9,6 @@
 package sampling
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -33,7 +32,7 @@ type Reservoir struct {
 // desired capacity is greater than this maximum value.
 func NewReservoir(perSecond uint64) (res *Reservoir, err error) {
 	if perSecond >= maxRate {
-		return nil, errors.New(fmt.Sprintf("Desired sampling capacity of %d is greater than maximum supported rate %d", perSecond, maxRate))
+		return nil, fmt.Errorf("desired sampling capacity of %d is greater than maximum supported rate %d", perSecond, maxRate)
 	}
 	return &Reservoir{
 		maskedCounter: 0,
@@ -48,8 +47,8 @@ func NewReservoir(perSecond uint64) (res *Reservoir, err error) {
 // Take returns true.
 func (r *Reservoir) Take() bool {
 	now := uint64(time.Now().Unix())
-	new := atomic.AddUint64(&r.maskedCounter, 1)
-	previousTimestamp := extractTime(new)
+	counterNewVal := atomic.AddUint64(&r.maskedCounter, 1)
+	previousTimestamp := extractTime(counterNewVal)
 
 	if previousTimestamp != now {
 		r.mutex.Lock()
@@ -61,11 +60,11 @@ func (r *Reservoir) Take() bool {
 			atomic.StoreUint64(&r.maskedCounter, valueToSet)
 		}
 
-		new = atomic.AddUint64(&r.maskedCounter, 1)
+		counterNewVal = atomic.AddUint64(&r.maskedCounter, 1)
 		r.mutex.Unlock()
 	}
 
-	newCounterValue := extractCounter(new)
+	newCounterValue := extractCounter(counterNewVal)
 	return newCounterValue <= r.perSecond
 }
 

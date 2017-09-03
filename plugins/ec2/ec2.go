@@ -22,11 +22,12 @@ func init() {
 }
 
 func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
-	session, e := session.NewSession()
+	sess, e := session.NewSession()
 	if e != nil {
 		log.Errorf("Unable to create a new ec2 session: %v", e)
+		return
 	}
-	client := ec2metadata.New(session)
+	client := ec2metadata.New(sess)
 	doc, err := client.GetInstanceIdentityDocument()
 	if err != nil {
 		log.Errorf("Unable to read EC2 instance metadata: %v", err)

@@ -18,7 +18,7 @@ func WildcardMatchCaseInsensitive(pattern string, text string) bool {
 	return WildcardMatch(pattern, text, true)
 }
 
-// WildcardMatchCaseInsensitive returns true if text matches pattern at the given case-sensitivity; returns false otherwise.
+// WildcardMatch returns true if text matches pattern at the given case-sensitivity; returns false otherwise.
 func WildcardMatch(pattern string, text string, caseInsensitive bool) bool {
 	patternLen := len(pattern)
 	textLen := len(text)
@@ -49,20 +49,21 @@ func WildcardMatch(pattern string, text string, caseInsensitive bool) bool {
 				t := text[i]
 				res[i+1] = res[i] && ('?' == p || t == p)
 			}
-		} else {
-			i := 0
-			for i <= textLen && !res[i] {
-				i++
-			}
-			for i <= textLen {
-				res[i] = true
-				i++
-			}
+			res[0] = res[0] && '*' == p
+			continue
+		}
+
+		i := 0
+		for i <= textLen && !res[i] {
+			i++
+		}
+		for i <= textLen {
+			res[i] = true
+			i++
 		}
 		res[0] = res[0] && '*' == p
 	}
 	return res[textLen]
-
 }
 
 func simpleWildcardMatch(pattern string, text string) bool {
@@ -73,21 +74,24 @@ func simpleWildcardMatch(pattern string, text string) bool {
 		p := pattern[i]
 		if '*' == p {
 			return true
-		} else if '?' == p {
+		}
+
+		if '?' == p {
 			if textLen == j {
 				return false
 			}
 			j++
-		} else {
-			if j >= textLen {
-				return false
-			}
-			t := text[j]
-			if p != t {
-				return false
-			}
-			j++
+			continue
 		}
+
+		if j >= textLen {
+			return false
+		}
+		t := text[j]
+		if p != t {
+			return false
+		}
+		j++
 	}
 	return j == textLen
 }

@@ -49,7 +49,7 @@ func TestStreamingSegmentsOnChildNode(t *testing.T) {
 	out := packSegments(seg, nil)
 	s := &Segment{}
 	json.Unmarshal(out[2], s)
-	assert.Equal(t, 20, (len(s.Subsegments)))
+	assert.Equal(t, 20, len(s.Subsegments))
 	assert.Equal(t, 3, len(out))
 }
 

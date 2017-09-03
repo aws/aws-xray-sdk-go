@@ -64,14 +64,13 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 	seg.InProgress = true
 
 	go func() {
-		select {
-		case <-ctx.Done():
-			seg.Lock()
-			seg.ContextDone = true
-			seg.Unlock()
-			if !seg.InProgress && !seg.Emitted {
-				seg.flush(false)
-			}
+		<-ctx.Done()
+
+		seg.Lock()
+		seg.ContextDone = true
+		seg.Unlock()
+		if !seg.InProgress && !seg.Emitted {
+			seg.flush(false)
 		}
 	}()
 
@@ -139,7 +138,7 @@ func (seg *Segment) Close(err error) {
 	seg.Unlock()
 
 	if err != nil {
-		seg.addError(err)
+		seg.AddError(err)
 	}
 
 	seg.flush(false)
@@ -156,8 +155,8 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 			seg.rawSubsegments[len(seg.rawSubsegments)-1] = nil
 			seg.rawSubsegments = seg.rawSubsegments[:len(seg.rawSubsegments)-1]
 
-			seg.totalSubSegments -= 1
-			seg.openSegments -= 1
+			seg.totalSubSegments--
+			seg.openSegments--
 			return true
 		}
 	}
@@ -259,7 +258,8 @@ func (seg *Segment) root() *Segment {
 	return seg.parent.root()
 }
 
-func (seg *Segment) addError(err error) error {
+// AddError allows adding errors to the current trace segment
+func (seg *Segment) AddError(err error) error {
 	seg.Lock()
 	defer seg.Unlock()
 
