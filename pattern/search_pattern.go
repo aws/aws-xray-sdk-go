@@ -18,7 +18,7 @@ func WildcardMatchCaseInsensitive(pattern string, text string) bool {
 	return WildcardMatch(pattern, text, true)
 }
 
-// WildcardMatchCaseInsensitive returns true if text matches pattern at the given case-sensitivity; returns false otherwise.
+// WildcardMatch returns true if text matches pattern at the given case-sensitivity; returns false otherwise.
 func WildcardMatch(pattern string, text string, caseInsensitive bool) bool {
 	patternLen := len(pattern)
 	textLen := len(text)

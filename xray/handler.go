@@ -87,9 +87,9 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name := sn.Name(r.Host)
 
-		header := header.FromString(r.Header.Get("x-amzn-trace-id"))
+		traceHeader := header.FromString(r.Header.Get("x-amzn-trace-id"))
 
-		ctx, seg := NewSegmentFromHeader(r.Context(), name, header)
+		ctx, seg := NewSegmentFromHeader(r.Context(), name, traceHeader)
 
 		r = r.WithContext(ctx)
 

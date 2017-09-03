@@ -63,7 +63,7 @@ func (sms *TestStreamingStrategy) StreamCompletedSubsegments(seg *Segment) [][]b
 }
 
 func (cms *TestContextMissingStrategy) ContextMissing(v interface{}) {
-	fmt.Sprintf("Test ContextMissing Strategy %v", v)
+	fmt.Printf("Test ContextMissing Strategy %v", v)
 }
 
 func stashEnv() []string {

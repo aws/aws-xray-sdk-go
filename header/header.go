@@ -112,7 +112,7 @@ func (h Header) String() string {
 	}
 	p = append(p, []byte(h.SamplingDecision))
 	for key := range h.AdditionalData {
-		p = append(p, []byte(key+"="+string(h.AdditionalData[key])))
+		p = append(p, []byte(key+"="+h.AdditionalData[key]))
 	}
 	return string(bytes.Join(p, []byte(";")))
 }

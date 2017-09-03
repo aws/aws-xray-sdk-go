@@ -46,7 +46,7 @@ func endSubsegment(r *request.Request) {
 	r.HTTPRequest = r.HTTPRequest.WithContext(context.WithValue(r.HTTPRequest.Context(), ContextKey, seg.parent))
 }
 
-var xRayBeforeValidateHandler = request.NamedHandler{
+var beforeValidateHandler = request.NamedHandler{
 	Name: "XRayBeforeValidateHandler",
 	Fn: func(r *request.Request) {
 		ctx, opseg := BeginSubsegment(r.HTTPRequest.Context(), r.ClientInfo.ServiceName)
@@ -58,44 +58,44 @@ var xRayBeforeValidateHandler = request.NamedHandler{
 	},
 }
 
-var xRayAfterBuildHandler = request.NamedHandler{
+var afterBuildHandler = request.NamedHandler{
 	Name: "XRayAfterBuildHandler",
 	Fn: func(r *request.Request) {
 		endSubsegment(r)
 	},
 }
 
-var xRayBeforeSignHandler = request.NamedHandler{
+var beforeSignHandler = request.NamedHandler{
 	Name: "XRayBeforeSignHandler",
 	Fn: func(r *request.Request) {
-		ctx, _ := BeginSubsegment(r.HTTPRequest.Context(), fmt.Sprintf("attempt_%d", (r.RetryCount+1)))
+		ctx, _ := BeginSubsegment(r.HTTPRequest.Context(), fmt.Sprintf("attempt_%d", r.RetryCount+1))
 
 		ct, _ := NewClientTrace(ctx)
 		r.HTTPRequest = r.HTTPRequest.WithContext(httptrace.WithClientTrace(ctx, ct.httpTrace))
 	},
 }
 
-var xRayAfterSignHandler = request.NamedHandler{
+var afterSignHandler = request.NamedHandler{
 	Name: "XRayAfterSignHandler",
 	Fn: func(r *request.Request) {
 		endSubsegment(r)
 	},
 }
 
-var xRayBeforeSendHandler = request.NamedHandler{
+var beforeSendHandler = request.NamedHandler{
 	Name: "XRayBeforeSendHandler",
 	Fn: func(r *request.Request) {
 	},
 }
 
-var xRayAfterSendHandler = request.NamedHandler{
+var afterSendHandler = request.NamedHandler{
 	Name: "XRayAfterSendHandler",
 	Fn: func(r *request.Request) {
 		endSubsegment(r)
 	},
 }
 
-var xRayBeforeUnmarshalHandler = request.NamedHandler{
+var beforeUnmarshalHandler = request.NamedHandler{
 	Name: "XRayBeforeUnmarshalHandler",
 	Fn: func(r *request.Request) {
 		endSubsegment(r) // end attempt_x subsegment
@@ -103,14 +103,14 @@ var xRayBeforeUnmarshalHandler = request.NamedHandler{
 	},
 }
 
-var xRayAfterUnmarshalHandler = request.NamedHandler{
+var afterUnmarshalHandler = request.NamedHandler{
 	Name: "XRayAfterUnmarshalHandler",
 	Fn: func(r *request.Request) {
 		endSubsegment(r)
 	},
 }
 
-var xRayBeforeRetryHandler = request.NamedHandler{
+var beforeRetryHandler = request.NamedHandler{
 	Name: "XRayBeforeRetryHandler",
 	Fn: func(r *request.Request) {
 		endSubsegment(r) // end attempt_x subsegment
@@ -120,7 +120,7 @@ var xRayBeforeRetryHandler = request.NamedHandler{
 	},
 }
 
-var xRayAfterRetryHandler = request.NamedHandler{
+var afterRetryHandler = request.NamedHandler{
 	Name: "XRayAfterRetryHandler",
 	Fn: func(r *request.Request) {
 		endSubsegment(r)
@@ -128,13 +128,13 @@ var xRayAfterRetryHandler = request.NamedHandler{
 }
 
 func pushHandlers(c *client.Client) {
-	c.Handlers.Validate.PushFrontNamed(xRayBeforeValidateHandler)
-	c.Handlers.Build.PushBackNamed(xRayAfterBuildHandler)
-	c.Handlers.Sign.PushFrontNamed(xRayBeforeSignHandler)
-	c.Handlers.Unmarshal.PushFrontNamed(xRayBeforeUnmarshalHandler)
-	c.Handlers.Unmarshal.PushBackNamed(xRayAfterUnmarshalHandler)
-	c.Handlers.Retry.PushFrontNamed(xRayBeforeRetryHandler)
-	c.Handlers.AfterRetry.PushBackNamed(xRayAfterRetryHandler)
+	c.Handlers.Validate.PushFrontNamed(beforeValidateHandler)
+	c.Handlers.Build.PushBackNamed(afterBuildHandler)
+	c.Handlers.Sign.PushFrontNamed(beforeSignHandler)
+	c.Handlers.Unmarshal.PushFrontNamed(beforeUnmarshalHandler)
+	c.Handlers.Unmarshal.PushBackNamed(afterUnmarshalHandler)
+	c.Handlers.Retry.PushFrontNamed(beforeRetryHandler)
+	c.Handlers.AfterRetry.PushBackNamed(afterRetryHandler)
 }
 
 // AWS adds X-Ray tracing to an AWS client.
@@ -143,7 +143,7 @@ func AWS(c *client.Client) {
 		panic("Please initialize the provided AWS client before passing to the AWS() method.")
 	}
 	pushHandlers(c)
-	c.Handlers.Complete.PushFrontNamed(xrayCompleteHandler(""))
+	c.Handlers.Complete.PushFrontNamed(completeHandler(""))
 }
 
 // AWSWithWhitelist allows a custom parameter whitelist JSON file to be defined.
@@ -152,10 +152,10 @@ func AWSWithWhitelist(c *client.Client, filename string) {
 		panic("Please initialize the provided AWS client before passing to the AWSWithWhitelist() method.")
 	}
 	pushHandlers(c)
-	c.Handlers.Complete.PushFrontNamed(xrayCompleteHandler(filename))
+	c.Handlers.Complete.PushFrontNamed(completeHandler(filename))
 }
 
-func xrayCompleteHandler(filename string) request.NamedHandler {
+func completeHandler(filename string) request.NamedHandler {
 	whitelistJSON := parseWhitelistJSON(filename)
 	whitelist := &jsonMap{}
 	err := json.Unmarshal(whitelistJSON, &whitelist.object)
@@ -259,8 +259,7 @@ func (j *jsonMap) data() interface{} {
 }
 
 func (j *jsonMap) search(keys ...string) *jsonMap {
-	var object interface{}
-	object = j.data()
+	object := j.data()
 
 	for target := 0; target < len(keys); target++ {
 		if mmap, ok := object.(map[string]interface{}); ok {

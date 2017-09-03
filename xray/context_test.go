@@ -105,12 +105,14 @@ func TestSimpleMetadata(t *testing.T) {
 
 func TestAddError(t *testing.T) {
 	ctx, root := BeginSegment(context.Background(), "Test")
-	err := AddError(ctx, errors.New("New Error"))
+	errMsg := "new Error"
+	er := errors.New(errMsg)
+	err := AddError(ctx, er)
 	assert.Nil(t, err)
 	root.Close(err)
 	s, e := TestDaemon.Recv()
 	assert.NoError(t, e)
 
-	assert.Equal(t, "New Error", s.Cause.Exceptions[0].Message)
+	assert.Equal(t, errMsg, s.Cause.Exceptions[0].Message)
 	assert.Equal(t, "error", s.Cause.Exceptions[0].Type)
 }

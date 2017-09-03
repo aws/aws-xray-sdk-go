@@ -115,63 +115,63 @@ type SQLData struct {
 }
 
 // DownstreamHeader returns a header for passing to downstream calls.
-func (s *Segment) DownstreamHeader() *header.Header {
-	r := s.ParentSegment.IncomingHeader
+func (seg *Segment) DownstreamHeader() *header.Header {
+	r := seg.ParentSegment.IncomingHeader
 	if r == nil {
 		r = &header.Header{
-			TraceID: s.ParentSegment.TraceID,
+			TraceID: seg.ParentSegment.TraceID,
 		}
 	}
 	if r.TraceID == "" {
-		r.TraceID = s.ParentSegment.TraceID
+		r.TraceID = seg.ParentSegment.TraceID
 	}
-	if s.ParentSegment.Sampled {
+	if seg.ParentSegment.Sampled {
 		r.SamplingDecision = header.Sampled
 	} else {
 		r.SamplingDecision = header.NotSampled
 	}
-	r.ParentID = s.ID
+	r.ParentID = seg.ID
 	return r
 }
 
 // GetCause returns value of Cause.
-func (s *Segment) GetCause() *CauseData {
-	if s.Cause == nil {
-		s.Cause = &CauseData{}
+func (seg *Segment) GetCause() *CauseData {
+	if seg.Cause == nil {
+		seg.Cause = &CauseData{}
 	}
-	return s.Cause
+	return seg.Cause
 }
 
 // GetHTTP returns value of HTTP.
-func (s *Segment) GetHTTP() *HTTPData {
-	if s.HTTP == nil {
-		s.HTTP = &HTTPData{}
+func (seg *Segment) GetHTTP() *HTTPData {
+	if seg.HTTP == nil {
+		seg.HTTP = &HTTPData{}
 	}
-	return s.HTTP
+	return seg.HTTP
 }
 
 // GetAWS returns value of AWS.
-func (s *Segment) GetAWS() map[string]interface{} {
-	if s.AWS == nil {
-		s.AWS = make(map[string]interface{})
+func (seg *Segment) GetAWS() map[string]interface{} {
+	if seg.AWS == nil {
+		seg.AWS = make(map[string]interface{})
 	}
-	return s.AWS
+	return seg.AWS
 }
 
 // GetService returns value of Service.
-func (s *Segment) GetService() *ServiceData {
-	if s.Service == nil {
-		s.Service = &ServiceData{}
+func (seg *Segment) GetService() *ServiceData {
+	if seg.Service == nil {
+		seg.Service = &ServiceData{}
 	}
-	return s.Service
+	return seg.Service
 }
 
 // GetSQL returns value of SQL.
-func (s *Segment) GetSQL() *SQLData {
-	if s.SQL == nil {
-		s.SQL = &SQLData{}
+func (seg *Segment) GetSQL() *SQLData {
+	if seg.SQL == nil {
+		seg.SQL = &SQLData{}
 	}
-	return s.SQL
+	return seg.SQL
 }
 
 // GetRequest returns value of RequestData.

@@ -13,7 +13,7 @@ import (
 	"errors"
 	"testing"
 
-	sqlmock "github.com/DATA-DOG/go-sqlmock"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/suite"
 )
 
