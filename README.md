@@ -43,6 +43,8 @@ The [developer guide](https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-
 **Configuration**
 
 ```go
+package main
+
 import (
   "context"
 
@@ -83,17 +85,40 @@ func criticalSection(ctx context.Context) {
 **HTTP Handler**
 
 ```go
-func main() {
-  http.Handle("/", xray.Handler(xray.NewFixedSegmentNamer("myApp"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+package main
+
+import (
+	"net/http"
+	
+	"github.com/aws/aws-xray-sdk-go/xray"
+)
+
+
+func myHandler(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte("Hello!"))
-  })))
-  http.ListenAndServe(":8000", nil)
+}
+
+func main() {
+	tracedHandler := xray.Handler(xray.NewFixedSegmentNamer("myApp"), http.HandlerFunc(myHandler))
+
+    http.Handle("/", tracedHandler)
+    http.ListenAndServe(":8000", nil)
 }
 ```
 
 **HTTP Client**
 
 ```go
+package main
+
+import (
+	"context"
+	"io/ioutil"
+	
+	"github.com/aws/aws-xray-sdk-go/xray"
+	"golang.org/x/net/context/ctxhttp"
+)
+
 func getExample(ctx context.Context) ([]byte, error) {
     resp, err := ctxhttp.Get(ctx, xray.Client(nil), "https://aws.amazon.com/")
     if err != nil {
