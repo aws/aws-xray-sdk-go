@@ -267,9 +267,9 @@ func (j *jsonMap) search(keys ...string) *jsonMap {
 			if !ok {
 				return nil
 			}
-		} else {
-			return nil
 		}
+
+		return nil
 	}
 	return &jsonMap{object}
 }
@@ -315,16 +315,18 @@ func extractParameters(whitelistKey string, rType int, r *request.Request, white
 			return
 		}
 		for _, child := range children {
-			if child != nil {
-				var value interface{}
-				if rType == requestKeyword {
-					value = keyValue(r.Params, child.(string))
-				} else if rType == responseKeyword {
-					value = keyValue(r.Data, child.(string))
-				}
-				if (value != reflect.Value{}) {
-					valueMap[child.(string)] = value
-				}
+			if child == nil {
+				continue
+			}
+
+			var value interface{}
+			if rType == requestKeyword {
+				value = keyValue(r.Params, child.(string))
+			} else if rType == responseKeyword {
+				value = keyValue(r.Data, child.(string))
+			}
+			if (value != reflect.Value{}) {
+				valueMap[child.(string)] = value
 			}
 		}
 	}
