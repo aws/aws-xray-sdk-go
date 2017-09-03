@@ -139,7 +139,7 @@ func (seg *Segment) Close(err error) {
 	seg.Unlock()
 
 	if err != nil {
-		seg.addError(err)
+		seg.AddError(err)
 	}
 
 	seg.flush(false)
@@ -259,7 +259,7 @@ func (seg *Segment) root() *Segment {
 	return seg.parent.root()
 }
 
-func (seg *Segment) addError(err error) error {
+func (seg *Segment) AddError(err error) error {
 	seg.Lock()
 	defer seg.Unlock()
 

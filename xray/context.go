@@ -86,7 +86,7 @@ func AddMetadataToNamespace(ctx context.Context, namespace string, key string, v
 // AddError adds an error to the provided segment or subsegment in ctx.
 func AddError(ctx context.Context, err error) error {
 	if seg := GetSegment(ctx); seg != nil {
-		return seg.addError(err)
+		return seg.AddError(err)
 	}
 	return errors.New("Unable to retrieve segment")
 }
