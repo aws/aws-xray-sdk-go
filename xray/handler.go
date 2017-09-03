@@ -35,8 +35,8 @@ type FixedSegmentNamer struct {
 // If the AWS_XRAY_TRACING_NAME environment variable is set,
 // its value will override the provided name argument.
 func NewFixedSegmentNamer(name string) *FixedSegmentNamer {
-	if os.Getenv("AWS_XRAY_TRACING_NAME") != "" {
-		name = os.Getenv("AWS_XRAY_TRACING_NAME")
+	if tName := os.Getenv("AWS_XRAY_TRACING_NAME"); tName != "" {
+		name = tName
 	}
 	return &FixedSegmentNamer{
 		FixedName: name,
@@ -62,8 +62,8 @@ type DynamicSegmentNamer struct {
 
 // NewDynamicSegmentNamer creates a new dynamic segment namer.
 func NewDynamicSegmentNamer(fallback string, recognized string) *DynamicSegmentNamer {
-	if os.Getenv("AWS_XRAY_TRACING_NAME") != "" {
-		fallback = os.Getenv("AWS_XRAY_TRACING_NAME")
+	if tName := os.Getenv("AWS_XRAY_TRACING_NAME"); tName != "" {
+		fallback = tName
 	}
 	return &DynamicSegmentNamer{
 		FallbackName:    fallback,
