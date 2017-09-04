@@ -57,7 +57,51 @@ func init() {
 }
 ```
 
+** Creating a trace **
+
+```go
+package main
+
+import (
+	"context"
+
+	"github.com/aws/aws-xray-sdk-go/xray"
+
+	// Importing the plugins enables collection of AWS resource information at runtime
+	_ "github.com/aws/aws-xray-sdk-go/plugins/ec2"
+	_ "github.com/aws/aws-xray-sdk-go/plugins/beanstalk"
+	_ "github.com/aws/aws-xray-sdk-go/plugins/ecs"
+)
+
+func someFunc(ctx context.Context) {
+	ctx, subSeg := xray.BeginSubsegment(ctx, "someFunc")
+	defer subSeg.Close(nil)
+
+	// ...
+	// some unit of work here
+	// ...
+}
+
+func main() {
+	xray.Configure(xray.Config{
+		DaemonAddr:       "127.0.0.1:2000", // default
+		LogLevel:         "info",           // default
+		ServiceVersion:   "1.2.3",
+	})
+
+	// Start a segment:
+	ctx, seg := xray.BeginSegment(context.Background(), "my-application")
+
+	someFunc(ctx)
+
+	// Close the segment
+	seg.Close(nil)
+}
+```
+
 **Capture**
+
+Create custom subsegments using the xray.Capture functions
 
 ```go
 func criticalSection(ctx context.Context) {
