@@ -90,8 +90,8 @@ func Configure(c Config) error {
 	var errors exception.MultiError
 
 	var daemonAddress string
-	if os.Getenv("AWS_XRAY_DAEMON_ADDRESS") != "" {
-		daemonAddress = os.Getenv("AWS_XRAY_DAEMON_ADDRESS")
+	if addr := os.Getenv("AWS_XRAY_DAEMON_ADDRESS"); addr != "" {
+		daemonAddress = addr
 	} else if c.DaemonAddr != "" {
 		daemonAddress = c.DaemonAddr
 	}

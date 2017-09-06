@@ -6,19 +6,23 @@
 
 The AWS X-Ray SDK for Go is compatible with Go 1.7 and above.
 
-Install the SDK using the following command:
+Install the SDK using the following command (The SDK's non-testing dependencies will be installed):
 
 ```
-go get -u github.com/aws/aws-xray-sdk-go
+go get -u github.com/aws/aws-xray-sdk-go/...
 ```
 
-Some external dependencies are required. They may be installed using:
+If you also want to install SDK's testing dependencies. They can be installed using:
+
+```
+go get -u -t github.com/aws/aws-xray-sdk-go/...
+```
+
+You may also use [Glide](https://github.com/Masterminds/glide) to manage dependencies by using 
 
 ```
 glide install
 ```
-
-Or by individually calling `go get` for each of the required dependencies.
 
 ## Getting Help
 
@@ -63,11 +67,26 @@ func init() {
 }
 ```
 
+**Start a custom segment/subsegment**
+
+```go
+  // Start a segment
+  ctx, seg := xray.BeginSegment(context.Background(), "service-name")
+  // Start a subsegment
+  ctx, subSeg := xray.BeginSubsegment(ctx, "subsegment-name")
+  // ...
+  // Add metadata or annotation here if necessary
+  // ...
+  subSeg.Close(nil)
+  // Close the segment
+  seg.Close(nil)
+```
+
 **Capture**
 
 ```go
 func criticalSection(ctx context.Context) {
-  // this example traces a critical code path using a custom subsegment
+  // This example traces a critical code path using a custom subsegment
   xray.Capture(ctx, "MyService.criticalSection", func(ctx1 context.Context) error {
     var err error
 

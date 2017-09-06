@@ -18,11 +18,9 @@ import (
 )
 
 func TestRootHandler(t *testing.T) {
-	var contentLength int
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		b := []byte(`200 - OK`)
-		contentLength = len(b)
 		w.Write(b)
 	})
 

@@ -25,6 +25,7 @@ func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
 	session, e := session.NewSession()
 	if e != nil {
 		log.Errorf("Unable to create a new ec2 session: %v", e)
+		return
 	}
 	client := ec2metadata.New(session)
 	doc, err := client.GetInstanceIdentityDocument()

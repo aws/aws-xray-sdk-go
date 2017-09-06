@@ -53,5 +53,5 @@ func TestTenPerSecond(t *testing.T) {
 func TestDesiredRateTooLarge(t *testing.T) {
 	per := 1e9
 	_, err := NewReservoir(uint64(per))
-	assert.EqualError(t, err, fmt.Sprintf("Desired sampling capacity of %d is greater than maximum supported rate %d", uint64(per), uint64(1e8)))
+	assert.EqualError(t, err, fmt.Sprintf("desired sampling capacity of %d is greater than maximum supported rate %d", uint64(per), uint64(1e8)))
 }

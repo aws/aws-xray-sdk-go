@@ -44,9 +44,9 @@ func TestCaptureAysnc(t *testing.T) {
 	ctx, root := BeginSegment(context.Background(), "Test")
 	CaptureAsync(ctx, "TestService", func(ctx1 context.Context) error {
 		ctx = ctx1
-		defer root.Close(nil)
 		return nil
 	})
+	root.Close(nil)
 
 	s, e := TestDaemon.Recv()
 	assert.NoError(t, e)

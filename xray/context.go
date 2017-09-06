@@ -19,6 +19,9 @@ type ContextKeytype int
 // ContextKey returns a pointer to a newly allocated zero value of ContextKeytype.
 var ContextKey = new(ContextKeytype)
 
+// ErrRetrieveSegment happens when a segment cannot be retrieved
+var ErrRetrieveSegment = errors.New("unable to retrieve segment")
+
 // GetSegment returns a pointer to the segment or subsegment provided
 // in ctx, or nil if no segment or subsegment is found.
 func GetSegment(ctx context.Context) *Segment {
@@ -62,31 +65,31 @@ func DetachContext(ctx context.Context) context.Context {
 // AddAnnotation adds an annotation to the provided segment or subsegment in ctx.
 func AddAnnotation(ctx context.Context, key string, value interface{}) error {
 	if seg := GetSegment(ctx); seg != nil {
-		return seg.addAnnotation(key, value)
+		return seg.AddAnnotation(key, value)
 	}
-	return errors.New("Unable to retrieve segment")
+	return ErrRetrieveSegment
 }
 
 // AddMetadata adds a metadata to the provided segment or subsegment in ctx.
 func AddMetadata(ctx context.Context, key string, value interface{}) error {
 	if seg := GetSegment(ctx); seg != nil {
-		return seg.addMetadata(key, value)
+		return seg.AddMetadata(key, value)
 	}
-	return errors.New("Unable to retrieve segment")
+	return ErrRetrieveSegment
 }
 
 // AddMetadataToNamespace adds a namespace to the provided segment's or subsegment's metadata in ctx.
 func AddMetadataToNamespace(ctx context.Context, namespace string, key string, value interface{}) error {
 	if seg := GetSegment(ctx); seg != nil {
-		return seg.addMetadataToNamespace(namespace, key, value)
+		return seg.AddMetadataToNamespace(namespace, key, value)
 	}
-	return errors.New("Unable to retrieve segment")
+	return ErrRetrieveSegment
 }
 
 // AddError adds an error to the provided segment or subsegment in ctx.
 func AddError(ctx context.Context, err error) error {
 	if seg := GetSegment(ctx); seg != nil {
-		return seg.addError(err)
+		return seg.AddError(err)
 	}
-	return errors.New("Unable to retrieve segment")
+	return ErrRetrieveSegment
 }

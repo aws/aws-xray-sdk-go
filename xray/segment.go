@@ -139,7 +139,7 @@ func (seg *Segment) Close(err error) {
 	seg.Unlock()
 
 	if err != nil {
-		seg.addError(err)
+		seg.AddError(err)
 	}
 
 	seg.flush(false)
@@ -156,8 +156,8 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 			seg.rawSubsegments[len(seg.rawSubsegments)-1] = nil
 			seg.rawSubsegments = seg.rawSubsegments[:len(seg.rawSubsegments)-1]
 
-			seg.totalSubSegments -= 1
-			seg.openSegments -= 1
+			seg.totalSubSegments--
+			seg.openSegments--
 			return true
 		}
 	}
@@ -184,6 +184,13 @@ func (seg *Segment) flush(decrement bool) {
 	}
 }
 
+func (seg *Segment) root() *Segment {
+	if seg.parent == nil {
+		return seg
+	}
+	return seg.parent.root()
+}
+
 func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
 	//Only called within a seg locked code block
 	if metadata == nil {
@@ -207,7 +214,8 @@ func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
 	}
 }
 
-func (seg *Segment) addAnnotation(key string, value interface{}) error {
+// AddAnnotation allows adding an annotation to the segment.
+func (seg *Segment) AddAnnotation(key string, value interface{}) error {
 	switch value.(type) {
 	case bool, int, uint, float32, float64, string:
 	default:
@@ -224,7 +232,8 @@ func (seg *Segment) addAnnotation(key string, value interface{}) error {
 	return nil
 }
 
-func (seg *Segment) addMetadata(key string, value interface{}) error {
+// AddMetadata allows adding metadata to the segment.
+func (seg *Segment) AddMetadata(key string, value interface{}) error {
 	seg.Lock()
 	defer seg.Unlock()
 
@@ -238,7 +247,8 @@ func (seg *Segment) addMetadata(key string, value interface{}) error {
 	return nil
 }
 
-func (seg *Segment) addMetadataToNamespace(namespace string, key string, value interface{}) error {
+// AddMetadataToNamespace allows adding a namespace into metadata for the segment.
+func (seg *Segment) AddMetadataToNamespace(namespace string, key string, value interface{}) error {
 	seg.Lock()
 	defer seg.Unlock()
 
@@ -252,14 +262,8 @@ func (seg *Segment) addMetadataToNamespace(namespace string, key string, value i
 	return nil
 }
 
-func (seg *Segment) root() *Segment {
-	if seg.parent == nil {
-		return seg
-	}
-	return seg.parent.root()
-}
-
-func (seg *Segment) addError(err error) error {
+// AddError allows adding an error to the segment.
+func (seg *Segment) AddError(err error) error {
 	seg.Lock()
 	defer seg.Unlock()
 

@@ -35,8 +35,8 @@ type FixedSegmentNamer struct {
 // If the AWS_XRAY_TRACING_NAME environment variable is set,
 // its value will override the provided name argument.
 func NewFixedSegmentNamer(name string) *FixedSegmentNamer {
-	if os.Getenv("AWS_XRAY_TRACING_NAME") != "" {
-		name = os.Getenv("AWS_XRAY_TRACING_NAME")
+	if fName := os.Getenv("AWS_XRAY_TRACING_NAME"); fName != "" {
+		name = fName
 	}
 	return &FixedSegmentNamer{
 		FixedName: name,
@@ -62,8 +62,8 @@ type DynamicSegmentNamer struct {
 
 // NewDynamicSegmentNamer creates a new dynamic segment namer.
 func NewDynamicSegmentNamer(fallback string, recognized string) *DynamicSegmentNamer {
-	if os.Getenv("AWS_XRAY_TRACING_NAME") != "" {
-		fallback = os.Getenv("AWS_XRAY_TRACING_NAME")
+	if dName := os.Getenv("AWS_XRAY_TRACING_NAME"); dName != "" {
+		fallback = dName
 	}
 	return &DynamicSegmentNamer{
 		FallbackName:    fallback,
@@ -87,9 +87,9 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name := sn.Name(r.Host)
 
-		header := header.FromString(r.Header.Get("x-amzn-trace-id"))
+		traceHeader := header.FromString(r.Header.Get("x-amzn-trace-id"))
 
-		ctx, seg := NewSegmentFromHeader(r.Context(), name, header)
+		ctx, seg := NewSegmentFromHeader(r.Context(), name, traceHeader)
 
 		r = r.WithContext(ctx)
 
