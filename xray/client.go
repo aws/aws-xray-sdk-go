@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"strconv"
+	log "github.com/cihub/seelog"
 )
 
 // Client creates a shallow copy of the provided http client,
@@ -49,12 +50,18 @@ func (rt *roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	var resp *http.Response
 	err := Capture(r.Context(), r.Host, func(ctx context.Context) error {
 		var err error
+		seg := GetSegment(ctx)
+		if seg == nil {
+			resp, err = rt.Base.RoundTrip(r)
+			log.Warnf("failed to record HTTP transaction: segment cannot be found.")
+			return err
+		}
+		
 		ct, e := NewClientTrace(ctx)
 		if e != nil {
 			return e
 		}
 		r = r.WithContext(httptrace.WithClientTrace(ctx, ct.httpTrace))
-		seg := GetSegment(ctx)
 
 		seg.Lock()
 		seg.Namespace = "remote"

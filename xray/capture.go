@@ -16,10 +16,12 @@ import (
 // Capture traces the provided synchronous function by
 // beginning and closing a subsegment around its execution.
 func Capture(ctx context.Context, name string, fn func(context.Context) error) (err error) {
-	ctx, seg := BeginSubsegment(ctx, name)
+	c, seg := BeginSubsegment(ctx, name)
+
 	defer func() {
 		if seg != nil {
 			seg.Close(err)
+
 		} else {
 			privateCfg.ContextMissingStrategy().ContextMissing(fmt.Sprintf("failed to end subsegment: subsegment '%v' cannot be found.", name))
 		}
@@ -32,7 +34,12 @@ func Capture(ctx context.Context, name string, fn func(context.Context) error) (
 		}
 	}()
 
-	err = fn(ctx)
+	if c == nil && seg == nil {
+		err = fn(ctx)
+	} else {
+		err = fn(c)
+	}
+
 	return err
 }
 

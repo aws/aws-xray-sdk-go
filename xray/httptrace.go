@@ -162,7 +162,6 @@ type ClientTrace struct {
 // generate subsegments for connection time, DNS lookup time, TLS
 // handshake time, and provides additional information about the HTTP round trip
 func NewClientTrace(opCtx context.Context) (ct *ClientTrace, err error) {
-
 	if opCtx == nil {
 		return nil, errors.New("opCtx must be non-nil")
 	}
