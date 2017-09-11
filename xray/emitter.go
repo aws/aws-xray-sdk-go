@@ -37,8 +37,9 @@ func refreshEmitter() {
 	e.Unlock()
 }
 
-func emit(seg *Segment) {
-	if seg == nil || !seg.Sampled {
+// Emit segment or subsegment if root segment is sampled.
+func Emit(seg *Segment) {
+	if seg == nil || !seg.ParentSegment.Sampled {
 		return
 	}
 

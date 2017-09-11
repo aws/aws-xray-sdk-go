@@ -127,7 +127,6 @@ func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (c
 
 // Close a segment.
 func (seg *Segment) Close(err error) {
-
 	seg.Lock()
 	if seg.parent != nil {
 		log.Tracef("Closing subsegment named %s", seg.Name)
@@ -143,6 +142,30 @@ func (seg *Segment) Close(err error) {
 	}
 
 	seg.flush(false)
+}
+
+// Close a subsegment and send it.
+func (seg *Segment) CloseAndStream(subseg *Segment, err error) {
+	subseg.Lock()
+
+	if subseg.parent != nil {
+		log.Tracef("Ending subsegment named: %s", subseg.Name)
+		subseg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
+		subseg.InProgress = false
+	}
+
+	if err != nil {
+		subseg.AddError(err)
+	}
+
+	subseg.Emitted = true
+	if seg.RemoveSubsegment(subseg) {
+		log.Tracef("Removing subsegment named: %s", subseg.Name)
+	}
+	subseg.parent = nil
+	subseg.Unlock()
+
+	Emit(subseg)
 }
 
 // RemoveSubsegment removes a subsegment child from a segment or subsegment.
@@ -177,7 +200,7 @@ func (seg *Segment) flush(decrement bool) {
 			seg.Lock()
 			seg.Emitted = true
 			seg.Unlock()
-			emit(seg)
+			Emit(seg)
 		} else {
 			seg.parent.flush(true)
 		}
