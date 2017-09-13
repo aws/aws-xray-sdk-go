@@ -199,7 +199,7 @@ func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
 
 	if metadata.IdentityDocument != nil {
 		seg.GetAWS()["account_id"] = metadata.IdentityDocument.AccountID
-		seg.GetAWS()["instace_id"] = metadata.IdentityDocument.InstanceID
+		seg.GetAWS()["instance_id"] = metadata.IdentityDocument.InstanceID
 		seg.GetAWS()["availability_zone"] = metadata.IdentityDocument.AvailabilityZone
 	}
 
