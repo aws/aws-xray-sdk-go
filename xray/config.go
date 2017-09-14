@@ -13,6 +13,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"context"
 
 	"github.com/aws/aws-xray-sdk-go/strategy/ctxmissing"
 	"github.com/aws/aws-xray-sdk-go/strategy/exception"
@@ -20,10 +21,10 @@ import (
 	log "github.com/cihub/seelog"
 )
 
-var privateCfg = newPrivateConfig()
+var globalCfg = newGlobalConfig()
 
-func newPrivateConfig() *privateConfig {
-	ret := &privateConfig{
+func newGlobalConfig() *globalConfig {
+	ret := &globalConfig{
 		daemonAddr: &net.UDPAddr{
 			IP:   net.IPv4(127, 0, 0, 1),
 			Port: 2000,
@@ -57,7 +58,7 @@ func newPrivateConfig() *privateConfig {
 	return ret
 }
 
-type privateConfig struct {
+type globalConfig struct {
 	sync.RWMutex
 
 	daemonAddr                  *net.UDPAddr
@@ -82,10 +83,56 @@ type Config struct {
 	LogFormat                   string
 }
 
+// ContextWithConfig returns context with given configuration settings.
+func ContextWithConfig(ctx context.Context, c Config) (context.Context, error) {
+	var errors exception.MultiError
+
+	var daemonAddress string
+	if addr := os.Getenv("AWS_XRAY_DAEMON_ADDRESS"); addr != "" {
+		daemonAddress = addr
+	} else if c.DaemonAddr != "" {
+		daemonAddress = c.DaemonAddr
+	}
+
+	if daemonAddress != "" {
+		raddr, err := net.ResolveUDPAddr("udp", daemonAddress)
+		if err == nil {
+			go refreshEmitterWithAddress(raddr)
+		} else {
+			errors = append(errors, err)
+		}
+	}
+
+	cms := os.Getenv("AWS_XRAY_CONTEXT_MISSING")
+	if cms != "" {
+		if cms == ctxmissing.RuntimeErrorStrategy {
+			cm := ctxmissing.NewDefaultRuntimeErrorStrategy()
+			c.ContextMissingStrategy = cm
+		} else if cms == ctxmissing.LogErrorStrategy {
+			cm := ctxmissing.NewDefaultLogErrorStrategy()
+			c.ContextMissingStrategy = cm
+		}
+	}
+
+	loadLogConfig(c.LogLevel, c.LogFormat)
+
+	var err error
+	switch len(errors) {
+	case 0:
+		err = nil
+	case 1:
+		err = errors[0]
+	default:
+		err = errors
+	}
+
+	return context.WithValue(ctx, RecorderContextKey{}, &c), err
+}
+
 // Configure overrides default configuration options with customer-defined values.
 func Configure(c Config) error {
-	privateCfg.Lock()
-	defer privateCfg.Unlock()
+	globalCfg.Lock()
+	defer globalCfg.Unlock()
 
 	var errors exception.MultiError
 
@@ -99,7 +146,7 @@ func Configure(c Config) error {
 	if daemonAddress != "" {
 		addr, err := net.ResolveUDPAddr("udp", daemonAddress)
 		if err == nil {
-			privateCfg.daemonAddr = addr
+			globalCfg.daemonAddr = addr
 			go refreshEmitter()
 		} else {
 			errors = append(errors, err)
@@ -107,35 +154,35 @@ func Configure(c Config) error {
 	}
 
 	if c.SamplingStrategy != nil {
-		privateCfg.samplingStrategy = c.SamplingStrategy
+		globalCfg.samplingStrategy = c.SamplingStrategy
 	}
 
 	if c.ExceptionFormattingStrategy != nil {
-		privateCfg.exceptionFormattingStrategy = c.ExceptionFormattingStrategy
+		globalCfg.exceptionFormattingStrategy = c.ExceptionFormattingStrategy
 	}
 
 	if c.StreamingStrategy != nil {
-		privateCfg.streamingStrategy = c.StreamingStrategy
+		globalCfg.streamingStrategy = c.StreamingStrategy
 	}
 
 	cms := os.Getenv("AWS_XRAY_CONTEXT_MISSING")
 	if cms != "" {
 		if cms == ctxmissing.RuntimeErrorStrategy {
 			cm := ctxmissing.NewDefaultRuntimeErrorStrategy()
-			privateCfg.contextMissingStrategy = cm
+			globalCfg.contextMissingStrategy = cm
 		} else if cms == ctxmissing.LogErrorStrategy {
 			cm := ctxmissing.NewDefaultLogErrorStrategy()
-			privateCfg.contextMissingStrategy = cm
+			globalCfg.contextMissingStrategy = cm
 		}
 	} else if c.ContextMissingStrategy != nil {
-		privateCfg.contextMissingStrategy = c.ContextMissingStrategy
+		globalCfg.contextMissingStrategy = c.ContextMissingStrategy
 	}
 
 	if c.ServiceVersion != "" {
-		privateCfg.serviceVersion = c.ServiceVersion
+		globalCfg.serviceVersion = c.ServiceVersion
 	}
 
-	privateCfg.logLevel, privateCfg.logFormat = loadLogConfig(c.LogLevel, c.LogFormat)
+	globalCfg.logLevel, globalCfg.logFormat = loadLogConfig(c.LogLevel, c.LogFormat)
 
 	switch len(errors) {
 	case 0:
@@ -182,49 +229,49 @@ func loadLogConfig(logLevel string, logFormat string) (log.LogLevel, string) {
 	return level, format
 }
 
-func (c *privateConfig) DaemonAddr() *net.UDPAddr {
+func (c *globalConfig) DaemonAddr() *net.UDPAddr {
 	c.RLock()
 	defer c.RUnlock()
 	return c.daemonAddr
 }
 
-func (c *privateConfig) SamplingStrategy() sampling.Strategy {
+func (c *globalConfig) SamplingStrategy() sampling.Strategy {
 	c.RLock()
 	defer c.RUnlock()
 	return c.samplingStrategy
 }
 
-func (c *privateConfig) StreamingStrategy() StreamingStrategy {
+func (c *globalConfig) StreamingStrategy() StreamingStrategy {
 	c.RLock()
 	defer c.RUnlock()
 	return c.streamingStrategy
 }
 
-func (c *privateConfig) ExceptionFormattingStrategy() exception.FormattingStrategy {
+func (c *globalConfig) ExceptionFormattingStrategy() exception.FormattingStrategy {
 	c.RLock()
 	defer c.RUnlock()
 	return c.exceptionFormattingStrategy
 }
 
-func (c *privateConfig) ContextMissingStrategy() ctxmissing.Strategy {
+func (c *globalConfig) ContextMissingStrategy() ctxmissing.Strategy {
 	c.RLock()
 	defer c.RUnlock()
 	return c.contextMissingStrategy
 }
 
-func (c *privateConfig) ServiceVersion() string {
+func (c *globalConfig) ServiceVersion() string {
 	c.RLock()
 	defer c.RUnlock()
 	return c.serviceVersion
 }
 
-func (c *privateConfig) LogLevel() log.LogLevel {
+func (c *globalConfig) LogLevel() log.LogLevel {
 	c.RLock()
 	defer c.RUnlock()
 	return c.logLevel
 }
 
-func (c *privateConfig) LogFormat() string {
+func (c *globalConfig) LogFormat() string {
 	c.RLock()
 	defer c.RUnlock()
 	return c.logFormat

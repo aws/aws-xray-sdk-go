@@ -66,6 +66,9 @@ type Segment struct {
 	// Children
 	Subsegments    []json.RawMessage `json:"subsegments,omitempty"`
 	rawSubsegments []*Segment
+
+	// Configuration
+	Configuration	*Config		`json:"-"`
 }
 
 // CauseData provides the shape for unmarshaling data that records exception.
@@ -188,4 +191,12 @@ func (d *HTTPData) GetResponse() *ResponseData {
 		d.Response = &ResponseData{}
 	}
 	return d.Response
+}
+
+// GetConfiguration returns a value of Config.
+func (s *Segment) GetConfiguration() *Config {
+	if s.Configuration == nil {
+		s.Configuration = &Config{}
+	}
+	return s.Configuration
 }

@@ -49,15 +49,20 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 	log.Tracef("Beginning segment named %s", name)
 	seg.ParentSegment = seg
 
+	cfg := GetRecorder(ctx)
+	seg.assignConfiguration(cfg)
+
 	seg.Lock()
 	defer seg.Unlock()
 
 	seg.TraceID = NewTraceID()
 	seg.Sampled = true
 	seg.addPlugin(plugins.InstancePluginMetadata)
-	if svcVersion := privateCfg.ServiceVersion(); svcVersion != "" {
-		seg.GetService().Version = svcVersion
+
+	if seg.ParentSegment.GetConfiguration().ServiceVersion != "" {
+		seg.GetService().Version = seg.ParentSegment.GetConfiguration().ServiceVersion
 	}
+
 	seg.ID = NewSegmentID()
 	seg.Name = name
 	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
@@ -78,6 +83,49 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
+// assignConfiguration assigns value to seg.Configuration
+func (seg *Segment) assignConfiguration(cfg *Config) {
+	seg.Lock()
+	if cfg == nil {
+		seg.GetConfiguration().ContextMissingStrategy = globalCfg.contextMissingStrategy
+		seg.GetConfiguration().ExceptionFormattingStrategy = globalCfg.exceptionFormattingStrategy
+		seg.GetConfiguration().SamplingStrategy = globalCfg.samplingStrategy
+		seg.GetConfiguration().StreamingStrategy = globalCfg.streamingStrategy
+		seg.GetConfiguration().ServiceVersion = globalCfg.serviceVersion
+	} else {
+		if cfg.ContextMissingStrategy != nil {
+			seg.GetConfiguration().ContextMissingStrategy = cfg.ContextMissingStrategy
+		} else {
+			seg.GetConfiguration().ContextMissingStrategy = globalCfg.contextMissingStrategy
+		}
+
+		if cfg.ExceptionFormattingStrategy != nil {
+			seg.GetConfiguration().ExceptionFormattingStrategy = cfg.ExceptionFormattingStrategy
+		} else {
+			seg.GetConfiguration().ExceptionFormattingStrategy = globalCfg.exceptionFormattingStrategy
+		}
+
+		if cfg.SamplingStrategy != nil {
+			seg.GetConfiguration().SamplingStrategy = cfg.SamplingStrategy
+		} else {
+			seg.GetConfiguration().SamplingStrategy = globalCfg.samplingStrategy
+		}
+
+		if cfg.StreamingStrategy != nil {
+			seg.GetConfiguration().StreamingStrategy = cfg.StreamingStrategy
+		} else {
+			seg.GetConfiguration().StreamingStrategy = globalCfg.streamingStrategy
+		}
+
+		if cfg.ServiceVersion != "" {
+			seg.GetConfiguration().ServiceVersion = cfg.ServiceVersion
+		} else {
+			seg.GetConfiguration().ServiceVersion = globalCfg.serviceVersion
+		}
+	}
+	seg.Unlock()
+}
+
 // BeginSubsegment creates a subsegment for a given name and context.
 func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segment) {
 	if len(name) > 200 {
@@ -85,7 +133,13 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	}
 	parent := GetSegment(ctx)
 	if parent == nil {
-		privateCfg.ContextMissingStrategy().ContextMissing(fmt.Sprintf("failed to begin subsegment named '%v': segment cannot be found.", name))
+		cfg := GetRecorder(ctx)
+		failedMessage := fmt.Sprintf("failed to begin subsegment named '%v': segment cannot be found.", name)
+		if cfg != nil && cfg.ContextMissingStrategy != nil {
+			cfg.ContextMissingStrategy.ContextMissing(failedMessage)
+		} else {
+			globalCfg.ContextMissingStrategy().ContextMissing(failedMessage)
+		}
 		return nil, nil
 	}
 
@@ -145,24 +199,24 @@ func (seg *Segment) Close(err error) {
 }
 
 // Close a subsegment and send it.
-func (seg *Segment) CloseAndStream(subseg *Segment, err error) {
+func (subseg *Segment) CloseAndStream(err error) {
 	subseg.Lock()
 
 	if subseg.parent != nil {
 		log.Tracef("Ending subsegment named: %s", subseg.Name)
 		subseg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
 		subseg.InProgress = false
+		subseg.Emitted = true
+		if subseg.parent.RemoveSubsegment(subseg) {
+			log.Tracef("Removing subsegment named: %s", subseg.Name)
+		}
 	}
 
 	if err != nil {
 		subseg.AddError(err)
 	}
 
-	subseg.Emitted = true
-	if seg.RemoveSubsegment(subseg) {
-		log.Tracef("Removing subsegment named: %s", subseg.Name)
-	}
-	subseg.parent = nil
+	subseg.beforeEmitSubsegment(subseg.parent)
 	subseg.Unlock()
 
 	Emit(subseg)
@@ -237,6 +291,14 @@ func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
 	}
 }
 
+func (sub *Segment) beforeEmitSubsegment(seg *Segment) {
+	sub.TraceID = seg.root().TraceID
+	sub.ParentID = seg.ID
+	sub.Type = "subsegment"
+	sub.RequestWasTraced = seg.RequestWasTraced
+	sub.parent = nil
+}
+
 // AddAnnotation allows adding an annotation to the segment.
 func (seg *Segment) AddAnnotation(key string, value interface{}) error {
 	switch value.(type) {
@@ -292,7 +354,7 @@ func (seg *Segment) AddError(err error) error {
 
 	seg.Fault = true
 	seg.GetCause().WorkingDirectory, _ = os.Getwd()
-	seg.GetCause().Exceptions = append(seg.GetCause().Exceptions, privateCfg.ExceptionFormattingStrategy().ExceptionFromError(err))
+	seg.GetCause().Exceptions = append(seg.GetCause().Exceptions, seg.ParentSegment.GetConfiguration().ExceptionFormattingStrategy.ExceptionFromError(err))
 
 	return nil
 }
