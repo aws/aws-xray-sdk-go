@@ -81,7 +81,7 @@ func (dSN *DynamicSegmentNamer) Name(host string) string {
 
 // Handler wraps the provided http handler with xray.Capture
 // using the request's context, parsing the incoming headers,
-// adding response headers if needed, and sets HTTP sepecific trace fields.
+// adding response headers if needed, and sets HTTP specific trace fields.
 // Handler names the generated segments using the provided SegmentNamer.
 func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
