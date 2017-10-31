@@ -9,12 +9,12 @@
 package xray
 
 import (
+	"time"
 	"encoding/json"
-	"fmt"
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
-	"time"
+	"fmt"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNoNeedStreamingStrategy(t *testing.T) {
@@ -38,7 +38,7 @@ func TestStreamingSegmentsOnChildNode(t *testing.T) {
 	assert.NoError(t, json.Unmarshal([]byte(getTestSegment()), &subSeg))
 	subSeg.parent = seg
 	seg.ParentSegment = seg
-	subSeg.ParentSegment = subSeg.parent.ParentSegment
+	subSeg.ParentSegment = seg.ParentSegment
 	seg.Sampled = true
 	seg.totalSubSegments = 22
 

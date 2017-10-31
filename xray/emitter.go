@@ -28,6 +28,7 @@ type emitter struct {
 var e = &emitter{}
 
 func init() {
+	initLambda()
 	refreshEmitter()
 }
 

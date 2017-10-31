@@ -69,6 +69,9 @@ type Segment struct {
 
 	// Configuration
 	Configuration	*Config		`json:"-"`
+
+	// Lambda
+	Facade 		bool 		`json:"-"`
 }
 
 // CauseData provides the shape for unmarshaling data that records exception.

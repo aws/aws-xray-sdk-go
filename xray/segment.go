@@ -40,14 +40,19 @@ func NewSegmentID() string {
 	return fmt.Sprintf("%02x", r)
 }
 
+// FacadeSegment creates a Segment for a given name and context.
+func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (context.Context, *Segment) {
+	seg := basicSegment(name, h)
+
+	cfg := GetRecorder(ctx)
+	seg.assignConfiguration(cfg)
+
+	return context.WithValue(ctx, ContextKey, seg), seg
+}
+
 // BeginSegment creates a Segment for a given name and context.
 func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) {
-	if len(name) > 200 {
-		name = name[:200]
-	}
-	seg := &Segment{parent: nil}
-	log.Tracef("Beginning segment named %s", name)
-	seg.ParentSegment = seg
+	seg := basicSegment(name, nil)
 
 	cfg := GetRecorder(ctx)
 	seg.assignConfiguration(cfg)
@@ -55,18 +60,10 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 	seg.Lock()
 	defer seg.Unlock()
 
-	seg.TraceID = NewTraceID()
-	seg.Sampled = true
 	seg.addPlugin(plugins.InstancePluginMetadata)
-
 	if seg.ParentSegment.GetConfiguration().ServiceVersion != "" {
 		seg.GetService().Version = seg.ParentSegment.GetConfiguration().ServiceVersion
 	}
-
-	seg.ID = NewSegmentID()
-	seg.Name = name
-	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
-	seg.InProgress = true
 
 	go func() {
 		select {
@@ -81,6 +78,35 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 	}()
 
 	return context.WithValue(ctx, ContextKey, seg), seg
+}
+
+func basicSegment(name string, h *header.Header) *Segment {
+	if len(name) > 200 {
+		name = name[:200]
+	}
+	seg := &Segment{parent: nil}
+	log.Tracef("Beginning segment named %s", name)
+	seg.ParentSegment = seg
+
+	seg.Lock()
+	defer seg.Unlock()
+
+	seg.Name = name
+	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
+	seg.InProgress = true
+
+	if h == nil {
+		seg.TraceID = NewTraceID()
+		seg.ID = NewSegmentID()
+		seg.Sampled = true
+	} else {
+		seg.Facade = true
+		seg.ID = h.ParentID
+		seg.TraceID = h.TraceID
+		seg.Sampled = h.SamplingDecision == header.Sampled
+	}
+
+	return seg
 }
 
 // assignConfiguration assigns value to seg.Configuration
@@ -131,16 +157,23 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	if len(name) > 200 {
 		name = name[:200]
 	}
-	parent := GetSegment(ctx)
-	if parent == nil {
-		cfg := GetRecorder(ctx)
-		failedMessage := fmt.Sprintf("failed to begin subsegment named '%v': segment cannot be found.", name)
-		if cfg != nil && cfg.ContextMissingStrategy != nil {
-			cfg.ContextMissingStrategy.ContextMissing(failedMessage)
-		} else {
-			globalCfg.ContextMissingStrategy().ContextMissing(failedMessage)
+
+	parent := &Segment{}
+	// first time to create facade segment
+	if getTraceHeaderFromContext(ctx) != nil && GetSegment(ctx) == nil {
+		_, parent = newFacadeSegment(ctx)
+	} else {
+		parent = GetSegment(ctx)
+		if parent == nil {
+			cfg := GetRecorder(ctx)
+			failedMessage := fmt.Sprintf("failed to begin subsegment named '%v': segment cannot be found.", name)
+			if cfg != nil && cfg.ContextMissingStrategy != nil {
+				cfg.ContextMissingStrategy.ContextMissing(failedMessage)
+			} else {
+				globalCfg.ContextMissingStrategy().ContextMissing(failedMessage)
+			}
+			return nil, nil
 		}
-		return nil, nil
 	}
 
 	seg := &Segment{parent: parent}
@@ -255,6 +288,13 @@ func (seg *Segment) flush(decrement bool) {
 			seg.Emitted = true
 			seg.Unlock()
 			Emit(seg)
+		} else if seg.parent != nil && seg.parent.Facade {
+			seg.Lock()
+			seg.Emitted = true
+			seg.beforeEmitSubsegment(seg.parent)
+			seg.Unlock()
+			log.Tracef("emit lambda subsegment named: %v", seg.Name)
+			Emit(seg)
 		} else {
 			seg.parent.flush(true)
 		}
@@ -269,7 +309,7 @@ func (seg *Segment) root() *Segment {
 }
 
 func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
-	//Only called within a seg locked code block
+	// Only called within a seg locked code block
 	if metadata == nil {
 		return
 	}
@@ -292,6 +332,7 @@ func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
 }
 
 func (sub *Segment) beforeEmitSubsegment(seg *Segment) {
+	// Only called within a subsegment locked code block
 	sub.TraceID = seg.root().TraceID
 	sub.ParentID = seg.ID
 	sub.Type = "subsegment"

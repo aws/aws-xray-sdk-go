@@ -107,7 +107,6 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 		name := sn.Name(r.Host)
 
 		traceHeader := header.FromString(r.Header.Get("x-amzn-trace-id"))
-
 		ctx, seg := NewSegmentFromHeader(r.Context(), name, traceHeader)
 
 		r = r.WithContext(ctx)
