@@ -48,7 +48,11 @@ type roundtripper struct {
 // RoundTrip wraps a single HTTP transaction and add corresponding information into a subsegment.
 func (rt *roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	var resp *http.Response
-	err := Capture(r.Context(), r.Host, func(ctx context.Context) error {
+	host := r.Host
+	if host == "" {
+		host = r.URL.Host
+	}
+	err := Capture(r.Context(), host, func(ctx context.Context) error {
 		var err error
 		seg := GetSegment(ctx)
 		if seg == nil {
