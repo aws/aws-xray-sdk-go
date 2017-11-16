@@ -36,7 +36,7 @@ Please use these community resources for getting help. We use the GitHub issues 
 
 If you encounter a bug with the AWS X-Ray SDK for Go we would like to hear about it. Search the [existing issues](https://github.com/aws/aws-xray-sdk-go/issues) and see if others are also experiencing the issue before opening a new issue. Please include the version of AWS X-Ray SDK for Go, AWS SDK for Go, Go language, and OS you’re using. Please also include repro case when appropriate.
 
-The GitHub issues are intended for bug reports and feature requests. For help and questions with using AWS SDK for Go please make use of the resources listed in the [Getting Help](https://github.com/aws/aws-xray-sdk-go#getting-help) section. Keeping the list of open issues lean will help us respond in a timely manner.
+The GitHub issues are intended for bug reports and feature requests. For help and questions regarding the use of the AWS X-Ray SDK for Go please make use of the resources listed in the [Getting Help](https://github.com/aws/aws-xray-sdk-go#getting-help) section. Keeping the list of open issues lean will help us respond in a timely manner.
 
 ## Documentation
 
