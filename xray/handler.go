@@ -118,8 +118,12 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Request) {
 	seg.Lock()
 
+	scheme := "https://"
+	if r.TLS == nil {
+		scheme = "http://"
+	}
 	seg.GetHTTP().GetRequest().Method = r.Method
-	seg.GetHTTP().GetRequest().URL = r.URL.String()
+	seg.GetHTTP().GetRequest().URL = scheme + r.Host + r.URL.Path
 	seg.GetHTTP().GetRequest().ClientIP, seg.GetHTTP().GetRequest().XForwardedFor = clientIP(r)
 	seg.GetHTTP().GetRequest().UserAgent = r.UserAgent()
 
@@ -144,7 +148,7 @@ func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Requ
 		seg.Sampled = true
 		log.Trace("Incoming header decided: Sampled=true")
 	default:
-		seg.Sampled = seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(r.Host, r.URL.String(), r.Method)
+		seg.Sampled = seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(r.Host, r.URL.Path, r.Method)
 		log.Tracef("SamplingStrategy decided: %t", seg.Sampled)
 	}
 	if trace["Sampled"] == "?" {
