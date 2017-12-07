@@ -325,6 +325,10 @@ func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
 	if metadata.BeanstalkMetadata != nil {
 		seg.GetAWS()[plugins.EBServiceName] = metadata.BeanstalkMetadata
 	}
+
+	if metadata.Origin != "" {
+		seg.Origin = metadata.Origin
+	}
 }
 
 func (sub *Segment) beforeEmitSubsegment(seg *Segment) {

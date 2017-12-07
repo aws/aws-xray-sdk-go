@@ -15,6 +15,8 @@ import (
 	log "github.com/cihub/seelog"
 )
 
+const Origin = "AWS::ECS::Container"
+
 func init() {
 	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.ECSMetadata == nil {
 		addPluginMetadata(plugins.InstancePluginMetadata)
@@ -30,4 +32,5 @@ func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
 	}
 
 	pluginmd.ECSMetadata = &plugins.ECSMetadata{ContainerName: hostname}
+	pluginmd.Origin = Origin
 }

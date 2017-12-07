@@ -52,7 +52,8 @@ import (
 
   "github.com/aws/aws-xray-sdk-go/xray"
 
-  // Importing the plugins enables collection of AWS resource information at runtime
+  // Importing the plugins enables collection of AWS resource information at runtime.
+  // Every plugin should be imported after "github.com/aws/aws-xray-sdk-go/xray" library.
   _ "github.com/aws/aws-xray-sdk-go/plugins/ec2"
   _ "github.com/aws/aws-xray-sdk-go/plugins/beanstalk"
   _ "github.com/aws/aws-xray-sdk-go/plugins/ecs"

@@ -16,6 +16,8 @@ import (
 	log "github.com/cihub/seelog"
 )
 
+const Origin = "AWS::ElasticBeanstalk::Environment"
+
 func init() {
 	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.BeanstalkMetadata == nil {
 		addPluginMetadata(plugins.InstancePluginMetadata)
@@ -39,4 +41,5 @@ func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
 	}
 
 	pluginmd.BeanstalkMetadata = config
+	pluginmd.Origin = Origin
 }

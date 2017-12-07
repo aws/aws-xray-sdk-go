@@ -30,6 +30,9 @@ type PluginMetadata struct {
 
 	// ECSMetadata records the ECS container ID.
 	ECSMetadata *ECSMetadata
+
+	// Origin records original service of the segment.
+	Origin string
 }
 
 // EC2Metadata provides the shape for unmarshalling EC2 metadata.

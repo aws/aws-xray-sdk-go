@@ -15,6 +15,8 @@ import (
 	log "github.com/cihub/seelog"
 )
 
+const Origin = "AWS::EC2::Instance"
+
 func init() {
 	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.EC2Metadata == nil {
 		addPluginMetadata(plugins.InstancePluginMetadata)
@@ -35,4 +37,5 @@ func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
 	}
 
 	pluginmd.EC2Metadata = &plugins.EC2Metadata{InstanceID: doc.InstanceID, AvailabilityZone: doc.AvailabilityZone}
+	pluginmd.Origin = Origin
 }
