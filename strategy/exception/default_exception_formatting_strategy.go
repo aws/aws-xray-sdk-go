@@ -23,7 +23,7 @@ type StackTracer interface {
 	StackTrace() []uintptr
 }
 
-// Exception provides the shape for unmarshaling an exception.
+// Exception provides the shape for unmarshalling an exception.
 type Exception struct {
 	ID      string  `json:"id,omitempty"`
 	Type    string  `json:"type,omitempty"`
@@ -31,7 +31,7 @@ type Exception struct {
 	Stack   []Stack `json:"stack,omitempty"`
 }
 
-// Stack provides the shape for unmarshaling an stack.
+// Stack provides the shape for unmarshalling an stack.
 type Stack struct {
 	Path  string `json:"path,omitempty"`
 	Line  int    `json:"line,omitempty"`

@@ -313,21 +313,17 @@ func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
 	if metadata == nil {
 		return
 	}
-
-	if metadata.IdentityDocument != nil {
-		seg.GetAWS()["account_id"] = metadata.IdentityDocument.AccountID
-		seg.GetAWS()["instance_id"] = metadata.IdentityDocument.InstanceID
-		seg.GetAWS()["availability_zone"] = metadata.IdentityDocument.AvailabilityZone
+	
+	if metadata.EC2Metadata != nil {
+		seg.GetAWS()[plugins.EC2ServiceName] = metadata.EC2Metadata
 	}
 
-	if metadata.ECSContainerName != "" {
-		seg.GetAWS()["container"] = metadata.ECSContainerName
+	if metadata.ECSMetadata != nil {
+		seg.GetAWS()[plugins.ECSServiceName] = metadata.ECSMetadata
 	}
 
 	if metadata.BeanstalkMetadata != nil {
-		seg.GetAWS()["environment"] = metadata.BeanstalkMetadata.Environment
-		seg.GetAWS()["version_label"] = metadata.BeanstalkMetadata.VersionLabel
-		seg.GetAWS()["deployment_id"] = metadata.BeanstalkMetadata.DeploymentID
+		seg.GetAWS()[plugins.EBServiceName] = metadata.BeanstalkMetadata
 	}
 }
 

@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.IdentityDocument == nil {
+	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.EC2Metadata == nil {
 		addPluginMetadata(plugins.InstancePluginMetadata)
 	}
 }
@@ -34,5 +34,5 @@ func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
 		return
 	}
 
-	pluginmd.IdentityDocument = &doc
+	pluginmd.EC2Metadata = &plugins.EC2Metadata{InstanceID: doc.InstanceID, AvailabilityZone: doc.AvailabilityZone}
 }

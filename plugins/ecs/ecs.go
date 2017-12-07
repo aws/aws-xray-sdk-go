@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.ECSContainerName == "" {
+	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.ECSMetadata == nil {
 		addPluginMetadata(plugins.InstancePluginMetadata)
 	}
 }
@@ -29,5 +29,5 @@ func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
 		return
 	}
 
-	pluginmd.ECSContainerName = hostname
+	pluginmd.ECSMetadata = &plugins.ECSMetadata{ContainerName: hostname}
 }
