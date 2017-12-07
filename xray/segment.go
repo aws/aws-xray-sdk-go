@@ -313,7 +313,7 @@ func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
 	if metadata == nil {
 		return
 	}
-	
+
 	if metadata.EC2Metadata != nil {
 		seg.GetAWS()[plugins.EC2ServiceName] = metadata.EC2Metadata
 	}
