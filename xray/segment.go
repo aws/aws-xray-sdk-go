@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"runtime"
 
 	"github.com/aws/aws-xray-sdk-go/header"
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
@@ -61,6 +62,7 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 	defer seg.Unlock()
 
 	seg.addPlugin(plugins.InstancePluginMetadata)
+	seg.addSDKAndServiceInformation()
 	if seg.ParentSegment.GetConfiguration().ServiceVersion != "" {
 		seg.GetService().Version = seg.ParentSegment.GetConfiguration().ServiceVersion
 	}
@@ -329,6 +331,13 @@ func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
 	if metadata.Origin != "" {
 		seg.Origin = metadata.Origin
 	}
+}
+
+func (seg *Segment) addSDKAndServiceInformation() {
+	seg.GetAWS()["xray"] = SDK{Version: SDKVersion, Type: SDKType}
+
+	seg.GetService().Compiler = runtime.Compiler
+	seg.GetService().CompilerVersion = runtime.Version()
 }
 
 func (sub *Segment) beforeEmitSubsegment(seg *Segment) {

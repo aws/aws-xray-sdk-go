@@ -21,6 +21,14 @@ import (
 	log "github.com/cihub/seelog"
 )
 
+const SDKVersion = "1.0.0"
+const SDKType = "X-Ray for Go"
+
+type SDK struct {
+	Version string  `json:"sdk_version,omitempty"`
+	Type    string	`json:"sdk,omitempty"`
+}
+
 var globalCfg = newGlobalConfig()
 
 func newGlobalConfig() *globalConfig {
