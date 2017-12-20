@@ -9,8 +9,8 @@
 package sampling
 
 import (
+	"github.com/aws/aws-xray-sdk-go/logger"
 	"github.com/aws/aws-xray-sdk-go/resources"
-	log "github.com/cihub/seelog"
 )
 
 // LocalizedStrategy makes trace sampling decisions based on
@@ -60,15 +60,15 @@ func NewLocalizedStrategyFromJSONBytes(b []byte) (*LocalizedStrategy, error) {
 // ShouldTrace consults the LocalizedStrategy's rule set to determine
 // if the given request should be traced or not.
 func (lss *LocalizedStrategy) ShouldTrace(serviceName string, path string, method string) bool {
-	log.Tracef("Determining ShouldTrace decision for:\n\tserviceName: %s\n\tpath: %s\n\tmethod: %s", serviceName, path, method)
+	logger.Debugf("Determining ShouldTrace decision for:\n\tserviceName: %s\n\tpath: %s\n\tmethod: %s", serviceName, path, method)
 	if nil != lss.manifest.Rules {
 		for _, r := range lss.manifest.Rules {
 			if r.AppliesTo(serviceName, path, method) {
-				log.Tracef("Applicable rule:\n\tfixed_target: %d\n\trate: %f\n\tservice_name: %s\n\turl_path: %s\n\thttp_method: %s", r.FixedTarget, r.Rate, r.ServiceName, r.URLPath, r.HTTPMethod)
+				logger.Debugf("Applicable rule:\n\tfixed_target: %d\n\trate: %f\n\tservice_name: %s\n\turl_path: %s\n\thttp_method: %s", r.FixedTarget, r.Rate, r.ServiceName, r.URLPath, r.HTTPMethod)
 				return r.Sample()
 			}
 		}
 	}
-	log.Tracef("Default rule applies:\n\tfixed_target: %d\n\trate: %f", lss.manifest.Default.FixedTarget, lss.manifest.Default.Rate)
+	logger.Debugf("Default rule applies:\n\tfixed_target: %d\n\trate: %f", lss.manifest.Default.FixedTarget, lss.manifest.Default.Rate)
 	return lss.manifest.Default.Sample()
 }

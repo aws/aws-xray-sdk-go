@@ -9,15 +9,14 @@
 package xray
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"sync"
 
+	"github.com/aws/aws-xray-sdk-go/logger"
 	"github.com/aws/aws-xray-sdk-go/strategy/ctxmissing"
 	"github.com/aws/aws-xray-sdk-go/strategy/exception"
 	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
-	log "github.com/cihub/seelog"
 )
 
 var privateCfg = newPrivateConfig()
@@ -28,8 +27,6 @@ func newPrivateConfig() *privateConfig {
 			IP:   net.IPv4(127, 0, 0, 1),
 			Port: 2000,
 		},
-		logLevel:  log.InfoLvl,
-		logFormat: "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n",
 	}
 
 	ss, err := sampling.NewLocalizedStrategy()
@@ -66,8 +63,7 @@ type privateConfig struct {
 	streamingStrategy           StreamingStrategy
 	exceptionFormattingStrategy exception.FormattingStrategy
 	contextMissingStrategy      ctxmissing.Strategy
-	logLevel                    log.LogLevel
-	logFormat                   string
+	logger                      logger.Logger
 }
 
 // Config is a set of X-Ray configurations.
@@ -78,8 +74,7 @@ type Config struct {
 	StreamingStrategy           StreamingStrategy
 	ExceptionFormattingStrategy exception.FormattingStrategy
 	ContextMissingStrategy      ctxmissing.Strategy
-	LogLevel                    string
-	LogFormat                   string
+	Logger                      logger.Logger
 }
 
 // Configure overrides default configuration options with customer-defined values.
@@ -135,7 +130,10 @@ func Configure(c Config) error {
 		privateCfg.serviceVersion = c.ServiceVersion
 	}
 
-	privateCfg.logLevel, privateCfg.logFormat = loadLogConfig(c.LogLevel, c.LogFormat)
+	if c.Logger != nil {
+		privateCfg.logger = c.Logger
+		logger.InjectLogger(privateCfg.logger)
+	}
 
 	switch len(errors) {
 	case 0:
@@ -145,41 +143,6 @@ func Configure(c Config) error {
 	default:
 		return errors
 	}
-}
-
-func loadLogConfig(logLevel string, logFormat string) (log.LogLevel, string) {
-	var level log.LogLevel
-	var format string
-
-	switch logLevel {
-	case "trace":
-		level = log.TraceLvl
-	case "debug":
-		level = log.DebugLvl
-	case "info":
-		level = log.InfoLvl
-	case "warn":
-		level = log.WarnLvl
-	case "error":
-		level = log.ErrorLvl
-	default:
-		level = log.InfoLvl
-		logLevel = "info"
-	}
-
-	if logFormat != "" {
-		format = logFormat
-	} else {
-		format = "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n"
-	}
-
-	writer, _ := log.NewConsoleWriter()
-	logger, err := log.LoggerFromWriterWithMinLevelAndFormat(writer, level, format)
-	if err != nil {
-		panic(fmt.Errorf("failed to create logs as StdOut: %v", err))
-	}
-	log.ReplaceLogger(logger)
-	return level, format
 }
 
 func (c *privateConfig) DaemonAddr() *net.UDPAddr {
@@ -218,14 +181,8 @@ func (c *privateConfig) ServiceVersion() string {
 	return c.serviceVersion
 }
 
-func (c *privateConfig) LogLevel() log.LogLevel {
+func (c *privateConfig) Logger() logger.Logger {
 	c.RLock()
 	defer c.RUnlock()
-	return c.logLevel
-}
-
-func (c *privateConfig) LogFormat() string {
-	c.RLock()
-	defer c.RUnlock()
-	return c.logFormat
+	return c.logger
 }

@@ -88,8 +88,6 @@ func ResetConfig() {
 
 	Configure(Config{
 		DaemonAddr:                  "127.0.0.1:2000",
-		LogLevel:                    "info",
-		LogFormat:                   "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n",
 		SamplingStrategy:            ss,
 		StreamingStrategy:           sms,
 		ExceptionFormattingStrategy: efs,
@@ -99,16 +97,12 @@ func ResetConfig() {
 
 func TestDefaultConfigureParameters(t *testing.T) {
 	daemonAddr := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 2000}
-	logLevel := "info"
-	logFormat := "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n"
 	ss, _ := sampling.NewLocalizedStrategy()
 	efs, _ := exception.NewDefaultFormattingStrategy()
 	sms, _ := NewDefaultStreamingStrategy()
 	cms := ctxmissing.NewDefaultRuntimeErrorStrategy()
 
 	assert.Equal(t, daemonAddr, privateCfg.daemonAddr)
-	assert.Equal(t, logLevel, privateCfg.logLevel.String())
-	assert.Equal(t, logFormat, privateCfg.logFormat)
 	assert.Equal(t, ss, privateCfg.samplingStrategy)
 	assert.Equal(t, efs, privateCfg.exceptionFormattingStrategy)
 	assert.Equal(t, "", privateCfg.serviceVersion)
@@ -118,8 +112,6 @@ func TestDefaultConfigureParameters(t *testing.T) {
 
 func TestSetConfigureParameters(t *testing.T) {
 	daemonAddr := "127.0.0.1:3000"
-	logLevel := "error"
-	logFormat := "[%Level] %Msg%n"
 	serviceVersion := "TestVersion"
 
 	ss := &TestSamplingStrategy{}
@@ -134,13 +126,9 @@ func TestSetConfigureParameters(t *testing.T) {
 		ExceptionFormattingStrategy: efs,
 		StreamingStrategy:           sms,
 		ContextMissingStrategy:      cms,
-		LogLevel:                    logLevel,
-		LogFormat:                   logFormat,
 	})
 
 	assert.Equal(t, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 3000}, privateCfg.daemonAddr)
-	assert.Equal(t, logLevel, privateCfg.logLevel.String())
-	assert.Equal(t, logFormat, privateCfg.logFormat)
 	assert.Equal(t, ss, privateCfg.samplingStrategy)
 	assert.Equal(t, efs, privateCfg.exceptionFormattingStrategy)
 	assert.Equal(t, sms, privateCfg.streamingStrategy)

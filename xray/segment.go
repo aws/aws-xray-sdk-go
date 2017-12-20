@@ -17,7 +17,7 @@ import (
 
 	"github.com/aws/aws-xray-sdk-go/header"
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
-	log "github.com/cihub/seelog"
+	"github.com/aws/aws-xray-sdk-go/logger"
 )
 
 // NewTraceID generates a string format of random trace ID.
@@ -46,7 +46,7 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 		name = name[:200]
 	}
 	seg := &Segment{parent: nil}
-	log.Tracef("Beginning segment named %s", name)
+	logger.Debugf("Beginning segment named %s", name)
 	seg.ParentSegment = seg
 
 	seg.Lock()
@@ -66,12 +66,7 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 	go func() {
 		select {
 		case <-ctx.Done():
-			seg.Lock()
-			seg.ContextDone = true
-			seg.Unlock()
-			if !seg.InProgress && !seg.Emitted {
-				seg.flush(false)
-			}
+			seg.handleContextDone()
 		}
 	}()
 
@@ -90,7 +85,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	}
 
 	seg := &Segment{parent: parent}
-	log.Tracef("Beginning subsegment named %s", name)
+	logger.Debugf("Beginning subsegment named %s", name)
 	seg.ParentSegment = parent.ParentSegment
 	seg.ParentSegment.totalSubSegments++
 	seg.Lock()
@@ -127,22 +122,21 @@ func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (c
 
 // Close a segment.
 func (seg *Segment) Close(err error) {
-
 	seg.Lock()
+	defer seg.Unlock()
 	if seg.parent != nil {
-		log.Tracef("Closing subsegment named %s", seg.Name)
+		logger.Debugf("Closing subsegment named %s", seg.Name)
 	} else {
-		log.Tracef("Closing segment named %s", seg.Name)
+		logger.Debugf("Closing segment named %s", seg.Name)
 	}
 	seg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = false
-	seg.Unlock()
 
 	if err != nil {
-		seg.AddError(err)
+		seg.addError(err)
 	}
 
-	seg.flush(false)
+	seg.flush()
 }
 
 // RemoveSubsegment removes a subsegment child from a segment or subsegment.
@@ -164,15 +158,44 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 	return false
 }
 
+func (seg *Segment) handleContextDone() {
+	seg.Lock()
+	defer seg.Unlock()
+
+	seg.ContextDone = true
+	if !seg.InProgress && !seg.Emitted {
+		seg.flush()
+	}
+}
+
+func (seg *Segment) flush() {
+	if (seg.openSegments == 0 && seg.EndTime > 0) || seg.ContextDone {
+		if seg.parent == nil {
+			seg.Emitted = true
+			emit(seg)
+		} else {
+			seg.parent.safeFlush()
+		}
+	}
+}
+
+func (seg *Segment) safeFlush() {
+	seg.Lock()
+	defer seg.Unlock()
+	seg.openSegments--
+	seg.flush()
+}
+
+/*
 func (seg *Segment) flush(decrement bool) {
 	seg.Lock()
 	if decrement {
 		seg.openSegments--
 	}
-	shouldFlush := (seg.openSegments == 0 && seg.EndTime > 0) || seg.ContextDone
+	flush := (seg.openSegments == 0 && seg.EndTime > 0) || seg.ContextDone
 	seg.Unlock()
 
-	if shouldFlush {
+	if flush {
 		if seg.parent == nil {
 			seg.Lock()
 			seg.Emitted = true
@@ -183,6 +206,7 @@ func (seg *Segment) flush(decrement bool) {
 		}
 	}
 }
+*/
 
 func (seg *Segment) root() *Segment {
 	if seg.parent == nil {
@@ -262,14 +286,18 @@ func (seg *Segment) AddMetadataToNamespace(namespace string, key string, value i
 	return nil
 }
 
-// AddError allows adding an error to the segment.
-func (seg *Segment) AddError(err error) error {
-	seg.Lock()
-	defer seg.Unlock()
-
+func (seg *Segment) addError(err error) error {
 	seg.Fault = true
 	seg.GetCause().WorkingDirectory, _ = os.Getwd()
 	seg.GetCause().Exceptions = append(seg.GetCause().Exceptions, privateCfg.ExceptionFormattingStrategy().ExceptionFromError(err))
 
 	return nil
+}
+
+// AddError allows adding an error to the segment.
+func (seg *Segment) AddError(err error) error {
+	seg.Lock()
+	defer seg.Unlock()
+
+	return seg.addError(err)
 }

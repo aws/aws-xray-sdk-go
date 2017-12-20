@@ -13,7 +13,8 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"strconv"
-	log "github.com/cihub/seelog"
+
+	"github.com/aws/aws-xray-sdk-go/logger"
 )
 
 // Client creates a shallow copy of the provided http client,
@@ -57,10 +58,10 @@ func (rt *roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
 		seg := GetSegment(ctx)
 		if seg == nil {
 			resp, err = rt.Base.RoundTrip(r)
-			log.Warnf("failed to record HTTP transaction: segment cannot be found.")
+			logger.Warnf("failed to record HTTP transaction: segment cannot be found.")
 			return err
 		}
-		
+
 		ct, e := NewClientTrace(ctx)
 		if e != nil {
 			return e

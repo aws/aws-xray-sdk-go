@@ -21,7 +21,6 @@ func Capture(ctx context.Context, name string, fn func(context.Context) error) (
 	defer func() {
 		if seg != nil {
 			seg.Close(err)
-
 		} else {
 			privateCfg.ContextMissingStrategy().ContextMissing(fmt.Sprintf("failed to end subsegment: subsegment '%v' cannot be found.", name))
 		}
