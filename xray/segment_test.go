@@ -6,28 +6,20 @@
 //
 // or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package ecs
+package xray
 
 import (
-	"os"
-
-	"github.com/aws/aws-xray-sdk-go/internal/plugins"
-	"github.com/aws/aws-xray-sdk-go/logger"
+	"context"
+	"testing"
 )
 
-func init() {
-	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.ECSContainerName == "" {
-		addPluginMetadata(plugins.InstancePluginMetadata)
+func TestSegmentDataRace(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	for i := 0; i < 10; i += 1 { // flakey data race test, so we run it multiple times
+		_, seg := BeginSegment(ctx, "TestSegment")
+
+		go seg.Close(nil)
+		cancel()
 	}
-}
-
-func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
-	hostname, err := os.Hostname()
-
-	if err != nil {
-		logger.Errorf("Unable to retrieve hostname from OS. %v", err)
-		return
-	}
-
-	pluginmd.ECSContainerName = hostname
 }

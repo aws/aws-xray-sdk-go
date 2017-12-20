@@ -14,7 +14,7 @@ import (
 	"net"
 	"sync"
 
-	log "github.com/cihub/seelog"
+	"github.com/aws/aws-xray-sdk-go/logger"
 )
 
 // Header is added before sending segments to daemon.
@@ -43,24 +43,19 @@ func emit(seg *Segment) {
 	}
 
 	for _, p := range packSegments(seg, nil) {
-		if privateCfg.LogLevel() <= log.TraceLvl {
-			b := &bytes.Buffer{}
-			json.Indent(b, p, "", " ")
-			log.Trace(b.String())
-		}
+		b := &bytes.Buffer{}
+		json.Indent(b, p, "", " ")
+		logger.Debug(b.String())
 		e.Lock()
 		_, err := e.conn.Write(append(Header, p...))
 		if err != nil {
-			log.Error(err)
+			logger.Error(err.Error())
 		}
 		e.Unlock()
 	}
 }
 
 func packSegments(seg *Segment, outSegments [][]byte) [][]byte {
-	seg.Lock()
-	defer seg.Unlock()
-
 	trimSubsegment := func(s *Segment) []byte {
 		ss := privateCfg.StreamingStrategy()
 		for ss.RequiresStreaming(s) {
