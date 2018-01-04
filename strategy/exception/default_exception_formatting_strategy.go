@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
 // StackTracer is an interface for implementing StackTrace method.
@@ -29,6 +30,7 @@ type Exception struct {
 	Type    string  `json:"type,omitempty"`
 	Message string  `json:"message,omitempty"`
 	Stack   []Stack `json:"stack,omitempty"`
+	Remote  bool    `json:"remote,omitempty"`
 }
 
 // Stack provides the shape for unmarshalling an stack.
@@ -113,10 +115,18 @@ func (dEFS *DefaultFormattingStrategy) Panicf(formatString string, args ...inter
 
 // ExceptionFromError takes an error and returns value of Exception
 func (dEFS *DefaultFormattingStrategy) ExceptionFromError(err error) Exception {
+	var isRemote bool
+	if reqErr, ok := err.(awserr.RequestFailure); ok {
+		// A service error occurs
+		if reqErr.RequestID() != "" {
+			isRemote = true
+		}
+	}
 	e := Exception{
 		ID:      newExceptionID(),
 		Type:    "error",
 		Message: err.Error(),
+		Remote:  isRemote,
 	}
 
 	if err, ok := err.(*XRayError); ok {
