@@ -127,7 +127,9 @@ func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (c
 
 // Close a segment.
 func (seg *Segment) Close(err error) {
-
+	if seg == nil {
+		return
+	}
 	seg.Lock()
 	if seg.parent != nil {
 		log.Tracef("Closing subsegment named %s", seg.Name)
@@ -147,6 +149,9 @@ func (seg *Segment) Close(err error) {
 
 // RemoveSubsegment removes a subsegment child from a segment or subsegment.
 func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
+	if seg == nil {
+		return true
+	}
 	seg.Lock()
 	defer seg.Unlock()
 
@@ -216,6 +221,9 @@ func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
 
 // AddAnnotation allows adding an annotation to the segment.
 func (seg *Segment) AddAnnotation(key string, value interface{}) error {
+	if seg == nil {
+		return nil
+	}
 	switch value.(type) {
 	case bool, int, uint, float32, float64, string:
 	default:
@@ -234,6 +242,9 @@ func (seg *Segment) AddAnnotation(key string, value interface{}) error {
 
 // AddMetadata allows adding metadata to the segment.
 func (seg *Segment) AddMetadata(key string, value interface{}) error {
+	if seg == nil {
+		return nil
+	}
 	seg.Lock()
 	defer seg.Unlock()
 
@@ -249,6 +260,9 @@ func (seg *Segment) AddMetadata(key string, value interface{}) error {
 
 // AddMetadataToNamespace allows adding a namespace into metadata for the segment.
 func (seg *Segment) AddMetadataToNamespace(namespace string, key string, value interface{}) error {
+	if seg == nil {
+		return nil
+	}
 	seg.Lock()
 	defer seg.Unlock()
 
@@ -264,6 +278,9 @@ func (seg *Segment) AddMetadataToNamespace(namespace string, key string, value i
 
 // AddError allows adding an error to the segment.
 func (seg *Segment) AddError(err error) error {
+	if seg == nil {
+		return nil
+	}
 	seg.Lock()
 	defer seg.Unlock()
 
