@@ -1,6 +1,6 @@
-# AWS X-Ray SDK for Go <sup><sup><sup>(beta)</sup></sup></sup>
+# AWS X-Ray SDK for Go <sup><sup><sup>(RC)</sup></sup></sup>
 
-![Screenshot of the AWS X-Ray console](/images/example_trace.png?raw=true)
+![Screenshot of the AWS X-Ray console](/images/example.png?raw=true)
 
 ## Installing
 
@@ -134,7 +134,7 @@ dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
 
 **SQL**
 
-Any `db/sql` calls can be traced with XRay by replacing the `sql.Open` call with `xray.SQL`. It is recommended to use URLs instead of configuration strings if possible.
+Any `db/sql` calls can be traced with X-Ray by replacing the `sql.Open` call with `xray.SQL`. It is recommended to use URLs instead of configuration strings if possible.
 
 ```go
 func main() {
@@ -142,6 +142,38 @@ func main() {
   row, _ := db.QueryRow("SELECT 1") // Use as normal
 }
 ```
+
+**Lambda**
+
+Use AWS X-Ray SDK for Go to generate custom subsegments inside AWS Lambda handler function.
+
+```go
+func HandleRequest(ctx context.Context, name string) (string, error) {
+    xray.Configure(xray.Config{LogLevel: "trace"})
+    sess := session.Must(session.NewSession())
+    dynamo := dynamodb.New(sess)
+    xray.AWS(dynamo.Client)
+    input := &dynamodb.PutItemInput{
+        Item: map[string]*dynamodb.AttributeValue{
+            "12": {
+                S: aws.String("example"),
+            },
+        },
+        TableName: aws.String("xray"),
+    }
+    _, err := dynamo.PutItemWithContext(ctx, input)
+    if err != nil {
+        return name, err
+    }
+    _, err = ctxhttp.Get(ctx, xray.Client(nil), "https://www.twitch.tv/")
+    if err != nil {
+        return name, err
+    }
+   
+    return fmt.Sprintf("Hello %s!", name), nil
+}
+```
+
 
 ## License
 

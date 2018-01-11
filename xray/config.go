@@ -21,7 +21,10 @@ import (
 	log "github.com/cihub/seelog"
 )
 
-const SDKVersion = "1.0.0"
+// SDKVersion records the current X-Ray Go SDK version.
+const SDKVersion = "1.0.0-rc.1"
+
+// SDKType records which X-Ray SDK customer uses.
 const SDKType = "X-Ray for Go"
 
 type SDK struct {
