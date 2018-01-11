@@ -9,7 +9,7 @@
 package plugins
 
 const (
-	EBServiceName = "elastic_beanstalk"
+	EBServiceName  = "elastic_beanstalk"
 	EC2ServiceName = "ec2"
 	ECSServiceName = "ecs"
 )
@@ -37,7 +37,7 @@ type PluginMetadata struct {
 
 // EC2Metadata provides the shape for unmarshalling EC2 metadata.
 type EC2Metadata struct {
-	InstanceID 	 string `json:"instance_id"`
+	InstanceID       string `json:"instance_id"`
 	AvailabilityZone string `json:"availability_zone"`
 }
 

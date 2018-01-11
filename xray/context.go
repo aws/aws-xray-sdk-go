@@ -23,7 +23,7 @@ var ContextKey = new(ContextKeytype)
 var ErrRetrieveSegment = errors.New("unable to retrieve segment")
 
 // RecorderContextKey records the key for Config value.
-type RecorderContextKey struct {}
+type RecorderContextKey struct{}
 
 // GetRecorder returns a pointer to the config struct provided
 // in ctx, or nil if no config is set.

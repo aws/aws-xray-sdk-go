@@ -1,19 +1,33 @@
+// Copyright 2017-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at
+//
+//     http://aws.amazon.com/apache2.0/
+//
+// or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
 package xray
 
 import (
-	"os"
-	"time"
 	"context"
-	"path/filepath"
-	log "github.com/cihub/seelog"
 	"github.com/aws/aws-xray-sdk-go/header"
+	log "github.com/cihub/seelog"
+	"os"
+	"path/filepath"
+	"time"
 )
 
-var LambdaTraceHeaderKey string = "x-amzn-trace-id"
+// LambdaTraceHeaderKey is key to get trace header from context.
+const LambdaTraceHeaderKey string = "x-amzn-trace-id"
 
-var LambdaTaskRootKey string = "LAMBDA_TASK_ROOT"
-var SDKInitializedFileFolder string = "/tmp/.aws-xray"
-var SDKInitializedFileName string = "initialized"
+// LambdaTaskRootKey is the key to get Lambda Task Root from environment variable.
+const LambdaTaskRootKey string = "LAMBDA_TASK_ROOT"
+
+// SDKInitializedFileFolder records the location of SDK initialized file.
+const SDKInitializedFileFolder string = "/tmp/.aws-xray"
+
+// SDKInitializedFileName records the SDK initialized file name.
+const SDKInitializedFileName string = "initialized"
 
 func getTraceHeaderFromContext(ctx context.Context) *header.Header {
 	var traceHeader string
@@ -69,8 +83,9 @@ func createFile(dir string, name string) (string, error) {
 			file.Close()
 			return filePath, nil
 		}
-	} else {
+	} else if err != nil {
 		return filePath, err
 	}
+
 	return filePath, nil
 }

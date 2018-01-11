@@ -9,11 +9,11 @@
 package xray
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"sync"
-	"context"
 
 	"github.com/aws/aws-xray-sdk-go/strategy/ctxmissing"
 	"github.com/aws/aws-xray-sdk-go/strategy/exception"
@@ -27,9 +27,10 @@ const SDKVersion = "1.0.0-rc.1"
 // SDKType records which X-Ray SDK customer uses.
 const SDKType = "X-Ray for Go"
 
+// SDK provides the shape for unmarshalling an SDK struct.
 type SDK struct {
-	Version string  `json:"sdk_version,omitempty"`
-	Type    string	`json:"sdk,omitempty"`
+	Version string `json:"sdk_version,omitempty"`
+	Type    string `json:"sdk,omitempty"`
 }
 
 var globalCfg = newGlobalConfig()

@@ -68,10 +68,10 @@ type Segment struct {
 	rawSubsegments []*Segment
 
 	// Configuration
-	Configuration	*Config		`json:"-"`
+	Configuration *Config `json:"-"`
 
 	// Lambda
-	Facade 		bool 		`json:"-"`
+	Facade bool `json:"-"`
 }
 
 // CauseData provides the shape for unmarshalling data that records exception.
@@ -105,9 +105,9 @@ type ResponseData struct {
 
 // ServiceData provides the shape for unmarshalling service version.
 type ServiceData struct {
-	Version 	 string `json:"version,omitempty"`
-	CompilerVersion  string `json:"compiler_version,omitempty"`
-	Compiler         string `json:"compiler, omitempty"`
+	Version         string `json:"version,omitempty"`
+	CompilerVersion string `json:"compiler_version,omitempty"`
+	Compiler        string `json:"compiler, omitempty"`
 }
 
 // SQLData provides the shape for unmarshalling sql data.

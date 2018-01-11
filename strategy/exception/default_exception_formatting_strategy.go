@@ -15,8 +15,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/pkg/errors"
 )
 
 // StackTracer is an interface for implementing StackTrace method.

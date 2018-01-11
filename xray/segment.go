@@ -13,8 +13,8 @@ import (
 	"crypto/rand"
 	"fmt"
 	"os"
-	"time"
 	"runtime"
+	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
@@ -41,7 +41,7 @@ func NewSegmentID() string {
 	return fmt.Sprintf("%02x", r)
 }
 
-// FacadeSegment creates a Segment for a given name and context.
+// BeginFacadeSegment creates a Segment for a given name and context.
 func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (context.Context, *Segment) {
 	seg := basicSegment(name, h)
 
@@ -233,7 +233,7 @@ func (seg *Segment) Close(err error) {
 	seg.flush(false)
 }
 
-// Close a subsegment and send it.
+// CloseAndStream closes a subsegment and sends it.
 func (subseg *Segment) CloseAndStream(err error) {
 	subseg.Lock()
 

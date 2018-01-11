@@ -10,11 +10,11 @@ package xray
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"context"
 
 	"github.com/aws/aws-xray-sdk-go/header"
 	"github.com/aws/aws-xray-sdk-go/pattern"
@@ -84,7 +84,7 @@ func (dSN *DynamicSegmentNamer) Name(host string) string {
 // the incoming headers, add response headers if needed, and sets HTTP
 // specific trace fields. HandlerWithContext names the generated segments
 // using the provided SegmentNamer.
-func HandlerWithContext(sn SegmentNamer, ctx context.Context, h http.Handler) http.Handler {
+func HandlerWithContext(ctx context.Context, sn SegmentNamer, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name := sn.Name(r.Host)
 

@@ -9,12 +9,12 @@
 package xray
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"strings"
 	"testing"
-	"context"
 
 	"github.com/aws/aws-xray-sdk-go/strategy/ctxmissing"
 	"github.com/aws/aws-xray-sdk-go/strategy/exception"
