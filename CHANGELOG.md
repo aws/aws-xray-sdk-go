@@ -1,5 +1,5 @@
-Release v1.0.0 (2018-01-15)
-===========================
+Release v1.0.0-rc.1 (2018-01-15)
+======================
 ### SDK Feature Updates
 * Support for tracing within AWS Lambda functions.
 * Support method to inject configuration setting in `Context`.

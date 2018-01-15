@@ -107,7 +107,7 @@ type ResponseData struct {
 type ServiceData struct {
 	Version         string `json:"version,omitempty"`
 	CompilerVersion string `json:"compiler_version,omitempty"`
-	Compiler        string `json:"compiler, omitempty"`
+	Compiler        string `json:"compiler,omitempty"`
 }
 
 // SQLData provides the shape for unmarshalling sql data.
