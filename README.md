@@ -53,18 +53,22 @@ import (
   "github.com/aws/aws-xray-sdk-go/xray"
 
   // Importing the plugins enables collection of AWS resource information at runtime.
-  // Every plugin should be imported after "github.com/aws/aws-xray-sdk-go/xray" library.
-  _ "github.com/aws/aws-xray-sdk-go/plugins/ec2"
-  _ "github.com/aws/aws-xray-sdk-go/plugins/beanstalk"
-  _ "github.com/aws/aws-xray-sdk-go/plugins/ecs"
+  "github.com/aws/aws-xray-sdk-go/plugins/ec2"
+  "github.com/aws/aws-xray-sdk-go/plugins/beanstalk"
+  "github.com/aws/aws-xray-sdk-go/plugins/ecs"
 )
 
 func init() {
-  xray.Configure(xray.Config{
+	// Enable the collection of AWS resource information
+    ec2.Init()
+    beanstalk.Init()
+    ecs.Init()
+    
+    xray.Configure(xray.Config{
     DaemonAddr:       "127.0.0.1:2000", // default
     LogLevel:         "info",           // default
     ServiceVersion:   "1.2.3",
-  })
+    })
 }
 ```
 

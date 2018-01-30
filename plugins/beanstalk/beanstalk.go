@@ -18,7 +18,9 @@ import (
 
 const Origin = "AWS::ElasticBeanstalk::Environment"
 
-func init() {
+// Init allows applications running inside Beanstalk to add
+// their necessary metadata to the traces they provide
+func Init() {
 	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.BeanstalkMetadata == nil {
 		addPluginMetadata(plugins.InstancePluginMetadata)
 	}

@@ -17,7 +17,9 @@ import (
 
 const Origin = "AWS::ECS::Container"
 
-func init() {
+// Init allows applications running inside ECS containers to add
+// their necessary metadata to the traces they provide
+func Init() {
 	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.ECSMetadata == nil {
 		addPluginMetadata(plugins.InstancePluginMetadata)
 	}

@@ -17,7 +17,9 @@ import (
 
 const Origin = "AWS::EC2::Instance"
 
-func init() {
+// Init allows applications running inside EC2 instances to add
+// their necessary metadata to the traces they provide
+func Init() {
 	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.EC2Metadata == nil {
 		addPluginMetadata(plugins.InstancePluginMetadata)
 	}
