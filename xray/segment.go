@@ -180,12 +180,13 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 
 	seg := &Segment{parent: parent}
 	log.Tracef("Beginning subsegment named %s", name)
-	seg.ParentSegment = parent.ParentSegment
-	seg.ParentSegment.totalSubSegments++
+
 	seg.Lock()
 	defer seg.Unlock()
 
 	parent.Lock()
+	seg.ParentSegment = parent.ParentSegment
+	seg.ParentSegment.totalSubSegments++
 	parent.rawSubsegments = append(parent.rawSubsegments, seg)
 	parent.openSegments++
 	parent.Unlock()

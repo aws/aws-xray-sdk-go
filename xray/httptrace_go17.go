@@ -6,13 +6,12 @@
 //
 // or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-// +build go1.8
+// +build !go1.8
 
 package xray
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"net/http/httptrace"
 )
@@ -85,31 +84,6 @@ func (xt *HTTPSubsegments) ConnectDone(network, addr string, err error) {
 
 		AddMetadataToNamespace(xt.connectCtx, "http", "connect", metadata)
 		GetSegment(xt.connectCtx).Close(err)
-	}
-}
-
-// TLSHandshakeStart begins a tls subsegment if the HTTP operation
-// subsegment is still in progress.
-func (xt *HTTPSubsegments) TLSHandshakeStart() {
-	if GetSegment(xt.opCtx).InProgress {
-		xt.tlsCtx, _ = BeginSubsegment(xt.connCtx, "tls")
-	}
-}
-
-// TLSHandshakeDone closes the tls subsegment if the HTTP
-// operation subsegment is still in progress, passing the
-// error value(if any). Information about the tls connection
-// is added as metadata to the subsegment.
-func (xt *HTTPSubsegments) TLSHandshakeDone(connState tls.ConnectionState, err error) {
-	if xt.tlsCtx != nil && GetSegment(xt.opCtx).InProgress {
-		metadata := make(map[string]interface{})
-		metadata["did_resume"] = connState.DidResume
-		metadata["negotiated_protocol"] = connState.NegotiatedProtocol
-		metadata["negotiated_protocol_is_mutual"] = connState.NegotiatedProtocolIsMutual
-		metadata["cipher_suite"] = connState.CipherSuite
-
-		AddMetadataToNamespace(xt.tlsCtx, "http", "tls", metadata)
-		GetSegment(xt.tlsCtx).Close(err)
 	}
 }
 
@@ -195,12 +169,6 @@ func NewClientTrace(opCtx context.Context) (ct *ClientTrace, err error) {
 			},
 			ConnectDone: func(network, addr string, err error) {
 				segs.ConnectDone(network, addr, err)
-			},
-			TLSHandshakeStart: func() {
-				segs.TLSHandshakeStart()
-			},
-			TLSHandshakeDone: func(connState tls.ConnectionState, err error) {
-				segs.TLSHandshakeDone(connState, err)
 			},
 			GotConn: func(info httptrace.GotConnInfo) {
 				segs.GotConn(&info, nil)
