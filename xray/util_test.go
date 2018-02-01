@@ -11,9 +11,9 @@ package xray
 import (
 	"context"
 	"encoding/json"
+	"github.com/aws/aws-xray-sdk-go/header"
 	"net"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -91,12 +91,11 @@ type XRayHeaders struct {
 }
 
 func ParseHeadersForTest(h http.Header) XRayHeaders {
-	m := parseHeaders(h)
-	s, _ := strconv.ParseBool(m["Sampled"])
+	traceHeader := header.FromString(h.Get("x-amzn-trace-id"))
 
 	return XRayHeaders{
-		RootTraceID: m["Root"],
-		ParentID:    m["Parent"],
-		Sampled:     s,
+		RootTraceID: traceHeader.TraceID,
+		ParentID:    traceHeader.ParentID,
+		Sampled:     traceHeader.SamplingDecision == header.Sampled,
 	}
 }

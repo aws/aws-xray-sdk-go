@@ -95,7 +95,7 @@ func HandlerWithContext(ctx context.Context, sn SegmentNamer, h http.Handler) ht
 		c, seg := NewSegmentFromHeader(r.Context(), name, traceHeader)
 		r = r.WithContext(c)
 
-		httpTrace(seg, h, w, r)
+		httpTrace(seg, h, w, r, traceHeader)
 	})
 }
 
@@ -112,11 +112,11 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 
 		r = r.WithContext(ctx)
 
-		httpTrace(seg, h, w, r)
+		httpTrace(seg, h, w, r, traceHeader)
 	})
 }
 
-func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Request) {
+func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Request, traceHeader *header.Header) {
 	seg.Lock()
 
 	scheme := "https://"
@@ -128,34 +128,21 @@ func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Requ
 	seg.GetHTTP().GetRequest().ClientIP, seg.GetHTTP().GetRequest().XForwardedFor = clientIP(r)
 	seg.GetHTTP().GetRequest().UserAgent = r.UserAgent()
 
-	trace := parseHeaders(r.Header)
-	if trace["Root"] != "" {
-		seg.TraceID = trace["Root"]
-		seg.RequestWasTraced = true
-	}
-	if trace["Parent"] != "" {
-		seg.ParentID = trace["Parent"]
-	}
 	// Don't use the segment's header here as we only want to
 	// send back the root and possibly sampled values.
 	var respHeader bytes.Buffer
 	respHeader.WriteString("Root=")
 	respHeader.WriteString(seg.TraceID)
-	switch trace["Sampled"] {
-	case "0":
-		seg.Sampled = false
-		log.Trace("Incoming header decided: Sampled=false")
-	case "1":
-		seg.Sampled = true
-		log.Trace("Incoming header decided: Sampled=true")
-	default:
+
+	if traceHeader.SamplingDecision != header.Sampled && traceHeader.SamplingDecision != header.NotSampled {
 		seg.Sampled = seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(r.Host, r.URL.Path, r.Method)
 		log.Tracef("SamplingStrategy decided: %t", seg.Sampled)
 	}
-	if trace["Sampled"] == "?" {
+	if traceHeader.SamplingDecision == header.Requested {
 		respHeader.WriteString(";Sampled=")
 		respHeader.WriteString(strconv.Itoa(btoi(seg.Sampled)))
 	}
+
 	w.Header().Set("x-amzn-trace-id", respHeader.String())
 	seg.Unlock()
 
@@ -212,19 +199,4 @@ func btoi(b bool) int {
 		return 1
 	}
 	return 0
-}
-
-func parseHeaders(h http.Header) map[string]string {
-	m := map[string]string{}
-	s := h.Get("x-amzn-trace-id")
-	for _, c := range strings.Split(s, ";") {
-		p := strings.SplitN(c, "=", 2)
-		k := strings.TrimSpace(p[0])
-		v := ""
-		if len(p) > 1 {
-			v = strings.TrimSpace(p[1])
-		}
-		m[k] = v
-	}
-	return m
 }

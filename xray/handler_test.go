@@ -61,4 +61,5 @@ func TestNonRootHandler(t *testing.T) {
 
 	assert.Equal(t, "fakeid", s.TraceID)
 	assert.Equal(t, "reqid", s.ParentID)
+	assert.Equal(t, true, s.Sampled)
 }

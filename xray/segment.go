@@ -209,8 +209,17 @@ func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (c
 	if h.ParentID != "" {
 		seg.ParentID = h.ParentID
 	}
+	
 	seg.Sampled = h.SamplingDecision == header.Sampled
+	switch h.SamplingDecision {
+	case header.Sampled:
+		log.Trace("Incoming header decided: Sampled=true")
+	case header.NotSampled:
+		log.Trace("Incoming header decided: Sampled=false")
+	}
+
 	seg.IncomingHeader = h
+	seg.RequestWasTraced = true
 
 	return con, seg
 }
