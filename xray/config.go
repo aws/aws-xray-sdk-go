@@ -36,13 +36,28 @@ type SDK struct {
 var globalCfg = newGlobalConfig()
 
 func newGlobalConfig() *globalConfig {
-	ret := &globalConfig{
-		daemonAddr: &net.UDPAddr{
+
+	// Try to get the X-Ray daemon address from an environment variable
+	var daemonAddress *net.UDPAddr
+	var err error
+
+	environmentDaemonAddress := os.Getenv("AWS_XRAY_DAEMON_ADDRESS")
+
+	// Try to parse the address
+	daemonAddress, err = net.ResolveUDPAddr("udp", environmentDaemonAddress)
+
+	// If the environment variable is empty or we can't parse the address, use 127.0.0.1:2000
+	if environmentDaemonAddress == "" || err != nil {
+		daemonAddress = &net.UDPAddr{
 			IP:   net.IPv4(127, 0, 0, 1),
 			Port: 2000,
-		},
-		logLevel:  log.InfoLvl,
-		logFormat: "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n",
+		}
+	}
+
+	ret := &globalConfig{
+		daemonAddr: daemonAddress,
+		logLevel:   log.InfoLvl,
+		logFormat:  "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n",
 	}
 
 	ss, err := sampling.NewLocalizedStrategy()
@@ -143,6 +158,7 @@ func ContextWithConfig(ctx context.Context, c Config) (context.Context, error) {
 
 // Configure overrides default configuration options with customer-defined values.
 func Configure(c Config) error {
+
 	globalCfg.Lock()
 	defer globalCfg.Unlock()
 
