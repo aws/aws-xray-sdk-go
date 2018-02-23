@@ -98,7 +98,7 @@ func ResetConfig() {
 	})
 }
 
-func TestEnvironmentConfigureParameters(t *testing.T) {
+func TestEnvironmentDaemonAddress(t *testing.T) {
 
 	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "192.168.2.100:2000")
 	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
@@ -107,6 +107,15 @@ func TestEnvironmentConfigureParameters(t *testing.T) {
 
 	daemonAddr := &net.UDPAddr{IP: net.IPv4(192, 168, 2, 100), Port: 2000}
 	assert.Equal(t, daemonAddr, cfg.daemonAddr)
+
+}
+
+func TestInvalidEnvironmentDaemonAddress(t *testing.T) {
+
+	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "This is not a valid address")
+	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
+
+	assert.Panics(t, func() { _ = newGlobalConfig() })
 
 }
 

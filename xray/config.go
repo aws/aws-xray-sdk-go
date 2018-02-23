@@ -37,27 +37,26 @@ var globalCfg = newGlobalConfig()
 
 func newGlobalConfig() *globalConfig {
 
+	ret := &globalConfig{
+		logLevel:  log.InfoLvl,
+		logFormat: "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n",
+	}
+
 	// Try to get the X-Ray daemon address from an environment variable
-	var daemonAddress *net.UDPAddr
-	var err error
+	if envDaemonAddr := os.Getenv("AWS_XRAY_DAEMON_ADDRESS"); envDaemonAddr != "" {
 
-	environmentDaemonAddress := os.Getenv("AWS_XRAY_DAEMON_ADDRESS")
-
-	// Try to parse the address
-	daemonAddress, err = net.ResolveUDPAddr("udp", environmentDaemonAddress)
-
-	// If the environment variable is empty or we can't parse the address, use 127.0.0.1:2000
-	if environmentDaemonAddress == "" || err != nil {
-		daemonAddress = &net.UDPAddr{
+		// Try to resolve it, panic if it is malformed
+		daemonAddress, err := net.ResolveUDPAddr("udp", envDaemonAddr)
+		if err != nil {
+			panic(err)
+		}
+		ret.daemonAddr = daemonAddress
+	} else {
+		// Use a default if the environment variable is empty
+		ret.daemonAddr = &net.UDPAddr{
 			IP:   net.IPv4(127, 0, 0, 1),
 			Port: 2000,
 		}
-	}
-
-	ret := &globalConfig{
-		daemonAddr: daemonAddress,
-		logLevel:   log.InfoLvl,
-		logFormat:  "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n",
 	}
 
 	ss, err := sampling.NewLocalizedStrategy()
