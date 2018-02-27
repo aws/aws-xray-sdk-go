@@ -36,11 +36,10 @@ type SDK struct {
 var globalCfg = newGlobalConfig()
 
 func newGlobalConfig() *globalConfig {
+	ret := &globalConfig{}
 
-	ret := &globalConfig{
-		logLevel:  log.InfoLvl,
-		logFormat: "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n",
-	}
+	// Set the logging configuration to the defaults
+	ret.logLevel, ret.logFormat = loadLogConfig("", "")
 
 	// Try to get the X-Ray daemon address from an environment variable
 	if envDaemonAddr := os.Getenv("AWS_XRAY_DAEMON_ADDRESS"); envDaemonAddr != "" {
@@ -157,7 +156,6 @@ func ContextWithConfig(ctx context.Context, c Config) (context.Context, error) {
 
 // Configure overrides default configuration options with customer-defined values.
 func Configure(c Config) error {
-
 	globalCfg.Lock()
 	defer globalCfg.Unlock()
 
