@@ -36,13 +36,26 @@ type SDK struct {
 var globalCfg = newGlobalConfig()
 
 func newGlobalConfig() *globalConfig {
-	ret := &globalConfig{
-		daemonAddr: &net.UDPAddr{
+	ret := &globalConfig{}
+
+	// Set the logging configuration to the defaults
+	ret.logLevel, ret.logFormat = loadLogConfig("", "")
+
+	// Try to get the X-Ray daemon address from an environment variable
+	if envDaemonAddr := os.Getenv("AWS_XRAY_DAEMON_ADDRESS"); envDaemonAddr != "" {
+
+		// Try to resolve it, panic if it is malformed
+		daemonAddress, err := net.ResolveUDPAddr("udp", envDaemonAddr)
+		if err != nil {
+			panic(err)
+		}
+		ret.daemonAddr = daemonAddress
+	} else {
+		// Use a default if the environment variable is empty
+		ret.daemonAddr = &net.UDPAddr{
 			IP:   net.IPv4(127, 0, 0, 1),
 			Port: 2000,
-		},
-		logLevel:  log.InfoLvl,
-		logFormat: "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n",
+		}
 	}
 
 	ss, err := sampling.NewLocalizedStrategy()
