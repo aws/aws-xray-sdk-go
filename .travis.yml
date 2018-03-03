@@ -8,5 +8,9 @@ go:
   - '1.10'
   - tip
 
+before_install:
+  - go get -v github.com/Masterminds/glide
+  - glide update
+
 script:
   - make test
