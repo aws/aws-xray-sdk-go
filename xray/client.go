@@ -10,10 +10,11 @@ package xray
 
 import (
 	"context"
-	log "github.com/cihub/seelog"
 	"net/http"
 	"net/http/httptrace"
 	"strconv"
+
+	log "github.com/cihub/seelog"
 )
 
 // Client creates a shallow copy of the provided http client,

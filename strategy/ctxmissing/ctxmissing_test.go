@@ -9,10 +9,11 @@
 package ctxmissing
 
 import (
-	log "github.com/cihub/seelog"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	log "github.com/cihub/seelog"
+	"github.com/stretchr/testify/assert"
 )
 
 type LogWriter struct {

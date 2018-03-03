@@ -9,7 +9,7 @@ assets          : clean resources/bindata.go
 
 # test runs the lint/vet/fmt and the tests.
 .PHONY          : test
-test            : vet lint fmt
+test            : vet lint fmt imports
 test            : resources/bindata.go ${GO_SRCS}
 		go test -cover -race ${GO_PKGS}
 
@@ -29,6 +29,12 @@ fmt             : ${GO_SRCS}
 		@echo "Checking go format."
 		@echo "gofmt -s -l . | \grep -v vendor"
 		@[ -z "$(shell gofmt -s -l . | \grep -v vendor | \tee /dev/stderr)" ]
+
+.PHONY          : imports
+imports         : ${GO_SRCS}
+		@echo "Checking go imorts."
+		@echo "goimports -l . | \grep -v vendor"
+		@[ -z "$(shell goimports -l . | \grep -v vendor | \tee /dev/stderr)" ]
 
 .PHONY          : clean
 clean           :
