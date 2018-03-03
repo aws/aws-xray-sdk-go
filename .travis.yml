@@ -8,7 +8,10 @@ go:
   - '1.10'
 
 before_install:
-  - go get -v github.com/Masterminds/glide
+  - go get golang.org/x/lint/golint
+  - go get golang.org/x/tools/cmd/goimports
+  - go get github.com/Masterminds/glide
+  - go get github.com/jteeuwen/go-bindata/...
   - glide update
 
 script:
