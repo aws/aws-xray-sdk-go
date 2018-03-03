@@ -95,11 +95,11 @@ func (td *Testdaemon) Run() {
 		buffered := buffer[len(Header):n]
 
 		seg := &Segment{}
-		if err := json.Unmarshal(buffered, seg); err != nil {
+		if e1 := json.Unmarshal(buffered, seg); e1 != nil {
 			select {
 			case <-td.Ctx.Done():
 				return
-			case td.channel <- &result{nil, err}:
+			case td.channel <- &result{nil, e1}:
 			}
 			continue
 		}

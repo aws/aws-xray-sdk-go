@@ -11,8 +11,8 @@ package ecs
 import (
 	"os"
 
+	"github.com/aws/aws-xray-sdk-go/internal/plugins"
 	log "github.com/cihub/seelog"
-	"github.com/creack/aws-xray-sdk-go/internal/plugins"
 )
 
 const Origin = "AWS::ECS::Container"

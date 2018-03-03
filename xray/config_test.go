@@ -14,10 +14,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-xray-sdk-go/strategy/ctxmissing"
+	"github.com/aws/aws-xray-sdk-go/strategy/exception"
+	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
 	log "github.com/cihub/seelog"
-	"github.com/creack/aws-xray-sdk-go/strategy/ctxmissing"
-	"github.com/creack/aws-xray-sdk-go/strategy/exception"
-	"github.com/creack/aws-xray-sdk-go/strategy/sampling"
 	"github.com/stretchr/testify/assert"
 )
 

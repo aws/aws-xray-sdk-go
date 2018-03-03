@@ -9,8 +9,8 @@
 package sampling
 
 import (
+	"github.com/aws/aws-xray-sdk-go/resources"
 	log "github.com/cihub/seelog"
-	"github.com/creack/aws-xray-sdk-go/resources"
 )
 
 // LocalizedStrategy makes trace sampling decisions based on
