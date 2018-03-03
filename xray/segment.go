@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
@@ -160,7 +161,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 		name = name[:200]
 	}
 
-	parent := &Segment{}
+	var parent *Segment
 	// first time to create facade segment
 	if getTraceHeaderFromContext(ctx) != nil && GetSegment(ctx) == nil {
 		_, parent = newFacadeSegment(ctx)
@@ -181,7 +182,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	seg := &Segment{parent: parent}
 	log.Tracef("Beginning subsegment named %s", name)
 	seg.ParentSegment = parent.ParentSegment
-	seg.ParentSegment.totalSubSegments++
+	atomic.AddInt64(&seg.ParentSegment.totalSubSegments, 1)
 	seg.Lock()
 	defer seg.Unlock()
 
@@ -268,7 +269,7 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 			seg.rawSubsegments[len(seg.rawSubsegments)-1] = nil
 			seg.rawSubsegments = seg.rawSubsegments[:len(seg.rawSubsegments)-1]
 
-			seg.totalSubSegments--
+			atomic.AddInt64(&seg.totalSubSegments, -1)
 			seg.openSegments--
 			return true
 		}

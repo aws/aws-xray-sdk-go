@@ -11,6 +11,7 @@ package xray
 import (
 	"encoding/json"
 	"errors"
+	"sync/atomic"
 
 	log "github.com/cihub/seelog"
 )
@@ -44,7 +45,7 @@ func NewDefaultStreamingStrategyWithMaxSubsegmentCount(maxSubsegmentCount int) (
 // children for a given segment is larger than MaxSubsegmentCount.
 func (dSS *DefaultStreamingStrategy) RequiresStreaming(seg *Segment) bool {
 	if seg.ParentSegment.Sampled {
-		return seg.ParentSegment.totalSubSegments > dSS.MaxSubsegmentCount
+		return atomic.LoadInt64(&seg.ParentSegment.totalSubSegments) > int64(dSS.MaxSubsegmentCount)
 	}
 	return false
 }
@@ -64,7 +65,7 @@ func (dSS *DefaultStreamingStrategy) StreamCompletedSubsegments(seg *Segment) []
 		seg.Subsegments[len(seg.Subsegments)-1] = nil
 		seg.Subsegments = seg.Subsegments[:len(seg.Subsegments)-1]
 
-		seg.ParentSegment.totalSubSegments--
+		atomic.AddInt64(&seg.ParentSegment.totalSubSegments, -1)
 
 		// Add extra information into child subsegment
 		child.Lock()
