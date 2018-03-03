@@ -10,7 +10,6 @@ package xray
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -19,6 +18,7 @@ import (
 	"github.com/aws/aws-xray-sdk-go/strategy/ctxmissing"
 	"github.com/aws/aws-xray-sdk-go/strategy/exception"
 	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
+	log "github.com/cihub/seelog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,7 +64,7 @@ func (sms *TestStreamingStrategy) StreamCompletedSubsegments(seg *Segment) [][]b
 }
 
 func (cms *TestContextMissingStrategy) ContextMissing(v interface{}) {
-	fmt.Sprintf("Test ContextMissing Strategy %v", v)
+	_ = log.Errorf("Test ContextMissing Strategy %v", v) // Log only.
 }
 
 func stashEnv() []string {
@@ -77,7 +77,7 @@ func popEnv(env []string) {
 	os.Clearenv()
 	for _, e := range env {
 		p := strings.SplitN(e, "=", 2)
-		os.Setenv(p[0], p[1])
+		_ = os.Setenv(p[0], p[1]) // Best effort.
 	}
 }
 
@@ -87,7 +87,8 @@ func ResetConfig() {
 	sms, _ := NewDefaultStreamingStrategy()
 	cms := ctxmissing.NewDefaultRuntimeErrorStrategy()
 
-	Configure(Config{
+	// Best effort.
+	_ = Configure(Config{
 		DaemonAddr:                  "127.0.0.1:2000",
 		LogLevel:                    "info",
 		LogFormat:                   "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n",

@@ -10,11 +10,12 @@ package xray
 
 import (
 	"context"
-	"github.com/aws/aws-xray-sdk-go/header"
-	log "github.com/cihub/seelog"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/aws/aws-xray-sdk-go/header"
+	log "github.com/cihub/seelog"
 )
 
 // LambdaTraceHeaderKey is key to get trace header from context.
@@ -68,21 +69,19 @@ func createFile(dir string, name string) (string, error) {
 	filePath := fileDir + string(os.PathSeparator) + name
 
 	// detect if file exists
-	var _, err = os.Stat(filePath)
+	_, err := os.Stat(filePath)
 
 	// create file if not exists
 	if os.IsNotExist(err) {
-		e := os.MkdirAll(dir, os.ModePerm)
-		if e != nil {
-			return filePath, e
-		} else {
-			var file, err = os.Create(filePath)
-			if err != nil {
-				return filePath, err
-			}
-			file.Close()
-			return filePath, nil
+		if e1 := os.MkdirAll(dir, os.ModePerm); e1 != nil {
+			return filePath, e1
 		}
+		file, e2 := os.Create(filePath)
+		if e2 != nil {
+			return filePath, e2
+		}
+		_ = file.Close() // Best effort.
+		return filePath, nil
 	} else if err != nil {
 		return filePath, err
 	}
