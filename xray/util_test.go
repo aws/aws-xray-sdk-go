@@ -14,70 +14,115 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"sync"
+	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
-var (
-	listenerAddr = &net.UDPAddr{
-		IP:   net.IPv4(127, 0, 0, 1),
-		Port: 2000,
-	}
+func newTestDaemon(t *testing.T) *Testdaemon {
+	t.Helper()
 
-	TestDaemon = &Testdaemon{
-		Channel: make(chan *result, 200),
-	}
-)
+	// Start a listener on a random port.
+	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+	require.NoError(t, err)
+	ln, err := net.ListenUDP("udp", addr)
+	require.NoError(t, err)
 
-func init() {
-	if TestDaemon.Connection == nil {
-		conn, err := net.ListenUDP("udp", listenerAddr)
-		if err != nil {
-			panic(err)
-		}
+	ctx, cancel := context.WithCancel(newCtx())
 
-		TestDaemon.Connection = conn
-		go TestDaemon.Run()
+	td := &Testdaemon{
+		Addr:       ln.LocalAddr().String(),
+		connection: ln,
+		channel:    make(chan *result),
+		Ctx:        ctx,
+		cancel:     cancel,
 	}
+	go td.Run()
+
+	// TODO: We should have a way to have a scopped emitter
+	//       that respects segment.Configuration.DaemonAddr.
+	require.NoError(t, Configure(Config{DaemonAddr: td.Addr}))
+
+	return td
 }
 
 type Testdaemon struct {
-	Connection *net.UDPConn
-	Channel    chan *result
-	Done       bool
+	Addr string
+
+	wg         sync.WaitGroup
+	connection *net.UDPConn
+	channel    chan *result
+	Ctx        context.Context
+	cancel     func()
 }
+
+func (td *Testdaemon) Close() {
+	if td.cancel != nil {
+		td.cancel()
+	}
+	_ = td.connection.Close() // Best effort.
+	td.wg.Wait()
+	close(td.channel)
+}
+
 type result struct {
 	Segment *Segment
 	Error   error
 }
 
 func (td *Testdaemon) Run() {
+	td.wg.Add(1)
+	defer td.wg.Done()
+
 	buffer := make([]byte, 64000)
-	for !td.Done {
-		n, _, err := td.Connection.ReadFromUDP(buffer)
+	for {
+		select {
+		case <-td.Ctx.Done():
+		default:
+		}
+		n, _, err := td.connection.ReadFromUDP(buffer)
 		if err != nil {
-			td.Channel <- &result{nil, err}
+			select {
+			case <-td.Ctx.Done():
+				return
+			case td.channel <- &result{nil, err}:
+			}
 			continue
 		}
 
 		buffered := buffer[len(Header):n]
 
 		seg := &Segment{}
-		err = json.Unmarshal(buffered, &seg)
-		if err != nil {
-			td.Channel <- &result{nil, err}
+		if err := json.Unmarshal(buffered, seg); err != nil {
+			select {
+			case <-td.Ctx.Done():
+				return
+			case td.channel <- &result{nil, err}:
+			}
 			continue
 		}
 
 		seg.Sampled = true
-		td.Channel <- &result{seg, err}
+
+		select {
+		case <-td.Ctx.Done():
+			return
+		case td.channel <- &result{seg, err}:
+		}
 	}
 }
 
 func (td *Testdaemon) Recv() (*Segment, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	td.wg.Add(1)
+	defer td.wg.Done()
+
+	ctx, cancel := context.WithTimeout(td.Ctx, 1000*time.Millisecond)
 	defer cancel()
+
 	select {
-	case r := <-td.Channel:
+	case r := <-td.channel:
 		return r.Segment, r.Error
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -99,4 +144,18 @@ func ParseHeadersForTest(h http.Header) XRayHeaders {
 		ParentID:    m["Parent"],
 		Sampled:     s,
 	}
+}
+
+// emptyCtx implements a custom context.
+type emptyCtx int
+
+func (*emptyCtx) Deadline() (deadline time.Time, ok bool) { return }
+func (*emptyCtx) Done() <-chan struct{}                   { return nil }
+func (*emptyCtx) Err() error                              { return nil }
+func (*emptyCtx) Value(key interface{}) interface{}       { return nil }
+
+// newCtx returns a new, isolted context.
+// Useful to make sure we don't share context accross tests.
+func newCtx() context.Context {
+	return new(emptyCtx)
 }

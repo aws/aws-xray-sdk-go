@@ -9,7 +9,6 @@
 package xray
 
 import (
-	"context"
 	"net"
 	"os"
 	"strings"
@@ -117,7 +116,10 @@ func TestInvalidEnvironmentDaemonAddress(t *testing.T) {
 }
 
 func TestDefaultConfigureParameters(t *testing.T) {
-	daemonAddr := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 2000}
+	td := newTestDaemon(t)
+	defer td.Close()
+
+	daemonAddr := td.Addr
 	logLevel := "info"
 	logFormat := "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n"
 	ss, _ := sampling.NewLocalizedStrategy()
@@ -125,7 +127,7 @@ func TestDefaultConfigureParameters(t *testing.T) {
 	sms, _ := NewDefaultStreamingStrategy()
 	cms := ctxmissing.NewDefaultRuntimeErrorStrategy()
 
-	assert.Equal(t, daemonAddr, globalCfg.daemonAddr)
+	assert.Equal(t, daemonAddr, globalCfg.daemonAddr.String())
 	assert.Equal(t, logLevel, globalCfg.logLevel.String())
 	assert.Equal(t, logFormat, globalCfg.logFormat)
 	assert.Equal(t, ss, globalCfg.samplingStrategy)
@@ -205,7 +207,7 @@ func TestConfigureWithContext(t *testing.T) {
 	sms := &TestStreamingStrategy{}
 	cms := &TestContextMissingStrategy{}
 
-	ctx, err := ContextWithConfig(context.Background(), Config{
+	ctx, err := ContextWithConfig(newCtx(), Config{
 		DaemonAddr:                  daemonAddr,
 		ServiceVersion:              serviceVersion,
 		SamplingStrategy:            ss,

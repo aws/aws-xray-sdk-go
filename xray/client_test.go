@@ -9,7 +9,6 @@
 package xray
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var rt *roundtripper
@@ -42,6 +42,9 @@ func TestRoundTripper(t *testing.T) {
 }
 
 func TestRoundTrip(t *testing.T) {
+	td := newTestDaemon(t)
+	defer td.Close()
+
 	var responseContentLength int
 	var headers XRayHeaders
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -55,17 +58,17 @@ func TestRoundTrip(t *testing.T) {
 	defer ts.Close()
 
 	reader := strings.NewReader("")
-	ctx, root := BeginSegment(context.Background(), "Test")
+	ctx, root := BeginSegment(td.Ctx, "Test")
 	req := httptest.NewRequest("GET", ts.URL, reader)
 	req = req.WithContext(ctx)
 	_, err := rt.RoundTrip(req)
 	root.Close(nil)
 	assert.NoError(t, err)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	s, e := td.Recv()
+	require.NoError(t, e)
 	subseg := &Segment{}
-	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
+	require.NoError(t, json.Unmarshal(s.Subsegments[0], subseg))
 	assert.Equal(t, "remote", subseg.Namespace)
 	assert.Equal(t, "GET", subseg.HTTP.Request.Method)
 	assert.Equal(t, ts.URL, subseg.HTTP.Request.URL)
@@ -75,6 +78,9 @@ func TestRoundTrip(t *testing.T) {
 }
 
 func TestRoundTripWithError(t *testing.T) {
+	td := newTestDaemon(t)
+	defer td.Close()
+
 	var responseContentLength int
 	var headers XRayHeaders
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -88,17 +94,17 @@ func TestRoundTripWithError(t *testing.T) {
 	defer ts.Close()
 
 	reader := strings.NewReader("")
-	ctx, root := BeginSegment(context.Background(), "Test")
+	ctx, root := BeginSegment(td.Ctx, "Test")
 	req := httptest.NewRequest("GET", ts.URL, reader)
 	req = req.WithContext(ctx)
 	_, err := rt.RoundTrip(req)
 	root.Close(nil)
 	assert.NoError(t, err)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	s, e := td.Recv()
+	require.NoError(t, e)
 	subseg := &Segment{}
-	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
+	require.NoError(t, json.Unmarshal(s.Subsegments[0], subseg))
 	assert.Equal(t, "remote", subseg.Namespace)
 	assert.Equal(t, "GET", subseg.HTTP.Request.Method)
 	assert.Equal(t, ts.URL, subseg.HTTP.Request.URL)
@@ -108,6 +114,9 @@ func TestRoundTripWithError(t *testing.T) {
 }
 
 func TestRoundTripWithThrottle(t *testing.T) {
+	td := newTestDaemon(t)
+	defer td.Close()
+
 	var responseContentLength int
 	var headers XRayHeaders
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -122,17 +131,17 @@ func TestRoundTripWithThrottle(t *testing.T) {
 	defer ts.Close()
 
 	reader := strings.NewReader("")
-	ctx, root := BeginSegment(context.Background(), "Test")
+	ctx, root := BeginSegment(td.Ctx, "Test")
 	req := httptest.NewRequest("GET", ts.URL, reader)
 	req = req.WithContext(ctx)
 	_, err := rt.RoundTrip(req)
 	root.Close(nil)
 	assert.NoError(t, err)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	s, e := td.Recv()
+	require.NoError(t, e)
 	subseg := &Segment{}
-	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
+	require.NoError(t, json.Unmarshal(s.Subsegments[0], subseg))
 	assert.Equal(t, "remote", subseg.Namespace)
 	assert.Equal(t, "GET", subseg.HTTP.Request.Method)
 	assert.Equal(t, ts.URL, subseg.HTTP.Request.URL)
@@ -142,6 +151,9 @@ func TestRoundTripWithThrottle(t *testing.T) {
 }
 
 func TestRoundTripFault(t *testing.T) {
+	td := newTestDaemon(t)
+	defer td.Close()
+
 	var responseContentLength int
 	var headers XRayHeaders
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -156,17 +168,17 @@ func TestRoundTripFault(t *testing.T) {
 	defer ts.Close()
 
 	reader := strings.NewReader("")
-	ctx, root := BeginSegment(context.Background(), "Test")
+	ctx, root := BeginSegment(td.Ctx, "Test")
 	req := httptest.NewRequest("GET", ts.URL, reader)
 	req = req.WithContext(ctx)
 	_, err := rt.RoundTrip(req)
 	root.Close(nil)
 	assert.NoError(t, err)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	s, e := td.Recv()
+	require.NoError(t, e)
 	subseg := &Segment{}
-	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
+	require.NoError(t, json.Unmarshal(s.Subsegments[0], subseg))
 	assert.Equal(t, "remote", subseg.Namespace)
 	assert.Equal(t, "GET", subseg.HTTP.Request.Method)
 	assert.Equal(t, ts.URL, subseg.HTTP.Request.URL)
@@ -176,7 +188,10 @@ func TestRoundTripFault(t *testing.T) {
 }
 
 func TestBadRoundTrip(t *testing.T) {
-	ctx, root := BeginSegment(context.Background(), "Test")
+	td := newTestDaemon(t)
+	defer td.Close()
+
+	ctx, root := BeginSegment(td.Ctx, "Test")
 	reader := strings.NewReader("")
 	req := httptest.NewRequest("GET", "httpz://localhost:8000", reader)
 	req = req.WithContext(ctx)
@@ -184,9 +199,9 @@ func TestBadRoundTrip(t *testing.T) {
 	root.Close(nil)
 	assert.Error(t, err)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	s, e := td.Recv()
+	require.NoError(t, e)
 	subseg := &Segment{}
-	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
+	require.NoError(t, json.Unmarshal(s.Subsegments[0], subseg))
 	assert.Equal(t, fmt.Sprintf("%v", err), subseg.Cause.Exceptions[0].Message)
 }
