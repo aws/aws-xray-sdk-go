@@ -18,26 +18,22 @@ import (
 )
 
 func TestTraceID(t *testing.T) {
-	t.Parallel()
 	ctx, seg := BeginSegment(newCtx(), "test")
 	traceID := TraceID(ctx)
 	assert.Equal(t, seg.TraceID, traceID)
 }
 
 func TestEmptyTraceID(t *testing.T) {
-	t.Parallel()
 	traceID := TraceID(newCtx())
 	assert.Empty(t, traceID)
 }
 
 func TestRequestWasNotTraced(t *testing.T) {
-	t.Parallel()
 	ctx, seg := BeginSegment(newCtx(), "test")
 	assert.Equal(t, seg.RequestWasTraced, RequestWasTraced(ctx))
 }
 
 func TestDetachContext(t *testing.T) {
-	t.Parallel()
 	ctx := newCtx()
 	nctx := DetachContext(ctx)
 	assert.NotEqual(t, ctx, nctx)

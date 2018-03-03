@@ -11,6 +11,8 @@ package xray
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"strconv"
@@ -21,8 +23,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestDaemon(t *testing.T) *Testdaemon {
+func newTestDaemon(t *testing.T, ctx ...context.Context) *Testdaemon {
 	t.Helper()
+
+	if len(ctx) > 1 {
+		t.Fatal("newTestDaemon expect at most 1 context")
+	}
+	if len(ctx) == 0 {
+		ctx = append(ctx, newCtx())
+	}
 
 	// Start a listener on a random port.
 	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
@@ -30,22 +39,41 @@ func newTestDaemon(t *testing.T) *Testdaemon {
 	ln, err := net.ListenUDP("udp", addr)
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(newCtx())
+	ctx1, cancel := context.WithCancel(ctx[0])
 
 	td := &Testdaemon{
 		Addr:       ln.LocalAddr().String(),
 		connection: ln,
-		channel:    make(chan *result),
-		Ctx:        ctx,
+		channel:    make(chan *result, 200),
+		Ctx:        ctx1,
 		cancel:     cancel,
 	}
-	go td.Run()
-
 	// TODO: We should have a way to have a scopped emitter
 	//       that respects segment.Configuration.DaemonAddr.
 	require.NoError(t, Configure(Config{DaemonAddr: td.Addr}))
 
-	return td
+	td.wg.Add(1)
+	go td.Run()
+
+	// Wait for the daemon to be up.
+	ctx1, cancel1 := context.WithTimeout(td.Ctx, 1*time.Second)
+	defer cancel1()
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+
+	conn, err := net.Dial("udp", td.Addr)
+	require.NoError(t, err)
+	defer func() { _ = conn.Close() }() //  Best effort.
+	for {
+		fmt.Fprintf(conn, "%s\n", Header)
+		select {
+		case <-ticker.C:
+		case <-td.channel:
+			return td
+		case <-ctx1.Done():
+			t.Fatal("Timeout waiting for test daemon to start.")
+		}
+	}
 }
 
 type Testdaemon struct {
@@ -73,43 +101,45 @@ type result struct {
 }
 
 func (td *Testdaemon) Run() {
-	td.wg.Add(1)
 	defer td.wg.Done()
 
-	buffer := make([]byte, 64000)
+	ch := make(chan []byte, 200)
+
+	ctx := td.Ctx
+
+	go func() {
+		defer close(ch)
+
+		for {
+			buffer := make([]byte, 64000) // Realloc each time so the unmarshal can take it's time.
+			n, err := io.ReadAtLeast(td.connection, buffer, len(Header))
+			if err != nil {
+				return
+			}
+			select {
+			case ch <- buffer[:n]:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	for {
 		select {
-		case <-td.Ctx.Done():
-		default:
-		}
-		n, _, err := td.connection.ReadFromUDP(buffer)
-		if err != nil {
-			select {
-			case <-td.Ctx.Done():
-				return
-			case td.channel <- &result{nil, err}:
-			}
-			continue
-		}
-
-		buffered := buffer[len(Header):n]
-
-		seg := &Segment{}
-		if e1 := json.Unmarshal(buffered, seg); e1 != nil {
-			select {
-			case <-td.Ctx.Done():
-				return
-			case td.channel <- &result{nil, e1}:
-			}
-			continue
-		}
-
-		seg.Sampled = true
-
-		select {
-		case <-td.Ctx.Done():
+		case <-ctx.Done():
 			return
-		case td.channel <- &result{seg, err}:
+		case buf, ok := <-ch:
+			if !ok {
+				return
+			}
+			go func(buf []byte) {
+				seg := &Segment{Sampled: true}
+				err := json.Unmarshal(buf[len(Header):], seg)
+				select {
+				case td.channel <- &result{seg, err}:
+				case <-ctx.Done():
+				}
+			}(buf)
 		}
 	}
 }
@@ -118,7 +148,8 @@ func (td *Testdaemon) Recv() (*Segment, error) {
 	td.wg.Add(1)
 	defer td.wg.Done()
 
-	ctx, cancel := context.WithTimeout(td.Ctx, 1000*time.Millisecond)
+	// NOTE: The race detector can make thing slow.
+	ctx, cancel := context.WithTimeout(td.Ctx, 10*time.Second)
 	defer cancel()
 
 	select {
