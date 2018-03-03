@@ -14,7 +14,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/aws/aws-xray-sdk-go/strategy/exception"
+	"github.com/creack/aws-xray-sdk-go/strategy/exception"
 	"github.com/stretchr/testify/assert"
 )
 

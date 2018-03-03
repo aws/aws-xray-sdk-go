@@ -11,7 +11,7 @@ package sampling
 import (
 	"math/rand"
 
-	"github.com/aws/aws-xray-sdk-go/pattern"
+	"github.com/creack/aws-xray-sdk-go/pattern"
 )
 
 // Rule represents a single entry in a sampling ruleset.

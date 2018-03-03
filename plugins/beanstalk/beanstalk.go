@@ -12,8 +12,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/aws/aws-xray-sdk-go/internal/plugins"
 	log "github.com/cihub/seelog"
+	"github.com/creack/aws-xray-sdk-go/internal/plugins"
 )
 
 const Origin = "AWS::ElasticBeanstalk::Environment"

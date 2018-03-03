@@ -21,8 +21,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-xray-sdk-go/resources"
 	log "github.com/cihub/seelog"
+	"github.com/creack/aws-xray-sdk-go/resources"
 )
 
 type jsonMap struct {
