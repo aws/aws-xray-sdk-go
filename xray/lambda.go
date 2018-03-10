@@ -69,19 +69,21 @@ func createFile(dir string, name string) (string, error) {
 	filePath := fileDir + string(os.PathSeparator) + name
 
 	// detect if file exists
-	_, err := os.Stat(filePath)
+	var _, err = os.Stat(filePath)
 
 	// create file if not exists
 	if os.IsNotExist(err) {
-		if e1 := os.MkdirAll(dir, os.ModePerm); e1 != nil {
-			return filePath, e1
+		e := os.MkdirAll(dir, os.ModePerm)
+		if e != nil {
+			return filePath, e
+		} else {
+			var file, err = os.Create(filePath)
+			if err != nil {
+				return filePath, err
+			}
+			file.Close()
+			return filePath, nil
 		}
-		file, e2 := os.Create(filePath)
-		if e2 != nil {
-			return filePath, e2
-		}
-		_ = file.Close() // Best effort.
-		return filePath, nil
 	} else if err != nil {
 		return filePath, err
 	}
