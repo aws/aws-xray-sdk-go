@@ -22,8 +22,13 @@ func Capture(ctx context.Context, name string, fn func(context.Context) error) (
 		if seg != nil {
 			seg.Close(err)
 		} else {
+			cfg := GetRecorder(ctx)
 			failedMessage := fmt.Sprintf("failed to end subsegment: subsegment '%v' cannot be found.", name)
-			seg.ParentSegment.GetConfiguration().ContextMissingStrategy.ContextMissing(failedMessage)
+			if cfg != nil && cfg.ContextMissingStrategy != nil {
+				cfg.ContextMissingStrategy.ContextMissing(failedMessage)
+			} else {
+				globalCfg.ContextMissingStrategy().ContextMissing(failedMessage)
+			}
 		}
 	}()
 
