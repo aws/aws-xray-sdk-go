@@ -1,5 +1,11 @@
+Release v1.0.0-rc.2 (2018-03-22)
+================================
+### SDK Enhancements
+* Assign subsegment a defined name when HTTP interceptor creates an invalid subsegment due to URL is not available.
+* Fetch ContextMissingStrategy from segment if its subsegment is nil.
+
 Release v1.0.0-rc.1 (2018-01-15)
-======================
+================================
 ### SDK Feature Updates
 * Support for tracing within AWS Lambda functions.
 * Support method to inject configuration setting in `Context`.
