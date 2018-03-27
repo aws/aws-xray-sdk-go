@@ -9,6 +9,7 @@
 package xray
 
 import (
+	"net"
 	"bytes"
 	"context"
 	"net/http"
@@ -183,8 +184,11 @@ func clientIP(r *http.Request) (string, bool) {
 	if forwardedFor != "" {
 		return strings.TrimSpace(strings.Split(forwardedFor, ",")[0]), true
 	}
-
-	return r.RemoteAddr, false
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr, false
+	}
+	return ip, false
 }
 
 type responseCapturer struct {
