@@ -21,7 +21,7 @@ type Segment struct {
 	sync.Mutex
 	parent           *Segment
 	openSegments     int
-	totalSubSegments int
+	totalSubSegments int64
 	Sampled          bool           `json:"-"`
 	RequestWasTraced bool           `json:"-"` // Used by xray.RequestWasTraced
 	ContextDone      bool           `json:"-"`

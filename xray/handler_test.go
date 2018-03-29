@@ -15,9 +15,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRootHandler(t *testing.T) {
+	td := newTestDaemon(t)
+	defer td.Close()
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		b := []byte(`200 - OK`)
@@ -31,10 +35,10 @@ func TestRootHandler(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", "127.0.0.1")
 
 	_, err := http.DefaultTransport.RoundTrip(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	s, e := td.Recv()
+	require.NoError(t, e)
 
 	assert.Equal(t, http.StatusOK, s.HTTP.Response.Status)
 	assert.Equal(t, "POST", s.HTTP.Request.Method)
@@ -44,6 +48,9 @@ func TestRootHandler(t *testing.T) {
 }
 
 func TestNonRootHandler(t *testing.T) {
+	td := newTestDaemon(t)
+	defer td.Close()
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -54,10 +61,10 @@ func TestNonRootHandler(t *testing.T) {
 	req.Header.Set("x-amzn-trace-id", "Root=fakeid; Parent=reqid; Sampled=1")
 
 	_, err := http.DefaultTransport.RoundTrip(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	s, e := td.Recv()
+	require.NoError(t, e)
 
 	assert.Equal(t, "fakeid", s.TraceID)
 	assert.Equal(t, "reqid", s.ParentID)

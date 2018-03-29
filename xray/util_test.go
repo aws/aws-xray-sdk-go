@@ -11,73 +11,149 @@ package xray
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"strconv"
+	"sync"
+	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
-var (
-	listenerAddr = &net.UDPAddr{
-		IP:   net.IPv4(127, 0, 0, 1),
-		Port: 2000,
+func newTestDaemon(t *testing.T, ctx ...context.Context) *Testdaemon {
+	t.Helper()
+
+	if len(ctx) > 1 {
+		t.Fatal("newTestDaemon expect at most 1 context")
+	}
+	if len(ctx) == 0 {
+		ctx = append(ctx, newCtx())
 	}
 
-	TestDaemon = &Testdaemon{
-		Channel: make(chan *result, 200),
-	}
-)
+	// Start a listener on a random port.
+	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+	require.NoError(t, err)
+	ln, err := net.ListenUDP("udp", addr)
+	require.NoError(t, err)
 
-func init() {
-	if TestDaemon.Connection == nil {
-		conn, err := net.ListenUDP("udp", listenerAddr)
-		if err != nil {
-			panic(err)
+	ctx1, cancel := context.WithCancel(ctx[0])
+
+	td := &Testdaemon{
+		Addr:       ln.LocalAddr().String(),
+		connection: ln,
+		channel:    make(chan *result, 200),
+		Ctx:        ctx1,
+		cancel:     cancel,
+	}
+	// TODO: We should have a way to have a scopped emitter
+	//       that respects segment.Configuration.DaemonAddr.
+	require.NoError(t, Configure(Config{DaemonAddr: td.Addr}))
+
+	td.wg.Add(1)
+	go td.Run()
+
+	// Wait for the daemon to be up.
+	ctx1, cancel1 := context.WithTimeout(td.Ctx, 1*time.Second)
+	defer cancel1()
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+
+	conn, err := net.Dial("udp", td.Addr)
+	require.NoError(t, err)
+	defer func() { _ = conn.Close() }() //  Best effort.
+	for {
+		fmt.Fprintf(conn, "%s\n", Header)
+		select {
+		case <-ticker.C:
+		case <-td.channel:
+			return td
+		case <-ctx1.Done():
+			t.Fatal("Timeout waiting for test daemon to start.")
 		}
-
-		TestDaemon.Connection = conn
-		go TestDaemon.Run()
 	}
 }
 
 type Testdaemon struct {
-	Connection *net.UDPConn
-	Channel    chan *result
-	Done       bool
+	Addr string
+
+	wg         sync.WaitGroup
+	connection *net.UDPConn
+	channel    chan *result
+	Ctx        context.Context
+	cancel     func()
 }
+
+func (td *Testdaemon) Close() {
+	if td.cancel != nil {
+		td.cancel()
+	}
+	_ = td.connection.Close() // Best effort.
+	td.wg.Wait()
+	close(td.channel)
+}
+
 type result struct {
 	Segment *Segment
 	Error   error
 }
 
 func (td *Testdaemon) Run() {
-	buffer := make([]byte, 64000)
-	for !td.Done {
-		n, _, err := td.Connection.ReadFromUDP(buffer)
-		if err != nil {
-			td.Channel <- &result{nil, err}
-			continue
+	defer td.wg.Done()
+
+	ch := make(chan []byte, 200)
+
+	ctx := td.Ctx
+
+	go func() {
+		defer close(ch)
+
+		for {
+			buffer := make([]byte, 64000) // Realloc each time so the unmarshal can take it's time.
+			n, err := io.ReadAtLeast(td.connection, buffer, len(Header))
+			if err != nil {
+				return
+			}
+			select {
+			case ch <- buffer[:n]:
+			case <-ctx.Done():
+				return
+			}
 		}
+	}()
 
-		buffered := buffer[len(Header):n]
-
-		seg := &Segment{}
-		err = json.Unmarshal(buffered, &seg)
-		if err != nil {
-			td.Channel <- &result{nil, err}
-			continue
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case buf, ok := <-ch:
+			if !ok {
+				return
+			}
+			go func(buf []byte) {
+				seg := &Segment{Sampled: true}
+				err := json.Unmarshal(buf[len(Header):], seg)
+				select {
+				case td.channel <- &result{seg, err}:
+				case <-ctx.Done():
+				}
+			}(buf)
 		}
-
-		seg.Sampled = true
-		td.Channel <- &result{seg, err}
 	}
 }
 
 func (td *Testdaemon) Recv() (*Segment, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	td.wg.Add(1)
+	defer td.wg.Done()
+
+	// NOTE: The race detector can make thing slow.
+	ctx, cancel := context.WithTimeout(td.Ctx, 10*time.Second)
 	defer cancel()
+
 	select {
-	case r := <-td.Channel:
+	case r := <-td.channel:
 		return r.Segment, r.Error
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -99,4 +175,18 @@ func ParseHeadersForTest(h http.Header) XRayHeaders {
 		ParentID:    m["Parent"],
 		Sampled:     s,
 	}
+}
+
+// emptyCtx implements a custom context.
+type emptyCtx int
+
+func (*emptyCtx) Deadline() (deadline time.Time, ok bool) { return }
+func (*emptyCtx) Done() <-chan struct{}                   { return nil }
+func (*emptyCtx) Err() error                              { return nil }
+func (*emptyCtx) Value(key interface{}) interface{}       { return nil }
+
+// newCtx returns a new, isolted context.
+// Useful to make sure we don't share context accross tests.
+func newCtx() context.Context {
+	return new(emptyCtx)
 }

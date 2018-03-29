@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
@@ -68,14 +69,12 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 	}
 
 	go func() {
-		select {
-		case <-ctx.Done():
-			seg.Lock()
-			seg.ContextDone = true
-			seg.Unlock()
-			if !seg.InProgress && !seg.Emitted {
-				seg.flush(false)
-			}
+		<-ctx.Done()
+		seg.Lock()
+		seg.ContextDone = true
+		seg.Unlock()
+		if !seg.InProgress && !seg.Emitted {
+			seg.flush(false)
 		}
 	}()
 
@@ -160,7 +159,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 		name = name[:200]
 	}
 
-	parent := &Segment{}
+	var parent *Segment
 	// first time to create facade segment
 	if getTraceHeaderFromContext(ctx) != nil && GetSegment(ctx) == nil {
 		_, parent = newFacadeSegment(ctx)
@@ -181,7 +180,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	seg := &Segment{parent: parent}
 	log.Tracef("Beginning subsegment named %s", name)
 	seg.ParentSegment = parent.ParentSegment
-	seg.ParentSegment.totalSubSegments++
+	atomic.AddInt64(&seg.ParentSegment.totalSubSegments, 1)
 	seg.Lock()
 	defer seg.Unlock()
 
@@ -227,34 +226,34 @@ func (seg *Segment) Close(err error) {
 	seg.Unlock()
 
 	if err != nil {
-		seg.AddError(err)
+		_ = seg.AddError(err) // Store only.
 	}
 
 	seg.flush(false)
 }
 
 // CloseAndStream closes a subsegment and sends it.
-func (subseg *Segment) CloseAndStream(err error) {
-	subseg.Lock()
+func (seg *Segment) CloseAndStream(err error) {
+	seg.Lock()
 
-	if subseg.parent != nil {
-		log.Tracef("Ending subsegment named: %s", subseg.Name)
-		subseg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
-		subseg.InProgress = false
-		subseg.Emitted = true
-		if subseg.parent.RemoveSubsegment(subseg) {
-			log.Tracef("Removing subsegment named: %s", subseg.Name)
+	if seg.parent != nil {
+		log.Tracef("Ending subsegment named: %s", seg.Name)
+		seg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
+		seg.InProgress = false
+		seg.Emitted = true
+		if seg.parent.RemoveSubsegment(seg) {
+			log.Tracef("Removing subsegment named: %s", seg.Name)
 		}
 	}
 
 	if err != nil {
-		subseg.AddError(err)
+		_ = seg.AddError(err) // Store only.
 	}
 
-	subseg.beforeEmitSubsegment(subseg.parent)
-	subseg.Unlock()
+	seg.beforeEmitSubsegment(seg.parent)
+	seg.Unlock()
 
-	Emit(subseg)
+	Emit(seg)
 }
 
 // RemoveSubsegment removes a subsegment child from a segment or subsegment.
@@ -268,7 +267,7 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 			seg.rawSubsegments[len(seg.rawSubsegments)-1] = nil
 			seg.rawSubsegments = seg.rawSubsegments[:len(seg.rawSubsegments)-1]
 
-			seg.totalSubSegments--
+			atomic.AddInt64(&seg.totalSubSegments, -1)
 			seg.openSegments--
 			return true
 		}
@@ -340,13 +339,13 @@ func (seg *Segment) addSDKAndServiceInformation() {
 	seg.GetService().CompilerVersion = runtime.Version()
 }
 
-func (sub *Segment) beforeEmitSubsegment(seg *Segment) {
+func (seg *Segment) beforeEmitSubsegment(parent *Segment) {
 	// Only called within a subsegment locked code block
-	sub.TraceID = seg.root().TraceID
-	sub.ParentID = seg.ID
-	sub.Type = "subsegment"
-	sub.RequestWasTraced = seg.RequestWasTraced
-	sub.parent = nil
+	seg.TraceID = parent.root().TraceID
+	seg.ParentID = parent.ID
+	seg.Type = "subsegment"
+	seg.RequestWasTraced = parent.RequestWasTraced
+	seg.parent = nil
 }
 
 // AddAnnotation allows adding an annotation to the segment.

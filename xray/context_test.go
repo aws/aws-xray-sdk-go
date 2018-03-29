@@ -9,38 +9,41 @@
 package xray
 
 import (
-	"context"
 	"errors"
 	"testing"
 
 	"github.com/aws/aws-xray-sdk-go/strategy/exception"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTraceID(t *testing.T) {
-	ctx, seg := BeginSegment(context.Background(), "test")
+	ctx, seg := BeginSegment(newCtx(), "test")
 	traceID := TraceID(ctx)
 	assert.Equal(t, seg.TraceID, traceID)
 }
 
 func TestEmptyTraceID(t *testing.T) {
-	traceID := TraceID(context.Background())
+	traceID := TraceID(newCtx())
 	assert.Empty(t, traceID)
 }
 
 func TestRequestWasNotTraced(t *testing.T) {
-	ctx, seg := BeginSegment(context.Background(), "test")
+	ctx, seg := BeginSegment(newCtx(), "test")
 	assert.Equal(t, seg.RequestWasTraced, RequestWasTraced(ctx))
 }
 
 func TestDetachContext(t *testing.T) {
-	ctx := context.Background()
+	ctx := newCtx()
 	nctx := DetachContext(ctx)
 	assert.NotEqual(t, ctx, nctx)
 }
 
 func TestValidAnnotations(t *testing.T) {
-	ctx, root := BeginSegment(context.Background(), "Test")
+	td := newTestDaemon(t)
+	defer td.Close()
+
+	ctx, root := BeginSegment(td.Ctx, "Test")
 	var err exception.MultiError
 	if e := AddAnnotation(ctx, "string", "str"); e != nil {
 		err = append(err, e)
@@ -56,8 +59,8 @@ func TestValidAnnotations(t *testing.T) {
 	}
 	root.Close(err)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	s, e := td.Recv()
+	require.NoError(t, e)
 
 	assert.Equal(t, "str", s.Annotations["string"])
 	assert.Equal(t, 1.0, s.Annotations["int"]) //json encoder turns this into a float64
@@ -66,19 +69,25 @@ func TestValidAnnotations(t *testing.T) {
 }
 
 func TestInvalidAnnotations(t *testing.T) {
-	ctx, root := BeginSegment(context.Background(), "Test")
+	td := newTestDaemon(t)
+	defer td.Close()
+
+	ctx, root := BeginSegment(td.Ctx, "Test")
 	type MyObject struct{}
 
 	err := AddAnnotation(ctx, "Object", &MyObject{})
 	root.Close(err)
 	assert.Error(t, err)
 
-	_, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	_, e := td.Recv()
+	require.NoError(t, e)
 }
 
 func TestSimpleMetadata(t *testing.T) {
-	ctx, root := BeginSegment(context.Background(), "Test")
+	td := newTestDaemon(t)
+	defer td.Close()
+
+	ctx, root := BeginSegment(td.Ctx, "Test")
 	var err exception.MultiError
 	if e := AddMetadata(ctx, "string", "str"); e != nil {
 		err = append(err, e)
@@ -94,8 +103,8 @@ func TestSimpleMetadata(t *testing.T) {
 	}
 	assert.Nil(t, err)
 	root.Close(err)
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	s, e := td.Recv()
+	require.NoError(t, e)
 
 	assert.Equal(t, "str", s.Metadata["default"]["string"])
 	assert.Equal(t, 1.0, s.Metadata["default"]["int"])
@@ -104,12 +113,15 @@ func TestSimpleMetadata(t *testing.T) {
 }
 
 func TestAddError(t *testing.T) {
-	ctx, root := BeginSegment(context.Background(), "Test")
+	td := newTestDaemon(t)
+	defer td.Close()
+
+	ctx, root := BeginSegment(td.Ctx, "Test")
 	err := AddError(ctx, errors.New("New Error"))
 	assert.Nil(t, err)
 	root.Close(err)
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	s, e := td.Recv()
+	require.NoError(t, e)
 
 	assert.Equal(t, "New Error", s.Cause.Exceptions[0].Message)
 	assert.Equal(t, "error", s.Cause.Exceptions[0].Type)

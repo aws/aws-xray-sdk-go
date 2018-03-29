@@ -10,11 +10,12 @@ package xray
 
 import (
 	"context"
-	"github.com/aws/aws-xray-sdk-go/header"
-	log "github.com/cihub/seelog"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/aws/aws-xray-sdk-go/header"
+	log "github.com/cihub/seelog"
 )
 
 // LambdaTraceHeaderKey is key to get trace header from context.

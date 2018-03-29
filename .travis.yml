@@ -1,0 +1,18 @@
+sudo: false
+
+language: go
+
+go:
+  - 1.9
+  - '1.10'
+  - tip
+
+before_install:
+  - go get golang.org/x/lint/golint
+  - go get golang.org/x/tools/cmd/goimports
+  - go get github.com/Masterminds/glide
+  - go get github.com/jteeuwen/go-bindata/...
+  - glide update
+
+script:
+  - make test
