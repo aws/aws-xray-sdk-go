@@ -74,9 +74,6 @@ func Emit(seg *Segment) {
 }
 
 func packSegments(seg *Segment, outSegments [][]byte) [][]byte {
-	seg.Lock()
-	defer seg.Unlock()
-
 	trimSubsegment := func(s *Segment) []byte {
 		ss := globalCfg.StreamingStrategy()
 		if seg.ParentSegment.Configuration != nil && seg.ParentSegment.Configuration.StreamingStrategy != nil {

@@ -70,12 +70,7 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 	go func() {
 		select {
 		case <-ctx.Done():
-			seg.Lock()
-			seg.ContextDone = true
-			seg.Unlock()
-			if !seg.InProgress && !seg.Emitted {
-				seg.flush(false)
-			}
+			seg.handleContextDone()
 		}
 	}()
 
@@ -227,6 +222,7 @@ func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (c
 // Close a segment.
 func (seg *Segment) Close(err error) {
 	seg.Lock()
+	defer seg.Unlock()
 	if seg.parent != nil {
 		log.Tracef("Closing subsegment named %s", seg.Name)
 	} else {
@@ -234,13 +230,12 @@ func (seg *Segment) Close(err error) {
 	}
 	seg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = false
-	seg.Unlock()
 
 	if err != nil {
-		seg.AddError(err)
+		seg.addError(err)
 	}
 
-	seg.flush(false)
+	seg.flush()
 }
 
 // CloseAndStream closes a subsegment and sends it.
@@ -258,7 +253,7 @@ func (subseg *Segment) CloseAndStream(err error) {
 	}
 
 	if err != nil {
-		subseg.AddError(err)
+		subseg.addError(err)
 	}
 
 	subseg.beforeEmitSubsegment(subseg.parent)
@@ -286,31 +281,33 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 	return false
 }
 
-func (seg *Segment) flush(decrement bool) {
+func (seg *Segment) handleContextDone() {
 	seg.Lock()
-	if decrement {
-		seg.openSegments--
-	}
-	shouldFlush := (seg.openSegments == 0 && seg.EndTime > 0) || seg.ContextDone
-	seg.Unlock()
+	defer seg.Unlock()
 
-	if shouldFlush {
+
+	seg.ContextDone = true
+	if !seg.InProgress && !seg.Emitted {
+		seg.flush()
+	}
+}
+
+func (seg *Segment) flush() {
+	if (seg.openSegments == 0 && seg.EndTime > 0) || seg.ContextDone {
 		if seg.parent == nil {
-			seg.Lock()
 			seg.Emitted = true
-			seg.Unlock()
-			Emit(seg)
-		} else if seg.parent != nil && seg.parent.Facade {
-			seg.Lock()
-			seg.Emitted = true
-			seg.beforeEmitSubsegment(seg.parent)
-			seg.Unlock()
-			log.Tracef("emit lambda subsegment named: %v", seg.Name)
 			Emit(seg)
 		} else {
-			seg.parent.flush(true)
+			seg.parent.safeFlush()
 		}
 	}
+}
+
+func (seg *Segment) safeFlush() {
+	seg.Lock()
+	defer seg.Unlock()
+	seg.openSegments--
+	seg.flush()
 }
 
 func (seg *Segment) root() *Segment {
@@ -412,6 +409,12 @@ func (seg *Segment) AddError(err error) error {
 	seg.Lock()
 	defer seg.Unlock()
 
+	seg.addError(err)
+
+	return nil
+}
+
+func (seg *Segment) addError(err error) error {
 	seg.Fault = true
 	seg.GetCause().WorkingDirectory, _ = os.Getwd()
 	seg.GetCause().Exceptions = append(seg.GetCause().Exceptions, seg.ParentSegment.GetConfiguration().ExceptionFormattingStrategy.ExceptionFromError(err))
