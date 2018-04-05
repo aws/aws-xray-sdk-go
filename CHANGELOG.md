@@ -1,3 +1,10 @@
+Release v1.0.0-rc.3 (2018-04-04)
+================================
+### SDK Enhancements
+* Fix data race condition in BeginSubsegment and Close methods.
+* Remove port number in client_ip when X-Forwarded_For is empty.
+* Fix version issue for httptrace library.
+
 Release v1.0.0-rc.2 (2018-03-22)
 ================================
 ### SDK Enhancements
