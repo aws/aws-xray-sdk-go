@@ -25,6 +25,10 @@ import (
 	log "github.com/cihub/seelog"
 )
 
+const RequestIDKey string = "request_id"
+const ExtendedRequestIDKey string = "id_2"
+const S3ExtendedRequestIDHeaderKey string = "x-amz-id-2"
+
 type jsonMap struct {
 	object interface{}
 }
@@ -187,12 +191,16 @@ func xrayCompleteHandler(filename string) request.NamedHandler {
 
 			opseg.GetAWS()["region"] = r.ClientInfo.SigningRegion
 			opseg.GetAWS()["operation"] = r.Operation.Name
-			opseg.GetAWS()["request_id"] = r.RequestID
 			opseg.GetAWS()["retries"] = r.RetryCount
+			opseg.GetAWS()[RequestIDKey] = r.RequestID
 
 			if r.HTTPResponse != nil {
 				opseg.GetHTTP().GetResponse().Status = r.HTTPResponse.StatusCode
 				opseg.GetHTTP().GetResponse().ContentLength = int(r.HTTPResponse.ContentLength)
+
+				if extendedRequestID := r.HTTPResponse.Header.Get(S3ExtendedRequestIDHeaderKey); extendedRequestID != "" {
+					opseg.GetAWS()[ExtendedRequestIDKey] = extendedRequestID
+				}
 			}
 
 			if request.IsErrorThrottle(r.Error) {
