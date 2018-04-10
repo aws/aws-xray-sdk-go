@@ -285,7 +285,6 @@ func (seg *Segment) handleContextDone() {
 	seg.Lock()
 	defer seg.Unlock()
 
-
 	seg.ContextDone = true
 	if !seg.InProgress && !seg.Emitted {
 		seg.flush()
@@ -296,6 +295,11 @@ func (seg *Segment) flush() {
 	if (seg.openSegments == 0 && seg.EndTime > 0) || seg.ContextDone {
 		if seg.parent == nil {
 			seg.Emitted = true
+			Emit(seg)
+		} else if seg.parent != nil && seg.parent.Facade {
+			seg.Emitted = true
+			seg.beforeEmitSubsegment(seg.parent)
+			log.Tracef("emit lambda subsegment named: %v", seg.Name)
 			Emit(seg)
 		} else {
 			seg.parent.safeFlush()
