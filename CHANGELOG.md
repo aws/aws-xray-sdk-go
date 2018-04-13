@@ -1,3 +1,11 @@
+Release v1.0.0-rc.4 (2018-04-13)
+================================
+### SDK Bugs
+* Flush subsegments generated inside Lambda function.
+
+### SDK Enhancements
+* Capture extra request id with header `x-amz-id-2` for AWS S3 API calls.
+
 Release v1.0.0-rc.3 (2018-04-04)
 ================================
 ### SDK Enhancements
