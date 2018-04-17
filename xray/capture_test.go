@@ -106,3 +106,41 @@ func TestPanicCapture(t *testing.T) {
 	assert.Equal(t, "TestPanicCapture.func1", subseg.Cause.Exceptions[0].Stack[2].Label)
 	assert.Equal(t, "TestPanicCapture", subseg.Cause.Exceptions[0].Stack[3].Label)
 }
+
+func TestNoSegmentCapture(t *testing.T) {
+	var err error
+	func() {
+		defer func() {
+			if p := recover(); p != nil {
+				err = errors.New(p.(string))
+			}
+		}()
+		Capture(context.Background(), "PanicService", func(ctx1 context.Context) error {
+			panic("MyPanic")
+		})
+	}()
+
+	assert.NotNil(t, err)
+	assert.Equal(t, "failed to begin subsegment named 'PanicService': segment cannot be found.", err.Error())
+}
+
+func TestCaptureAsync(t *testing.T) {
+	ctx, root := BeginSegment(context.Background(), "Test")
+	CaptureAsync(ctx, "TestService", func(ctx1 context.Context) error {
+		ctx = ctx1
+		defer root.Close(nil)
+		return nil
+	})
+
+	s, e := TestDaemon.Recv()
+	assert.NoError(t, e)
+	assert.Equal(t, "Test", s.Name)
+	assert.Equal(t, root.TraceID, s.TraceID)
+	assert.Equal(t, root.ID, s.ID)
+	assert.Equal(t, root.StartTime, s.StartTime)
+	assert.Equal(t, root.EndTime, s.EndTime)
+	assert.NotNil(t, s.Subsegments)
+	subseg := &Segment{}
+	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
+	assert.Equal(t, "TestService", subseg.Name)
+}

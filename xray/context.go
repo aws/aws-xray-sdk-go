@@ -28,8 +28,8 @@ type RecorderContextKey struct{}
 // GetRecorder returns a pointer to the config struct provided
 // in ctx, or nil if no config is set.
 func GetRecorder(ctx context.Context) *Config {
-	if seg, ok := ctx.Value(RecorderContextKey{}).(*Config); ok {
-		return seg
+	if r, ok := ctx.Value(RecorderContextKey{}).(*Config); ok {
+		return r
 	}
 	return nil
 }
