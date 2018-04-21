@@ -53,6 +53,9 @@ var xRayBeforeValidateHandler = request.NamedHandler{
 	Name: "XRayBeforeValidateHandler",
 	Fn: func(r *request.Request) {
 		ctx, opseg := BeginSubsegment(r.HTTPRequest.Context(), r.ClientInfo.ServiceName)
+		if opseg == nil {
+			return
+		}
 		opseg.Namespace = "aws"
 		marshalctx, _ := BeginSubsegment(ctx, "marshal")
 
