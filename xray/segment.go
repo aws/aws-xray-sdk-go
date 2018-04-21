@@ -169,7 +169,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 			} else {
 				globalCfg.ContextMissingStrategy().ContextMissing(failedMessage)
 			}
-			return nil, nil
+			return ctx, nil
 		}
 	}
 
