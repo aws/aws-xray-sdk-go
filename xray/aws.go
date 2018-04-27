@@ -45,6 +45,9 @@ func beginSubsegment(r *request.Request, name string) {
 
 func endSubsegment(r *request.Request) {
 	seg := GetSegment(r.HTTPRequest.Context())
+	if seg == nil {
+		return
+	}
 	seg.Close(r.Error)
 	r.HTTPRequest = r.HTTPRequest.WithContext(context.WithValue(r.HTTPRequest.Context(), ContextKey, seg.parent))
 }
@@ -74,8 +77,10 @@ var xRayAfterBuildHandler = request.NamedHandler{
 var xRayBeforeSignHandler = request.NamedHandler{
 	Name: "XRayBeforeSignHandler",
 	Fn: func(r *request.Request) {
-		ctx, _ := BeginSubsegment(r.HTTPRequest.Context(), "attempt")
-
+		ctx, seg := BeginSubsegment(r.HTTPRequest.Context(), "attempt")
+		if seg == nil {
+			return
+		}
 		ct, _ := NewClientTrace(ctx)
 		r.HTTPRequest = r.HTTPRequest.WithContext(httptrace.WithClientTrace(ctx, ct.httpTrace))
 	},
