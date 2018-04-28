@@ -1,0 +1,25 @@
+language: go
+
+go_import_path: github.com/aws/aws-xray-sdk-go
+
+sudo: required
+
+go:
+  - "1.7"
+  - "1.8"
+  - "1.9"
+  - "1.10"
+  - "tip"
+    
+
+install:
+  - go get -v github.com/Masterminds/glide
+  - cd $GOPATH/src/github.com/Masterminds/glide && git checkout 67790b3dbede72cfdc54aa53be4706322c9499e0 && go install && cd -
+  - glide install
+
+script:
+  - make test
+
+matrix:
+  allow_failures:
+    - go: tip
