@@ -18,13 +18,14 @@ import (
 
 // HTTPSubsegments is a set of context in different HTTP operation.
 type HTTPSubsegments struct {
-	opCtx       context.Context
-	connCtx     context.Context
-	dnsCtx      context.Context
-	connectCtx  context.Context
-	tlsCtx      context.Context
-	reqCtx      context.Context
-	responseCtx context.Context
+	opCtx         context.Context
+	connCtx       context.Context
+	dnsCtx        context.Context
+	connectCtx    context.Context
+	tlsCtx        context.Context
+	reqCtx        context.Context
+	reqHeadersCtx context.Context
+	responseCtx   context.Context
 }
 
 // NewHTTPSubsegments creates a new HTTPSubsegments to use in
@@ -112,8 +113,17 @@ func (xt *HTTPSubsegments) GotConn(info *httptrace.GotConnInfo, err error) {
 
 		if err == nil {
 			xt.reqCtx, _ = BeginSubsegment(xt.opCtx, "request")
+			xt.reqHeadersCtx, _ = BeginSubsegment(xt.reqCtx, "request-headers")
 		}
 
+	}
+}
+
+// WroteHeaders closes the request-headers subsegment if the HTTP operation
+// subsegment is still in progress.
+func (xt *HTTPSubsegments) WroteHeaders() {
+	if xt.reqHeadersCtx != nil && GetSegment(xt.opCtx).InProgress {
+		GetSegment(xt.reqHeadersCtx).Close(nil)
 	}
 }
 
@@ -172,6 +182,9 @@ func NewClientTrace(opCtx context.Context) (ct *ClientTrace, err error) {
 			},
 			GotConn: func(info httptrace.GotConnInfo) {
 				segs.GotConn(&info, nil)
+			},
+			WroteHeaders: func() {
+				segs.WroteHeaders()
 			},
 			WroteRequest: func(info httptrace.WroteRequestInfo) {
 				segs.WroteRequest(info)
