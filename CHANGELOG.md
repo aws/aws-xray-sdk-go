@@ -1,3 +1,12 @@
+Release v1.0.0-rc.5 (2018-05-15)
+================================
+### SDK Bugs
+* Traced aws client allows requests to proceed without segments presenting.
+
+### SDK Enhancements
+* Increase unit test coverage.
+* Update `aws-sdk-go` version in `glide.yaml` file.
+
 Release v1.0.0-rc.4 (2018-04-13)
 ================================
 ### SDK Bugs
