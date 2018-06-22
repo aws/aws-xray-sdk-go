@@ -14,9 +14,9 @@ import (
 	"strings"
 	"testing"
 
+	"context"
 	"github.com/stretchr/testify/assert"
 	"os"
-	"context"
 	"time"
 )
 
@@ -48,7 +48,7 @@ func TestNewDynamicSegmentNameFromEnv(t *testing.T) {
 
 func TestHandlerWithContextForRootHandler(t *testing.T) {
 	ctx, _ := ContextWithConfig(context.Background(), Config{
-		ServiceVersion:	"1.0.0",
+		ServiceVersion: "1.0.0",
 	})
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +80,7 @@ func TestHandlerWithContextForRootHandler(t *testing.T) {
 
 func TestHandlerWithContextForNonRootHandler(t *testing.T) {
 	ctx, _ := ContextWithConfig(context.Background(), Config{
-		ServiceVersion:	"1.0.0",
+		ServiceVersion: "1.0.0",
 	})
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
