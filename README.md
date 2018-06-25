@@ -147,6 +147,10 @@ func main() {
 
 **Lambda**
 
+```
+For Lambda support use version v1.0.0-rc.1 and higher
+```
+
 Use AWS X-Ray SDK for Go to generate custom subsegments inside AWS Lambda handler function.
 
 ```go
