@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/aws/aws-xray-sdk-go/strategy/exception"
@@ -125,8 +126,11 @@ func TestNoSegmentCapture(t *testing.T) {
 }
 
 func TestCaptureAsync(t *testing.T) {
+	var mu sync.Mutex
 	ctx, root := BeginSegment(context.Background(), "Test")
 	CaptureAsync(ctx, "TestService", func(ctx1 context.Context) error {
+		mu.Lock()
+		defer mu.Unlock()
 		ctx = ctx1
 		defer root.Close(nil)
 		return nil
@@ -134,6 +138,8 @@ func TestCaptureAsync(t *testing.T) {
 
 	s, e := TestDaemon.Recv()
 	assert.NoError(t, e)
+	mu.Lock() // avoid race detection
+	defer mu.Unlock()
 	assert.Equal(t, "Test", s.Name)
 	assert.Equal(t, root.TraceID, s.TraceID)
 	assert.Equal(t, root.ID, s.ID)
