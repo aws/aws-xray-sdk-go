@@ -45,7 +45,7 @@ func (xt *HTTPSubsegments) GetConn(hostPort string) {
 // DNSStart begins a dns subsegment if the HTTP operation
 // subsegment is still in progress.
 func (xt *HTTPSubsegments) DNSStart(info httptrace.DNSStartInfo) {
-	if GetSegment(xt.opCtx).InProgress {
+	if GetSegment(xt.opCtx).safeInProgress() {
 		xt.dnsCtx, _ = BeginSubsegment(xt.connCtx, "dns")
 	}
 }
@@ -56,7 +56,7 @@ func (xt *HTTPSubsegments) DNSStart(info httptrace.DNSStartInfo) {
 // and whether or not the call was coalesced is added as
 // metadata to the dns subsegment.
 func (xt *HTTPSubsegments) DNSDone(info httptrace.DNSDoneInfo) {
-	if xt.dnsCtx != nil && GetSegment(xt.opCtx).InProgress {
+	if xt.dnsCtx != nil && GetSegment(xt.opCtx).safeInProgress() {
 		metadata := make(map[string]interface{})
 		metadata["addresses"] = info.Addrs
 		metadata["coalesced"] = info.Coalesced
@@ -69,7 +69,7 @@ func (xt *HTTPSubsegments) DNSDone(info httptrace.DNSDoneInfo) {
 // ConnectStart begins a dial subsegment if the HTTP operation
 // subsegment is still in progress.
 func (xt *HTTPSubsegments) ConnectStart(network, addr string) {
-	if GetSegment(xt.opCtx).InProgress {
+	if GetSegment(xt.opCtx).safeInProgress() {
 		xt.connectCtx, _ = BeginSubsegment(xt.connCtx, "dial")
 	}
 }
@@ -79,7 +79,7 @@ func (xt *HTTPSubsegments) ConnectStart(network, addr string) {
 // (if any). Information about the network over which the dial
 // was made is added as metadata to the subsegment.
 func (xt *HTTPSubsegments) ConnectDone(network, addr string, err error) {
-	if xt.connectCtx != nil && GetSegment(xt.opCtx).InProgress {
+	if xt.connectCtx != nil && GetSegment(xt.opCtx).safeInProgress() {
 		metadata := make(map[string]interface{})
 		metadata["network"] = network
 
@@ -91,7 +91,7 @@ func (xt *HTTPSubsegments) ConnectDone(network, addr string, err error) {
 // TLSHandshakeStart begins a tls subsegment if the HTTP operation
 // subsegment is still in progress.
 func (xt *HTTPSubsegments) TLSHandshakeStart() {
-	if GetSegment(xt.opCtx).InProgress {
+	if GetSegment(xt.opCtx).safeInProgress() {
 		xt.tlsCtx, _ = BeginSubsegment(xt.connCtx, "tls")
 	}
 }
@@ -101,7 +101,7 @@ func (xt *HTTPSubsegments) TLSHandshakeStart() {
 // error value(if any). Information about the tls connection
 // is added as metadata to the subsegment.
 func (xt *HTTPSubsegments) TLSHandshakeDone(connState tls.ConnectionState, err error) {
-	if xt.tlsCtx != nil && GetSegment(xt.opCtx).InProgress {
+	if xt.tlsCtx != nil && GetSegment(xt.opCtx).safeInProgress() {
 		metadata := make(map[string]interface{})
 		metadata["did_resume"] = connState.DidResume
 		metadata["negotiated_protocol"] = connState.NegotiatedProtocol

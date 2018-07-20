@@ -12,9 +12,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -189,4 +191,37 @@ func TestBadRoundTrip(t *testing.T) {
 	subseg := &Segment{}
 	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
 	assert.Equal(t, fmt.Sprintf("%v", err), subseg.Cause.Exceptions[0].Message)
+}
+
+func TestRoundTrip_reuse_datarace(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b := []byte(`200 - Nothing to see`)
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}))
+
+	defer ts.Close()
+
+	wg := sync.WaitGroup{}
+	n := 30
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			reader := strings.NewReader("")
+			ctx, root := BeginSegment(context.Background(), "Test")
+			req := httptest.NewRequest("GET", strings.Replace(ts.URL, "127.0.0.1", "localhost", -1), reader)
+			req = req.WithContext(ctx)
+			res, err := rt.RoundTrip(req)
+			ioutil.ReadAll(res.Body)
+			res.Body.Close() // make net/http/transport.go connection reuse
+			root.Close(nil)
+			assert.NoError(t, err)
+		}()
+	}
+	for i := 0; i < n; i++ {
+		_, e := TestDaemon.Recv()
+		assert.NoError(t, e)
+	}
+	wg.Wait()
 }
