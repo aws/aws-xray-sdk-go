@@ -180,11 +180,16 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	defer seg.Unlock()
 
 	parent.Lock()
+	defer parent.Unlock()
+
 	seg.ParentSegment = parent.ParentSegment
+	if seg.ParentSegment != seg && seg.ParentSegment != parent {
+		seg.ParentSegment.Lock()
+		defer seg.ParentSegment.Unlock()
+	}
 	seg.ParentSegment.totalSubSegments++
 	parent.rawSubsegments = append(parent.rawSubsegments, seg)
 	parent.openSegments++
-	parent.Unlock()
 
 	seg.ID = NewSegmentID()
 	seg.Name = name
@@ -204,7 +209,7 @@ func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (c
 	if h.ParentID != "" {
 		seg.ParentID = h.ParentID
 	}
-	
+
 	seg.Sampled = h.SamplingDecision == header.Sampled
 	switch h.SamplingDecision {
 	case header.Sampled:

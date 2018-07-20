@@ -10,6 +10,7 @@ package xray
 
 import (
 	"context"
+	"sync"
 	"testing"
 )
 
@@ -22,4 +23,24 @@ func TestSegmentDataRace(t *testing.T) {
 		go seg.Close(nil)
 		cancel()
 	}
+}
+
+func TestSubsegmentDataRace(t *testing.T) {
+	ctx := context.Background()
+	ctx, seg := BeginSegment(ctx, "TestSegment")
+	defer seg.Close(nil)
+
+	wg := sync.WaitGroup{}
+	n := 5
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			ctx, seg := BeginSubsegment(ctx, "TestSubsegment1")
+			ctx, seg2 := BeginSubsegment(ctx, "TestSubsegment2")
+			seg2.Close(nil)
+			seg.Close(nil)
+		}()
+	}
+	wg.Wait()
 }
