@@ -319,6 +319,13 @@ func (seg *Segment) safeFlush() {
 	seg.flush()
 }
 
+func (seg *Segment) safeInProgress() bool {
+	seg.Lock()
+	b := seg.InProgress
+	seg.Unlock()
+	return b
+}
+
 func (seg *Segment) root() *Segment {
 	if seg.parent == nil {
 		return seg
