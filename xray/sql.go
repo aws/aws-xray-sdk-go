@@ -150,6 +150,9 @@ func (db *DB) SetMaxOpenConns(n int) { db.db.SetMaxOpenConns(n) }
 
 func (db *DB) populate(ctx context.Context, query string) {
 	seg := GetSegment(ctx)
+	if seg == nil {
+		return
+	}
 
 	seg.Lock()
 	seg.Namespace = "remote"
@@ -191,6 +194,9 @@ func (stmt *Stmt) populate(ctx context.Context, query string) {
 	stmt.db.populate(ctx, query)
 
 	seg := GetSegment(ctx)
+	if seg == nil {
+		return
+	}
 	seg.Lock()
 	seg.GetSQL().Preparation = "statement"
 	seg.Unlock()
