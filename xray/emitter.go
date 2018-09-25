@@ -35,12 +35,14 @@ func init() {
 func refreshEmitter() {
 	e.Lock()
 	e.conn, _ = net.DialUDP("udp", nil, globalCfg.DaemonAddr())
+	log.Infof("Emitter using address from global config: %v", globalCfg.DaemonAddr())
 	e.Unlock()
 }
 
 func refreshEmitterWithAddress(raddr *net.UDPAddr) {
 	e.Lock()
 	e.conn, _ = net.DialUDP("udp", nil, raddr)
+	log.Infof("Emitter using address: %v", raddr)
 	e.Unlock()
 }
 
@@ -50,7 +52,6 @@ func Emit(seg *Segment) {
 		return
 	}
 
-	// TODO: going to change our logging framework in next cr.
 	var logLevel string
 	if seg.Configuration != nil && seg.Configuration.LogLevel == "trace" {
 		logLevel = "trace"

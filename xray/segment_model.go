@@ -14,6 +14,7 @@ import (
 
 	"github.com/aws/aws-xray-sdk-go/header"
 	"github.com/aws/aws-xray-sdk-go/strategy/exception"
+	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
 )
 
 // Segment provides the resource's name, details about the request, and details about the work done.
@@ -204,4 +205,13 @@ func (s *Segment) GetConfiguration() *Config {
 		s.Configuration = &Config{}
 	}
 	return s.Configuration
+}
+
+// AddRuleName adds rule name, if present from sampling decision to xray context.
+func (s *Segment) AddRuleName(sd *sampling.Decision) {
+	if sd.Rule != nil {
+		sdk := s.GetAWS()["xray"].(SDK)
+		sdk.RuleName = *sd.Rule
+		s.GetAWS()["xray"] = sdk
+	}
 }

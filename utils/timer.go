@@ -6,9 +6,39 @@
 //
 // or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package sampling
+package utils
 
-// Strategy provides an interface for implementing trace sampling strategies.
-type Strategy interface {
-	ShouldTrace(request *Request) *Decision
+import (
+	"math/rand"
+	"time"
+)
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+type timer struct {
+	t      *time.Timer
+	d      time.Duration
+	jitter time.Duration
+}
+
+func NewTimer(d, jitter time.Duration) *timer {
+	t := time.NewTimer(d - time.Duration(rand.Int63n(int64(jitter))))
+
+	jitteredTimer := timer{
+		t:      t,
+		d:      d,
+		jitter: jitter,
+	}
+
+	return &jitteredTimer
+}
+
+func (j *timer) C() <-chan time.Time {
+	return j.t.C
+}
+
+func (j *timer) Reset() {
+	j.t.Reset(j.d - time.Duration(rand.Int63n(int64(j.jitter))))
 }

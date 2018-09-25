@@ -30,8 +30,10 @@ type TestStreamingStrategy struct{}
 
 type TestContextMissingStrategy struct{}
 
-func (tss *TestSamplingStrategy) ShouldTrace(serviceName string, path string, method string) bool {
-	return true
+func (tss *TestSamplingStrategy) ShouldTrace(request *sampling.Request) *sampling.Decision {
+	return &sampling.Decision{
+		Sample: true,
+	}
 }
 
 func (tefs *TestExceptionFormattingStrategy) Error(message string) *exception.XRayError {
@@ -82,7 +84,7 @@ func popEnv(env []string) {
 }
 
 func ResetConfig() {
-	ss, _ := sampling.NewLocalizedStrategy()
+	ss, _ := sampling.NewCentralizedStrategy()
 	efs, _ := exception.NewDefaultFormattingStrategy()
 	sms, _ := NewDefaultStreamingStrategy()
 	cms := ctxmissing.NewDefaultRuntimeErrorStrategy()
@@ -119,7 +121,6 @@ func TestDefaultConfigureParameters(t *testing.T) {
 	daemonAddr := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 2000}
 	logLevel := "info"
 	logFormat := "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n"
-	ss, _ := sampling.NewLocalizedStrategy()
 	efs, _ := exception.NewDefaultFormattingStrategy()
 	sms, _ := NewDefaultStreamingStrategy()
 	cms := ctxmissing.NewDefaultRuntimeErrorStrategy()
@@ -127,7 +128,6 @@ func TestDefaultConfigureParameters(t *testing.T) {
 	assert.Equal(t, daemonAddr, globalCfg.daemonAddr)
 	assert.Equal(t, logLevel, globalCfg.logLevel.String())
 	assert.Equal(t, logFormat, globalCfg.logFormat)
-	assert.Equal(t, ss, globalCfg.samplingStrategy)
 	assert.Equal(t, efs, globalCfg.exceptionFormattingStrategy)
 	assert.Equal(t, "", globalCfg.serviceVersion)
 	assert.Equal(t, sms, globalCfg.streamingStrategy)

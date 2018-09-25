@@ -6,76 +6,104 @@
 //
 // or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
+// Reservoirs allow a specified (`perSecond`) amount of `Take()`s per second.
 package sampling
 
-import (
-	"fmt"
-	"sync"
-	"sync/atomic"
-	"time"
-)
+import "github.com/aws/aws-xray-sdk-go/utils"
 
-var maxRate uint64 = 1e8
+// reservoir is a set of properties common to all reservoirs
+type reservoir struct {
+	// Total size of reservoir
+	capacity int64
 
-// Reservoir allows a specified amount of `Take()`s per second.
-// Support for atomic operations on uint64 is required.
-// More information: https://golang.org/pkg/sync/atomic/#pkg-note-BUG
+	// Reservoir consumption for current epoch
+	used int64
+
+	// Unix epoch. Reservoir usage is reset every second.
+	currentEpoch int64
+}
+
+// CentralizedReservoir is a reservoir distributed among all running instances of the SDK
+type CentralizedReservoir struct {
+	// Quota assigned to client
+	quota int64
+
+	// Quota refresh timestamp
+	refreshedAt int64
+
+	// Quota expiration timestamp
+	expiresAt int64
+
+	// Polling interval for quota
+	interval int64
+
+	// True if reservoir has been borrowed from this epoch
+	borrowed bool
+
+	// Common reservoir properties
+	*reservoir
+}
+
+// expired returns true if current time is past expiration timestamp. False otherwise.
+func (r *CentralizedReservoir) expired(now int64) bool {
+	return now > r.expiresAt
+}
+
+// borrow returns true if the reservoir has not been borrowed from this epoch
+func (r *CentralizedReservoir) borrow(now int64) bool {
+	if now != r.currentEpoch {
+		r.reset(now)
+	}
+
+	s := r.borrowed
+	r.borrowed = true
+
+	return !s && r.reservoir.capacity != 0
+}
+
+// Take consumes quota from reservoir, if any remains, and returns true. False otherwise.
+func (r *CentralizedReservoir) Take(now int64) bool {
+	if now != r.currentEpoch {
+		r.reset(now)
+	}
+
+	// Consume from quota, if available
+	if r.quota > r.used {
+		r.used++
+
+		return true
+	}
+
+	return false
+}
+
+func (r *CentralizedReservoir) reset(now int64) {
+	r.currentEpoch, r.used, r.borrowed = now, 0, false
+}
+
+// Reservoir is a reservoir local to the running instance of the SDK
 type Reservoir struct {
-	maskedCounter uint64
-	perSecond     uint64
-	mutex         sync.Mutex // don't use embedded struct to ensure 64 bit alignment for maskedCounter.
+	// Provides system time
+	clock utils.Clock
+
+	*reservoir
 }
 
-// NewReservoir creates a new reservoir with a specified perSecond
-// sampling capacity. The maximum supported sampling capacity per
-// second is currently 100,000,000. An error is returned if the
-// desired capacity is greater than this maximum value.
-func NewReservoir(perSecond uint64) (*Reservoir, error) {
-	if perSecond >= maxRate {
-		return nil, fmt.Errorf("desired sampling capacity of %d is greater than maximum supported rate %d", perSecond, maxRate)
-	}
-	return &Reservoir{
-		maskedCounter: 0,
-		perSecond:     perSecond,
-	}, nil
-}
-
-// Take returns true when the reservoir has remaining sampling
-// capacity for the current epoch. Take returns false when the
-// reservoir has no remaining sampling capacity for the current
-// epoch. The sampling capacity decrements by one each time
-// Take returns true.
+// Take attempts to consume a unit from the local reservoir. Returns true if unit taken, false otherwise.
 func (r *Reservoir) Take() bool {
-	now := uint64(time.Now().Unix())
-	counterNewVal := atomic.AddUint64(&r.maskedCounter, 1)
-	previousTimestamp := extractTime(counterNewVal)
-
-	if previousTimestamp != now {
-		r.mutex.Lock()
-		beforeUpdate := atomic.LoadUint64(&r.maskedCounter)
-		timestampBeforeUpdate := extractTime(beforeUpdate)
-
-		if timestampBeforeUpdate != now {
-			valueToSet := timestampToCounter(now)
-			atomic.StoreUint64(&r.maskedCounter, valueToSet)
-		}
-
-		counterNewVal = atomic.AddUint64(&r.maskedCounter, 1)
-		r.mutex.Unlock()
+	// Reset counters if new second
+	if now := r.clock.Now().Unix(); now != r.currentEpoch {
+		r.used = 0
+		r.currentEpoch = now
 	}
 
-	newCounterValue := extractCounter(counterNewVal)
-	return newCounterValue <= r.perSecond
-}
+	// Take from reservoir, if available
+	if r.used >= r.capacity {
+		return false
+	}
 
-func extractTime(maskedCounter uint64) uint64 {
-	return maskedCounter / maxRate
-}
+	// Increment reservoir usage
+	r.used++
 
-func extractCounter(maskedCounter uint64) uint64 {
-	return maskedCounter % maxRate
-}
-
-func timestampToCounter(timestamp uint64) uint64 {
-	return timestamp * maxRate
+	return true
 }

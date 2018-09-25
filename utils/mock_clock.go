@@ -6,9 +6,26 @@
 //
 // or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package sampling
+package utils
 
-// Strategy provides an interface for implementing trace sampling strategies.
-type Strategy interface {
-	ShouldTrace(request *Request) *Decision
+import (
+	"sync/atomic"
+	"time"
+)
+
+// MockClock is a struct to record current time.
+type MockClock struct {
+	NowTime int64
+}
+
+// Now function returns NowTime value.
+func (c *MockClock) Now() time.Time {
+	return time.Unix(c.NowTime, 0)
+}
+
+// Increment is a method to increase current time.
+func (c *MockClock) Increment(d int64) time.Time {
+	t := atomic.AddInt64(&c.NowTime, d)
+
+	return time.Unix(t, 0)
 }

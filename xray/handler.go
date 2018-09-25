@@ -9,15 +9,18 @@
 package xray
 
 import (
-	"net"
 	"bytes"
 	"context"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
+
 	"github.com/aws/aws-xray-sdk-go/header"
+	"github.com/aws/aws-xray-sdk-go/internal/plugins"
 	"github.com/aws/aws-xray-sdk-go/pattern"
 	log "github.com/cihub/seelog"
 )
@@ -135,8 +138,17 @@ func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Requ
 	respHeader.WriteString(seg.TraceID)
 
 	if traceHeader.SamplingDecision != header.Sampled && traceHeader.SamplingDecision != header.NotSampled {
-		seg.Sampled = seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(r.Host, r.URL.Path, r.Method)
+		samplingRequest := &sampling.Request{
+			Host:        r.Host,
+			Url:         r.URL.Path,
+			Method:      r.Method,
+			ServiceName: seg.Name,
+			ServiceType: plugins.InstancePluginMetadata.Origin,
+		}
+		sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(samplingRequest)
+		seg.Sampled = sd.Sample
 		log.Tracef("SamplingStrategy decided: %t", seg.Sampled)
+		seg.AddRuleName(sd)
 	}
 	if traceHeader.SamplingDecision == header.Requested {
 		respHeader.WriteString(";Sampled=")
