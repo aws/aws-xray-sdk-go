@@ -69,7 +69,7 @@ func TestCreateUserRule(t *testing.T) {
 	clock := &utils.DefaultClock{}
 	rand := &utils.DefaultRand{}
 
-	sr := &samplingRule{
+	sr := &SamplingRule{
 		ServiceName: serviceName,
 		HTTPMethod:  httpMethod,
 		URLPath:     urlPath,
@@ -89,7 +89,7 @@ func TestCreateUserRule(t *testing.T) {
 		reservoir:    cr,
 		ruleName:     ruleName,
 		priority:     priority,
-		samplingRule: sr,
+		SamplingRule: sr,
 		clock:        clock,
 		rand:         rand,
 		serviceType:  serviceTye,
@@ -131,7 +131,7 @@ func TestCreateDefaultRule(t *testing.T) {
 	clock := &utils.DefaultClock{}
 	rand := &utils.DefaultRand{}
 
-	sr := &samplingRule{
+	sr := &SamplingRule{
 		FixedTarget: reservoirSize,
 		Rate:        fixedRate,
 	}
@@ -146,7 +146,7 @@ func TestCreateDefaultRule(t *testing.T) {
 	exp := &CentralizedRule{
 		reservoir:    cr,
 		ruleName:     ruleName,
-		samplingRule: sr,
+		SamplingRule: sr,
 		clock:        clock,
 		rand:         rand,
 	}
@@ -166,7 +166,7 @@ func TestUpdateDefaultRule(t *testing.T) {
 	// Original default sampling rule
 	r := &CentralizedRule{
 		ruleName: "Default",
-		samplingRule: &samplingRule{
+		SamplingRule: &SamplingRule{
 			FixedTarget: 10,
 			Rate:        0.05,
 		},
@@ -194,7 +194,7 @@ func TestUpdateDefaultRule(t *testing.T) {
 	}
 
 	// Expected centralized sampling rule
-	sr := &samplingRule{
+	sr := &SamplingRule{
 		FixedTarget: reservoirSize,
 		Rate:        fixedRate,
 	}
@@ -208,7 +208,7 @@ func TestUpdateDefaultRule(t *testing.T) {
 	exp := &CentralizedRule{
 		reservoir:    cr,
 		ruleName:     ruleName,
-		samplingRule: sr,
+		SamplingRule: sr,
 		clock:        clock,
 		rand:         rand,
 	}
@@ -292,7 +292,7 @@ func TestUpdateUserRule(t *testing.T) {
 	r1 := &CentralizedRule{
 		ruleName: "r1",
 		priority: 5,
-		samplingRule: &samplingRule{
+		SamplingRule: &SamplingRule{
 			ServiceName: "*.foo.com",
 			HTTPMethod:  "GET",
 			URLPath:     "/resource/*",
@@ -344,7 +344,7 @@ func TestUpdateUserRule(t *testing.T) {
 	}
 
 	// Expected updated centralized sampling rule
-	sr := &samplingRule{
+	sr := &SamplingRule{
 		ServiceName: serviceName,
 		HTTPMethod:  httpMethod,
 		URLPath:     urlPath,
@@ -363,7 +363,7 @@ func TestUpdateUserRule(t *testing.T) {
 		reservoir:    cr,
 		ruleName:     ruleName,
 		priority:     priority,
-		samplingRule: sr,
+		SamplingRule: sr,
 		resourceARN:  resARN,
 		serviceType:  serviceTye,
 		attributes:   attributes,

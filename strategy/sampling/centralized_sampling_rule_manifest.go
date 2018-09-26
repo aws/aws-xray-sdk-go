@@ -92,7 +92,7 @@ func (m *CentralizedManifest) createUserRule(svcRule *xraySvc.SamplingRule) *Cen
 	clock := &utils.DefaultClock{}
 	rand := &utils.DefaultRand{}
 
-	sr := &samplingRule{
+	sr := &SamplingRule{
 		ServiceName: *svcRule.ServiceName,
 		HTTPMethod:  *svcRule.HTTPMethod,
 		URLPath:     *svcRule.URLPath,
@@ -114,7 +114,7 @@ func (m *CentralizedManifest) createUserRule(svcRule *xraySvc.SamplingRule) *Cen
 		ruleName:     *svcRule.RuleName,
 		priority:     *svcRule.Priority,
 		reservoir:    cr,
-		samplingRule: sr,
+		SamplingRule: sr,
 		serviceType:  *svcRule.ServiceType,
 		resourceARN:  *svcRule.ResourceARN,
 		attributes:   svcRule.Attributes,
@@ -145,7 +145,7 @@ func (m *CentralizedManifest) createUserRule(svcRule *xraySvc.SamplingRule) *Cen
 func (m *CentralizedManifest) updateUserRule(r *CentralizedRule, svcRule *xraySvc.SamplingRule) {
 	// Preemptively dereference xraySvc.SamplingRule fields and panic early on nil pointers.
 	// A panic in the middle of an update may leave the rule in an inconsistent state.
-	s := &samplingRule{
+	s := &SamplingRule{
 		ServiceName: *svcRule.ServiceName,
 		HTTPMethod:  *svcRule.HTTPMethod,
 		URLPath:     *svcRule.URLPath,
@@ -159,7 +159,7 @@ func (m *CentralizedManifest) updateUserRule(r *CentralizedRule, svcRule *xraySv
 	r.Lock()
 	defer r.Unlock()
 
-	r.samplingRule = s
+	r.SamplingRule = s
 	r.priority = p
 	r.reservoir.capacity = c
 	r.serviceType = *svcRule.ServiceType
@@ -174,7 +174,7 @@ func (m *CentralizedManifest) createDefaultRule(svcRule *xraySvc.SamplingRule) *
 	clock := &utils.DefaultClock{}
 	rand := &utils.DefaultRand{}
 
-	sr := &samplingRule{
+	sr := &SamplingRule{
 		FixedTarget: *svcRule.ReservoirSize,
 		Rate:        *svcRule.FixedRate,
 	}
@@ -191,7 +191,7 @@ func (m *CentralizedManifest) createDefaultRule(svcRule *xraySvc.SamplingRule) *
 	csr := &CentralizedRule{
 		ruleName:     *svcRule.RuleName,
 		reservoir:    cr,
-		samplingRule: sr,
+		SamplingRule: sr,
 		clock:        clock,
 		rand:         rand,
 	}
@@ -221,7 +221,7 @@ func (m *CentralizedManifest) updateDefaultRule(svcRule *xraySvc.SamplingRule) {
 
 	// Preemptively dereference xraySvc.SamplingRule fields and panic early on nil pointers.
 	// A panic in the middle of an update may leave the rule in an inconsistent state.
-	s := &samplingRule{
+	s := &SamplingRule{
 		FixedTarget: *svcRule.ReservoirSize,
 		Rate:        *svcRule.FixedRate,
 	}
@@ -231,7 +231,7 @@ func (m *CentralizedManifest) updateDefaultRule(svcRule *xraySvc.SamplingRule) {
 	r.Lock()
 	defer r.Unlock()
 
-	r.samplingRule = s
+	r.SamplingRule = s
 	r.reservoir.capacity = c
 }
 
