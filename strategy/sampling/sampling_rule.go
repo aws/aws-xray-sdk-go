@@ -18,8 +18,8 @@ import (
 	log "github.com/cihub/seelog"
 )
 
-// SamplingRule is the base set of properties that define a sampling rule.
-type SamplingRule struct {
+// Properties is the base set of properties that define a sampling rule.
+type Properties struct {
 	ServiceName string  `json:"service_name"`
 	Host        string  `json:"host"`
 	HTTPMethod  string  `json:"http_method"`
@@ -30,10 +30,10 @@ type SamplingRule struct {
 
 // AppliesTo returns true if the sampling rule matches against given parameters. False Otherwise.
 // Assumes lock is already held, if required.
-func (r *SamplingRule) AppliesTo(host, path, method string) bool {
-	return (host == "" || pattern.WildcardMatchCaseInsensitive(r.Host, host)) &&
-		(path == "" || pattern.WildcardMatchCaseInsensitive(r.URLPath, path)) &&
-		(method == "" || pattern.WildcardMatchCaseInsensitive(r.HTTPMethod, method))
+func (p *Properties) AppliesTo(host, path, method string) bool {
+	return (host == "" || pattern.WildcardMatchCaseInsensitive(p.Host, host)) &&
+		(path == "" || pattern.WildcardMatchCaseInsensitive(p.URLPath, path)) &&
+		(method == "" || pattern.WildcardMatchCaseInsensitive(p.HTTPMethod, method))
 }
 
 // AppliesTo returns true if the sampling rule matches against given sampling request. False Otherwise.
@@ -70,7 +70,7 @@ type CentralizedRule struct {
 	usedAt int64
 
 	// Common sampling rule properties
-	*SamplingRule
+	*Properties
 
 	// ServiceType for the sampling rule
 	serviceType string
@@ -198,7 +198,7 @@ type Rule struct {
 	rand utils.Rand
 
 	// Common sampling rule properties
-	*SamplingRule
+	*Properties
 }
 
 func (r *Rule) Sample() *Decision {

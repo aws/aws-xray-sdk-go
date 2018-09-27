@@ -55,8 +55,8 @@ func (p *mockProxy) GetSamplingTargets(s []*xraySvc.SamplingStatisticsDocument) 
 	return &copy, nil
 }
 
-func getSamplingRule(host string, method string, url string, serviceName string, rate float64, ft int) *SamplingRule {
-	return &SamplingRule{
+func getProperties(host string, method string, url string, serviceName string, rate float64, ft int) *Properties {
+	return &Properties{
 		Host:        host,
 		HTTPMethod:  method,
 		URLPath:     url,
@@ -102,10 +102,10 @@ func TestShouldTracePositive1(t *testing.T) {
 				currentEpoch: 1500000000,
 			},
 		},
-		SamplingRule: getSamplingRule(host1, method1, url1, serviceName1, 0, 0),
-		serviceType:  servType1,
-		clock:        clock,
-		rand:         rand,
+		Properties:  getProperties(host1, method1, url1, serviceName1, 0, 0),
+		serviceType: servType1,
+		clock:       clock,
+		rand:        rand,
 	}
 
 	host2 := "www.bar.com"
@@ -124,9 +124,9 @@ func TestShouldTracePositive1(t *testing.T) {
 				currentEpoch: 1500000000,
 			},
 		},
-		SamplingRule: getSamplingRule(host2, method2, url2, serviceName2, 0, 0),
-		clock:        clock,
-		rand:         rand,
+		Properties: getProperties(host2, method2, url2, serviceName2, 0, 0),
+		clock:      clock,
+		rand:       rand,
 	}
 
 	rules := []*CentralizedRule{csr2, csr1}
@@ -197,10 +197,10 @@ func TestShouldTracePositive2(t *testing.T) {
 				currentEpoch: 1500000000,
 			},
 		},
-		SamplingRule: getSamplingRule(host1, method1, url1, serviceName1, 0, 0),
-		serviceType:  servType1,
-		clock:        clock,
-		rand:         rand,
+		Properties:  getProperties(host1, method1, url1, serviceName1, 0, 0),
+		serviceType: servType1,
+		clock:       clock,
+		rand:        rand,
 	}
 
 	host2 := "www.bar.com"
@@ -219,9 +219,9 @@ func TestShouldTracePositive2(t *testing.T) {
 				currentEpoch: 1500000000,
 			},
 		},
-		SamplingRule: getSamplingRule(host2, method2, url2, serviceName2, 0, 0),
-		clock:        clock,
-		rand:         rand,
+		Properties: getProperties(host2, method2, url2, serviceName2, 0, 0),
+		clock:      clock,
+		rand:       rand,
 	}
 
 	rules := []*CentralizedRule{csr2, csr1}
@@ -278,9 +278,9 @@ func TestShouldTraceDefaultPositive(t *testing.T) {
 				currentEpoch: 1500000000,
 			},
 		},
-		SamplingRule: getSamplingRule("www.foo.com", "POST", "/resource/bar", "", 0, 0),
-		clock:        clock,
-		rand:         rand,
+		Properties: getProperties("www.foo.com", "POST", "/resource/bar", "", 0, 0),
+		clock:      clock,
+		rand:       rand,
 	}
 
 	// Default sampling rule
@@ -363,9 +363,9 @@ func TestShouldTraceExpiredManifest(t *testing.T) {
 				currentEpoch: 1500000000,
 			},
 		},
-		SamplingRule: getSamplingRule("www.foo.com", "POST", "/resource/bar", "", 0, 0),
-		clock:        clock,
-		rand:         rand,
+		Properties: getProperties("www.foo.com", "POST", "/resource/bar", "", 0, 0),
+		clock:      clock,
+		rand:       rand,
 	}
 
 	rules := []*CentralizedRule{csr}
@@ -391,7 +391,7 @@ func TestShouldTraceExpiredManifest(t *testing.T) {
 				currentEpoch: int64(1500003601),
 			},
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			FixedTarget: int64(10),
 			Rate:        float64(0.05),
 		},
@@ -627,7 +627,7 @@ func TestUpdateTarget(t *testing.T) {
 	// Sampling rule about to be updated with new target
 	csr := &CentralizedRule{
 		ruleName: "r1",
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Rate: 0.10,
 		},
 		reservoir: &CentralizedReservoir{
@@ -664,7 +664,7 @@ func TestUpdateTarget(t *testing.T) {
 	// Updated sampling rule
 	exp := &CentralizedRule{
 		ruleName: "r1",
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Rate: 0.05,
 		},
 		reservoir: &CentralizedReservoir{
@@ -730,7 +730,7 @@ func TestUpdateTargetPanicRecovery(t *testing.T) {
 	// Sampling rule about to be updated with new target
 	csr := &CentralizedRule{
 		ruleName: "r1",
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Rate: 0.10,
 		},
 		reservoir: &CentralizedReservoir{
@@ -765,7 +765,7 @@ func TestUpdateTargetPanicRecovery(t *testing.T) {
 	// Unchanged sampling rule
 	exp := &CentralizedRule{
 		ruleName: "r1",
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Rate: 0.10,
 		},
 		reservoir: &CentralizedReservoir{
@@ -798,9 +798,9 @@ func TestRefreshManifestRuleAddition(t *testing.T) {
 				capacity: 50,
 			},
 		},
-		SamplingRule: &SamplingRule{},
-		priority:     4,
-		resourceARN:  resourceARN,
+		Properties:  &Properties{},
+		priority:    4,
+		resourceARN: resourceARN,
 	}
 
 	// Rule 'r3'
@@ -812,7 +812,7 @@ func TestRefreshManifestRuleAddition(t *testing.T) {
 				capacity: 50,
 			},
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
@@ -943,7 +943,7 @@ func TestRefreshManifestRuleAddition(t *testing.T) {
 			},
 			interval: 10,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.fizz.com",
 			HTTPMethod:  "PUT",
 			URLPath:     "/resource/fizz",
@@ -986,9 +986,9 @@ func TestRefreshManifestRuleAdditionInvalidRule1(t *testing.T) { // ResourceARN 
 				capacity: 50,
 			},
 		},
-		SamplingRule: &SamplingRule{},
-		priority:     4,
-		resourceARN:  resourceARN,
+		Properties:  &Properties{},
+		priority:    4,
+		resourceARN: resourceARN,
 	}
 
 	// Sorted array
@@ -1066,9 +1066,9 @@ func TestRefreshManifestRuleAdditionInvalidRule2(t *testing.T) { // non nil Attr
 				capacity: 50,
 			},
 		},
-		SamplingRule: &SamplingRule{},
-		priority:     4,
-		resourceARN:  resourceARN,
+		Properties:  &Properties{},
+		priority:    4,
+		resourceARN: resourceARN,
 	}
 
 	// Sorted array
@@ -1147,9 +1147,9 @@ func TestRefreshManifestRuleAdditionInvalidRule3(t *testing.T) { // 1 valid and 
 				capacity: 50,
 			},
 		},
-		SamplingRule: &SamplingRule{},
-		priority:     4,
-		resourceARN:  resourceARN,
+		Properties:  &Properties{},
+		priority:    4,
+		resourceARN: resourceARN,
 	}
 
 	r2 := &CentralizedRule{
@@ -1160,9 +1160,9 @@ func TestRefreshManifestRuleAdditionInvalidRule3(t *testing.T) { // 1 valid and 
 				capacity: 50,
 			},
 		},
-		SamplingRule: &SamplingRule{},
-		priority:     4,
-		resourceARN:  resourceARN,
+		Properties:  &Properties{},
+		priority:    4,
+		resourceARN: resourceARN,
 	}
 
 	// Sorted array
@@ -1260,7 +1260,7 @@ func TestRefreshManifestRuleRemoval(t *testing.T) {
 				capacity: 50,
 			},
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			ServiceName: "www.foo.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/bar",
@@ -1280,7 +1280,7 @@ func TestRefreshManifestRuleRemoval(t *testing.T) {
 				capacity: 60,
 			},
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			ServiceName: "www.fizz.com",
 			HTTPMethod:  "PUT",
 			URLPath:     "/resource/fizz",
@@ -1300,7 +1300,7 @@ func TestRefreshManifestRuleRemoval(t *testing.T) {
 				capacity: 50,
 			},
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			ServiceName: "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
@@ -1429,7 +1429,7 @@ func TestRefreshManifestInvalidRuleUpdate(t *testing.T) {
 				capacity: 50,
 			},
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			ServiceName: "www.foo.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/bar",
@@ -1450,7 +1450,7 @@ func TestRefreshManifestInvalidRuleUpdate(t *testing.T) {
 				capacity: 50,
 			},
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			ServiceName: "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
@@ -1574,7 +1574,7 @@ func TestRefreshManifestInvalidNewRule(t *testing.T) {
 				capacity: 40,
 			},
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			ServiceName: "www.foo.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/bar",
@@ -1595,7 +1595,7 @@ func TestRefreshManifestInvalidNewRule(t *testing.T) {
 				capacity: 50,
 			},
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			ServiceName: "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
@@ -1834,7 +1834,7 @@ func TestRefreshTargets(t *testing.T) {
 			refreshedAt: 1499999990,
 			interval:    10,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.foo.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/bar",
@@ -1861,7 +1861,7 @@ func TestRefreshTargets(t *testing.T) {
 			refreshedAt: 1499999990,
 			interval:    10,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
@@ -1944,7 +1944,7 @@ func TestRefreshTargets(t *testing.T) {
 			expiresAt: 1500000060,
 			interval:  10,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.foo.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/bar",
@@ -1968,7 +1968,7 @@ func TestRefreshTargets(t *testing.T) {
 			expiresAt: 1500000060,
 			interval:  10,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
@@ -2012,7 +2012,7 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 			refreshedAt: 1499999990,
 			interval:    20,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.foo.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/bar",
@@ -2039,7 +2039,7 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 			refreshedAt: 1499999990,
 			interval:    30,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
@@ -2131,7 +2131,7 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 			expiresAt: 1500000060,
 			interval:  20,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.foo.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/bar",
@@ -2158,7 +2158,7 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 			refreshedAt: 1499999990,
 			interval:    30,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
@@ -2191,7 +2191,7 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 			expiresAt: 1500000060,
 			interval:  30,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
@@ -2237,7 +2237,7 @@ func TestRefreshTargetsInvalidTarget(t *testing.T) {
 			interval:  10,
 			expiresAt: 1500000050,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.foo.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/bar",
@@ -2263,7 +2263,7 @@ func TestRefreshTargetsInvalidTarget(t *testing.T) {
 			expiresAt: 1500000050,
 			interval:  10,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
@@ -2344,7 +2344,7 @@ func TestRefreshTargetsInvalidTarget(t *testing.T) {
 			expiresAt: 1500000050,
 			interval:  10,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.foo.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/bar",
@@ -2368,7 +2368,7 @@ func TestRefreshTargetsInvalidTarget(t *testing.T) {
 			expiresAt: 1500000060,
 			interval:  10,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
@@ -2415,7 +2415,7 @@ func TestRefreshTargetsOutdatedManifest(t *testing.T) {
 			expiresAt: 1500000050,
 			interval:  10,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			ServiceName: "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
@@ -2543,7 +2543,7 @@ func TestRefreshTargetsProxyError(t *testing.T) {
 			},
 			expiresAt: 1500000050,
 		},
-		SamplingRule: &SamplingRule{
+		Properties: &Properties{
 			Host:        "www.bar.com",
 			HTTPMethod:  "POST",
 			URLPath:     "/resource/foo",
