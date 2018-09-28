@@ -1,3 +1,9 @@
+Release v1.0.0-rc.7 (2018-09-27)
+================================
+### SDK Breaking changes
+* `samplingRule` is an exported type : PR[#67](https://github.com/aws/aws-xray-sdk-go/pull/67)
+* Renamed `SamplingRule` structure to `Properties`
+
 Release v1.0.0-rc.6 (2018-09-25)
 ================================
 ### SDK Breaking changes
@@ -5,6 +11,7 @@ Release v1.0.0-rc.6 (2018-09-25)
 here: [Link](https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-go-configuration.html#xray-sdk-go-configuration-sampling)
 * The `ShouldTrace()` function in the `Strategy` interface now takes a `Request` structure for sampling rule matching and returns `Decision` object
 * Updated `aws-sdk-go` version in `glide.yaml` file to `1.15.23`.
+* Modified `Rule` structure : It contains `samplingRule` nested structure
 
 ### SDK Enhancements
 * Environment variable `AWS_XRAY_DAEMON_ADDRESS` now takes an additional notation in `tcp:127.0.0.1:2000 udp:127.0.0.2:2001` to set TCP and UDP destination separately. By default it assumes a X-Ray daemon listening to both UDP and TCP traffic on 127.0.0.1:2000.
