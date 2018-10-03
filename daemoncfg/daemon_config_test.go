@@ -8,11 +8,17 @@
 package daemoncfg
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+var portErr = "invalid daemon address port"
+var addrErr = "invalid daemon address"
+var hostErr = "no such host"
 
 func TestGetDaemonEndpoints1(t *testing.T) { // default address set to udp and tcp
 	udpAddr := "127.0.0.1:2000"
@@ -123,6 +129,7 @@ func TestGetDaemonEndpointsFromStringInvalid1(t *testing.T) { // "udp:127.0.0.5:
 	dEndpt, err := GetDaemonEndpointsFromString(dAddr)
 
 	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(fmt.Sprint(err), addrErr))
 	assert.Nil(t, dEndpt)
 }
 
@@ -133,6 +140,7 @@ func TestGetDaemonEndpointsFromStringInvalid2(t *testing.T) { // "tcp:127.0.0.5:
 	dEndpt, err := GetDaemonEndpointsFromString(dAddr)
 
 	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(fmt.Sprint(err), addrErr))
 	assert.Nil(t, dEndpt)
 }
 
@@ -145,16 +153,17 @@ func TestGetDaemonEndpointsFromStringInvalid3(t *testing.T) { // env variable se
 	dEndpt, err := GetDaemonEndpointsFromString(dAddr)
 
 	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(fmt.Sprint(err), addrErr))
 	assert.Nil(t, dEndpt)
 }
 
 func TestGetDaemonEndpointsFromStringInvalid4(t *testing.T) {
-	udpAddr := "127.0.02:2001" // error in resolving address
+	udpAddr := "1.2.1:2a" // error in resolving address port
 	tcpAddr := "127.0.0.1:2000"
 
 	dAddr := "udp:" + udpAddr + " tcp:" + tcpAddr
 	dEndpt, err := GetDaemonEndpointsFromString(dAddr)
-
+	assert.True(t, strings.Contains(fmt.Sprint(err), portErr))
 	assert.NotNil(t, err)
 	assert.Nil(t, dEndpt)
 }
@@ -167,6 +176,7 @@ func TestGetDaemonEndpointsFromStringInvalid5(t *testing.T) {
 	dEndpt, err := GetDaemonEndpointsFromString(dAddr)
 
 	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(fmt.Sprint(err), hostErr))
 	assert.Nil(t, dEndpt)
 }
 
@@ -176,6 +186,7 @@ func TestGetDaemonEndpointsFromStringInvalid6(t *testing.T) {
 	dEndpt, err := GetDaemonEndpointsFromString(dAddr)
 
 	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(fmt.Sprint(err), addrErr))
 	assert.Nil(t, dEndpt)
 }
 
@@ -184,5 +195,62 @@ func TestGetDaemonEndpointsFromStringInvalid7(t *testing.T) {
 	dEndpt, err := GetDaemonEndpointsFromString(dAddr) // address passed is nil and env variable not set
 
 	assert.Nil(t, err)
+	assert.Nil(t, dEndpt)
+}
+
+func TestGetDaemonEndpointsForHostname1(t *testing.T) { // parsing hostname - single form
+	udpAddr := "127.0.0.1:2000"
+	tcpAddr := "127.0.0.1:2000"
+	udpEndpt, _ := resolveUDPAddr(udpAddr)
+	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
+	dEndpt, _ := GetDaemonEndpointsFromString("localhost:2000")
+
+	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
+	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
+}
+
+func TestGetDaemonEndpointsForHostname2(t *testing.T) { // Invalid hostname - single form
+	dEndpt, err := GetDaemonEndpointsFromString("XYZ:2000")
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(fmt.Sprint(err), hostErr))
+	assert.Nil(t, dEndpt)
+}
+
+func TestGetDaemonEndpointsForHostname3(t *testing.T) { // parsing hostname - double form
+	udpAddr := "127.0.0.1:2000"
+	tcpAddr := "127.0.0.1:2000"
+	udpEndpt, _ := resolveUDPAddr(udpAddr)
+	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
+	dEndpt, _ := GetDaemonEndpointsFromString("tcp:localhost:2000 udp:localhost:2000")
+
+	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
+	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
+}
+
+func TestGetDaemonEndpointsForHostname4(t *testing.T) { // Invalid hostname - double form
+	dEndpt, err := GetDaemonEndpointsFromString("tcp:ABC:2000 udp:XYZ:2000")
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(fmt.Sprint(err), hostErr))
+	assert.Nil(t, dEndpt)
+}
+
+func TestGetDaemonEndpointsForHostname5(t *testing.T) { // Invalid hostname - double form
+	dEndpt, err := GetDaemonEndpointsFromString("tcp:localhost:2000 tcp:localhost:2000")
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(fmt.Sprint(err), addrErr))
+	assert.Nil(t, dEndpt)
+}
+
+func TestGetDaemonEndpointsForHostname6(t *testing.T) { // Invalid port - single form
+	dEndpt, err := GetDaemonEndpointsFromString("localhost:")
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(fmt.Sprint(err), portErr))
+	assert.Nil(t, dEndpt)
+}
+
+func TestGetDaemonEndpointsForHostname7(t *testing.T) { // Invalid port - double form
+	dEndpt, err := GetDaemonEndpointsFromString("tcp:localhost:r4 tcp:localhost:2000")
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(fmt.Sprint(err), portErr))
 	assert.Nil(t, dEndpt)
 }

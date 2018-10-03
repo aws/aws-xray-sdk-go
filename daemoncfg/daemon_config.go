@@ -10,6 +10,7 @@ package daemoncfg
 import (
 	"net"
 	"os"
+	"strconv"
 	"strings"
 
 	log "github.com/cihub/seelog"
@@ -25,6 +26,7 @@ var tcpKey = "tcp"
 /// string from "AWS_TRACING_DAEMON_ADDRESS" and then from recorder's configuration for DaemonAddr.
 /// A notation of '127.0.0.1:2000' or 'tcp:127.0.0.1:2000 udp:127.0.0.2:2001' or 'udp:127.0.0.1:2000 tcp:127.0.0.2:2001'
 /// are both acceptable. The first one means UDP and TCP are running at the same address.
+/// Notation 'hostname:2000' or 'tcp:hostname:2000 udp:hostname:2001' or 'udp:hostname:2000 tcp:hostname:2001' are also acceptable.
 /// By default it assumes a X-Ray daemon running at 127.0.0.1:2000 listening to both UDP and TCP traffic.
 type DaemonEndpoints struct {
 	// UDPAddr represents UDP endpoint for segments to be sent by emitter.
@@ -95,9 +97,18 @@ func parseDoubleForm(addr []string) (*DaemonEndpoints, error) {
 	addr1 := strings.Split(addr[0], ":") // tcp:127.0.0.1:2000  or udp:127.0.0.1:2000
 	addr2 := strings.Split(addr[1], ":") // tcp:127.0.0.1:2000  or udp:127.0.0.1:2000
 
-	if len(addr1) != 3 || len(addr2) != 3 || net.ParseIP(addr1[1]) == nil || net.ParseIP(addr2[1]) == nil {
+	if len(addr1) != 3 || len(addr2) != 3 {
 		return nil, errors.New("invalid daemon address: " + addr[0] + " " + addr[1])
 	}
+
+	// validate ports
+	_, pErr1 := strconv.Atoi(addr1[2])
+	_, pErr2 := strconv.Atoi(addr1[2])
+
+	if pErr1 != nil || pErr2 != nil {
+		return nil, errors.New("invalid daemon address port")
+	}
+
 	addrMap := make(map[string]string)
 
 	addrMap[addr1[0]] = addr1[1] + ":" + addr1[2]
@@ -124,9 +135,17 @@ func parseDoubleForm(addr []string) (*DaemonEndpoints, error) {
 }
 
 func parseSingleForm(addr string) (*DaemonEndpoints, error) { // format = "ip:port"
-	ip := strings.Split(addr, ":")[0] // get ip
-	if net.ParseIP(ip) == nil {
+	a := strings.Split(addr, ":") // 127.0.0.1:2000
+
+	if len(a) != 2 {
 		return nil, errors.New("invalid daemon address: " + addr)
+	}
+
+	// validate port
+	_, pErr1 := strconv.Atoi(a[1])
+
+	if pErr1 != nil {
+		return nil, errors.New("invalid daemon address port")
 	}
 
 	udpAddr, uErr := resolveUDPAddr(addr)
@@ -137,6 +156,7 @@ func parseSingleForm(addr string) (*DaemonEndpoints, error) { // format = "ip:po
 	if tErr != nil {
 		return nil, tErr
 	}
+
 	return &DaemonEndpoints{
 		UDPAddr: udpAddr,
 		TCPAddr: tcpAddr,
