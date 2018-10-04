@@ -1,3 +1,11 @@
+Release v1.0.0-rc.8 (2018-10-04)
+================================
+### SDK Bugs
+* Adding hostname support for daemon address parsing
+
+### SDK Enhancements
+* Increase unit test coverage
+
 Release v1.0.0-rc.7 (2018-09-27)
 ================================
 ### SDK Breaking changes
