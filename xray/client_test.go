@@ -196,7 +196,7 @@ func TestBadRoundTrip(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%v", err), subseg.Cause.Exceptions[0].Message)
 }
 
-func TestRoundTrip_reuse_datarace(t *testing.T) {
+func TestRoundTripReuseDatarace(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b := []byte(`200 - Nothing to see`)
 		w.WriteHeader(http.StatusOK)
@@ -229,7 +229,7 @@ func TestRoundTrip_reuse_datarace(t *testing.T) {
 	wg.Wait()
 }
 
-func TestRoundTrip_http2_datarace(t *testing.T) {
+func TestRoundTripHttp2Datarace(t *testing.T) {
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b := []byte(`200 - Nothing to see`)
 		w.WriteHeader(http.StatusOK)
