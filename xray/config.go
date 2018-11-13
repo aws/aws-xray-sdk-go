@@ -15,6 +15,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/aws/aws-xray-sdk-go/daemoncfg"
+
 	"github.com/aws/aws-xray-sdk-go/strategy/ctxmissing"
 	"github.com/aws/aws-xray-sdk-go/strategy/exception"
 	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
@@ -22,15 +24,16 @@ import (
 )
 
 // SDKVersion records the current X-Ray Go SDK version.
-const SDKVersion = "1.0.0-rc.1"
+const SDKVersion = "1.0.0-rc.8"
 
 // SDKType records which X-Ray SDK customer uses.
 const SDKType = "X-Ray for Go"
 
 // SDK provides the shape for unmarshalling an SDK struct.
 type SDK struct {
-	Version string `json:"sdk_version,omitempty"`
-	Type    string `json:"sdk,omitempty"`
+	Version  string `json:"sdk_version,omitempty"`
+	Type     string `json:"sdk,omitempty"`
+	RuleName string `json:"sampling_rule_name,omitempty"`
 }
 
 var globalCfg = newGlobalConfig()
@@ -41,24 +44,9 @@ func newGlobalConfig() *globalConfig {
 	// Set the logging configuration to the defaults
 	ret.logLevel, ret.logFormat = loadLogConfig("", "")
 
-	// Try to get the X-Ray daemon address from an environment variable
-	if envDaemonAddr := os.Getenv("AWS_XRAY_DAEMON_ADDRESS"); envDaemonAddr != "" {
+	ret.daemonAddr = daemoncfg.GetDaemonEndpoints().UDPAddr
 
-		// Try to resolve it, panic if it is malformed
-		daemonAddress, err := net.ResolveUDPAddr("udp", envDaemonAddr)
-		if err != nil {
-			panic(err)
-		}
-		ret.daemonAddr = daemonAddress
-	} else {
-		// Use a default if the environment variable is empty
-		ret.daemonAddr = &net.UDPAddr{
-			IP:   net.IPv4(127, 0, 0, 1),
-			Port: 2000,
-		}
-	}
-
-	ss, err := sampling.NewLocalizedStrategy()
+	ss, err := sampling.NewCentralizedStrategy()
 	if err != nil {
 		panic(err)
 	}
@@ -112,20 +100,13 @@ type Config struct {
 func ContextWithConfig(ctx context.Context, c Config) (context.Context, error) {
 	var errors exception.MultiError
 
-	var daemonAddress string
-	if addr := os.Getenv("AWS_XRAY_DAEMON_ADDRESS"); addr != "" {
-		daemonAddress = addr
-	} else if c.DaemonAddr != "" {
-		daemonAddress = c.DaemonAddr
-	}
+	daemonEndpoints, er := daemoncfg.GetDaemonEndpointsFromString(c.DaemonAddr)
 
-	if daemonAddress != "" {
-		raddr, err := net.ResolveUDPAddr("udp", daemonAddress)
-		if err == nil {
-			go refreshEmitterWithAddress(raddr)
-		} else {
-			errors = append(errors, err)
-		}
+	if daemonEndpoints != nil {
+		go refreshEmitterWithAddress(daemonEndpoints.UDPAddr)
+		configureStrategy(c.SamplingStrategy, daemonEndpoints)
+	} else if er != nil {
+		errors = append(errors, er)
 	}
 
 	cms := os.Getenv("AWS_XRAY_CONTEXT_MISSING")
@@ -154,6 +135,16 @@ func ContextWithConfig(ctx context.Context, c Config) (context.Context, error) {
 	return context.WithValue(ctx, RecorderContextKey{}, &c), err
 }
 
+func configureStrategy(s sampling.Strategy, daemonEndpoints *daemoncfg.DaemonEndpoints) {
+	if s == nil {
+		return
+	}
+	strategy, ok := s.(*sampling.CentralizedStrategy)
+	if ok {
+		strategy.LoadDaemonEndpoints(daemonEndpoints)
+	}
+}
+
 // Configure overrides default configuration options with customer-defined values.
 func Configure(c Config) error {
 	globalCfg.Lock()
@@ -161,25 +152,17 @@ func Configure(c Config) error {
 
 	var errors exception.MultiError
 
-	var daemonAddress string
-	if addr := os.Getenv("AWS_XRAY_DAEMON_ADDRESS"); addr != "" {
-		daemonAddress = addr
-	} else if c.DaemonAddr != "" {
-		daemonAddress = c.DaemonAddr
-	}
-
-	if daemonAddress != "" {
-		addr, err := net.ResolveUDPAddr("udp", daemonAddress)
-		if err == nil {
-			globalCfg.daemonAddr = addr
-			go refreshEmitter()
-		} else {
-			errors = append(errors, err)
-		}
-	}
-
 	if c.SamplingStrategy != nil {
 		globalCfg.samplingStrategy = c.SamplingStrategy
+	}
+
+	daemonEndpoints, er := daemoncfg.GetDaemonEndpointsFromString(c.DaemonAddr)
+	if daemonEndpoints != nil {
+		globalCfg.daemonAddr = daemonEndpoints.UDPAddr
+		go refreshEmitter()
+		configureStrategy(globalCfg.samplingStrategy, daemonEndpoints)
+	} else if er != nil {
+		errors = append(errors, er)
 	}
 
 	if c.ExceptionFormattingStrategy != nil {

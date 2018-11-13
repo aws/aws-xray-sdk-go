@@ -21,7 +21,7 @@ func TestNewLocalizedStrategy(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestNewLocalizedStrategyFromFilePath(t *testing.T) {
+func TestNewLocalizedStrategyFromFilePath1(t *testing.T) { // V1 sampling
 	ruleString :=
 		`{
 	  "version": 1,
@@ -30,6 +30,15 @@ func TestNewLocalizedStrategyFromFilePath(t *testing.T) {
 	    "rate": 0.05
 	  },
 	  "rules": [
+       {
+        "description": "Example path-based rule below. Rules are evaluated in id-order, the default rule will be used if none match the incoming request. This is a rule for the checkout page.",
+        "id": "1",
+        "service_name": "*",
+        "http_method": "*",
+        "url_path": "/checkout",
+        "fixed_target": 10,
+        "rate": 0.05
+       }
 	  ]
 	}`
 	goPath := os.Getenv("PWD")
@@ -42,11 +51,131 @@ func TestNewLocalizedStrategyFromFilePath(t *testing.T) {
 	f.Close()
 	ss, err := NewLocalizedStrategyFromFilePath(testFile)
 	assert.NotNil(t, ss)
+	assert.Equal(t, 1, ss.manifest.Version)
+	assert.Equal(t, 1, len(ss.manifest.Rules))
+	assert.Equal(t, "", ss.manifest.Rules[0].ServiceName)
+	assert.Equal(t, "*", ss.manifest.Rules[0].Host) // always host set for V1 and V2 sampling rule
+	assert.Equal(t, "*", ss.manifest.Rules[0].HTTPMethod)
+	assert.Equal(t, "/checkout", ss.manifest.Rules[0].URLPath)
+	assert.Equal(t, int64(10), ss.manifest.Rules[0].FixedTarget)
+	assert.Equal(t, 0.05, ss.manifest.Rules[0].Rate)
+
 	assert.Nil(t, err)
 	os.Remove(testFile)
 }
 
-func TestNewLocalizedStrategyFromFilePathWithInvalidJSON(t *testing.T) {
+func TestNewLocalizedStrategyFromFilePath2(t *testing.T) { // V2 sampling
+	ruleString :=
+		`{
+	  "version": 2,
+	  "default": {
+	    "fixed_target": 1,
+	    "rate": 0.05
+	  },
+	  "rules": [
+       {
+        "description": "Example path-based rule below. Rules are evaluated in id-order, the default rule will be used if none match the incoming request. This is a rule for the checkout page.",
+        "id": "1",
+        "host": "*",
+        "http_method": "*",
+        "url_path": "/checkout",
+        "fixed_target": 10,
+        "rate": 0.05
+       }
+	  ]
+	}`
+	goPath := os.Getenv("PWD")
+	testFile := goPath + "/test_rule.json"
+	f, err := os.Create(testFile)
+	if err != nil {
+		panic(err)
+	}
+	f.WriteString(ruleString)
+	f.Close()
+	ss, err := NewLocalizedStrategyFromFilePath(testFile)
+	assert.NotNil(t, ss)
+	assert.Equal(t, 2, ss.manifest.Version)
+	assert.Equal(t, 1, len(ss.manifest.Rules))
+	assert.Equal(t, "", ss.manifest.Rules[0].ServiceName)
+	assert.Equal(t, "*", ss.manifest.Rules[0].Host)
+	assert.Equal(t, "*", ss.manifest.Rules[0].HTTPMethod)
+	assert.Equal(t, "/checkout", ss.manifest.Rules[0].URLPath)
+	assert.Equal(t, int64(10), ss.manifest.Rules[0].FixedTarget)
+	assert.Equal(t, 0.05, ss.manifest.Rules[0].Rate)
+
+	assert.Nil(t, err)
+	os.Remove(testFile)
+}
+
+func TestNewLocalizedStrategyFromFilePathInvalidRulesV1(t *testing.T) { // V1 contains host
+	ruleString :=
+		`{
+	  "version": 1,
+	  "default": {
+	    "fixed_target": 1,
+	    "rate": 0.05
+	  },
+	  "rules": [
+       {
+        "description": "Example path-based rule below. Rules are evaluated in id-order, the default rule will be used if none match the incoming request. This is a rule for the checkout page.",
+        "id": "1",
+        "host": "*",
+        "http_method": "*",
+        "url_path": "/checkout",
+        "fixed_target": 10,
+        "rate": 0.05
+       }
+	  ]
+	}`
+	goPath := os.Getenv("PWD")
+	testFile := goPath + "/test_rule.json"
+	f, err := os.Create(testFile)
+	if err != nil {
+		panic(err)
+	}
+	f.WriteString(ruleString)
+	f.Close()
+	ss, err := NewLocalizedStrategyFromFilePath(testFile)
+	assert.Nil(t, ss)
+	assert.NotNil(t, err)
+	os.Remove(testFile)
+}
+
+func TestNewLocalizedStrategyFromFilePathInvalidRulesV2(t *testing.T) { // V2 contains service_name
+	ruleString :=
+		`{
+	  "version": 2,
+	  "default": {
+	    "fixed_target": 1,
+	    "rate": 0.05
+	  },
+	  "rules": [
+       {
+        "description": "Example path-based rule below. Rules are evaluated in id-order, the default rule will be used if none match the incoming request. This is a rule for the checkout page.",
+        "id": "1",
+        "service_name": "*",
+        "http_method": "*",
+        "url_path": "/checkout",
+        "fixed_target": 10,
+        "rate": 0.05
+       }
+	  ]
+	}`
+	goPath := os.Getenv("PWD")
+	testFile := goPath + "/test_rule.json"
+	f, err := os.Create(testFile)
+	if err != nil {
+		panic(err)
+	}
+	f.WriteString(ruleString)
+	f.Close()
+	ss, err := NewLocalizedStrategyFromFilePath(testFile)
+	assert.Nil(t, ss)
+	assert.NotNil(t, err)
+	os.Remove(testFile)
+}
+
+func TestNewLocalizedStrategyFromFilePathWithInvalidJSON(t *testing.T) { // Test V1 sampling rule
 	ruleString :=
 		`{
 	  "version": 1,

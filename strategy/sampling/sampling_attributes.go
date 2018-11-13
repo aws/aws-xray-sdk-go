@@ -5,10 +5,19 @@
 //     http://aws.amazon.com/apache2.0/
 //
 // or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
-
 package sampling
 
-// Strategy provides an interface for implementing trace sampling strategies.
-type Strategy interface {
-	ShouldTrace(request *Request) *Decision
+// Decision contains sampling decision and the rule matched for an incoming request
+type Decision struct {
+	Sample bool
+	Rule   *string
+}
+
+// Request represents parameters used to make a sampling decision.
+type Request struct {
+	Host        string
+	Method      string
+	Url         string
+	ServiceName string
+	ServiceType string
 }

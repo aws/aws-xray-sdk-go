@@ -2,8 +2,8 @@ package xray
 
 import (
 	"context"
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestLambdaSegmentEmit(t *testing.T) {

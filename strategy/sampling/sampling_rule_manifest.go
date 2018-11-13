@@ -13,6 +13,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"time"
+
+	"github.com/aws/aws-xray-sdk-go/utils"
 )
 
 // RuleManifest represents a full sampling ruleset, with a list of
@@ -28,16 +31,9 @@ type RuleManifest struct {
 func ManifestFromFilePath(fp string) (*RuleManifest, error) {
 	b, err := ioutil.ReadFile(fp)
 	if err == nil {
-		s, e := ManifestFromJSONBytes(b)
-		if e != nil {
-			return nil, e
-		}
-		err = processManifest(s)
-		if err != nil {
-			return nil, err
-		}
-		return s, nil
+		return ManifestFromJSONBytes(b)
 	}
+
 	return nil, err
 }
 
@@ -52,42 +48,114 @@ func ManifestFromJSONBytes(b []byte) (*RuleManifest, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	initSamplingRules(s)
+
 	return s, nil
 }
 
-// processManifest returns the provided manifest if valid,
-// or an error if the provided manifest is invalid.
-func processManifest(srm *RuleManifest) error {
-	if nil == srm {
-		return errors.New("sampling rule manifest must not be nil")
-	}
-	if 1 != srm.Version {
-		return fmt.Errorf("sampling rule manifest version %d not supported", srm.Version)
-	}
-	if nil == srm.Default {
-		return errors.New("sampling rule manifest must include a default rule")
-	}
-	if "" != srm.Default.URLPath || "" != srm.Default.ServiceName || "" != srm.Default.HTTPMethod {
-		return errors.New("the default rule must not specify values for url_path, service_name, or http_method")
-	}
-	if srm.Default.FixedTarget < 0 || srm.Default.Rate < 0 {
-		return errors.New("the default rule must specify non-negative values for fixed_target and rate")
+// Init local reservoir and add random number generator
+func initSamplingRules(srm *RuleManifest) {
+	// Init user-defined rules
+	for _, r := range srm.Rules {
+		r.rand = &utils.DefaultRand{}
+
+		r.reservoir = &Reservoir{
+			clock: &utils.DefaultClock{},
+			reservoir: &reservoir{
+				capacity:     r.FixedTarget,
+				used:         0,
+				currentEpoch: time.Now().Unix(),
+			},
+		}
 	}
 
-	res, err := NewReservoir(srm.Default.FixedTarget)
-	if err != nil {
-		return err
+	// Init default rule
+	srm.Default.rand = &utils.DefaultRand{}
+
+	srm.Default.reservoir = &Reservoir{
+		clock: &utils.DefaultClock{},
+		reservoir: &reservoir{
+			capacity:     srm.Default.FixedTarget,
+			used:         0,
+			currentEpoch: time.Now().Unix(),
+		},
 	}
-	srm.Default.reservoir = res
+}
+
+// processManifest returns the provided manifest if valid, or an error if the provided manifest is invalid.
+func processManifest(srm *RuleManifest) error {
+	if nil == srm {
+		return errors.New("Sampling rule manifest must not be nil.")
+	}
+	if 1 != srm.Version && 2 != srm.Version {
+		return errors.New(fmt.Sprintf("Sampling rule manifest version %d not supported.", srm.Version))
+	}
+	if nil == srm.Default {
+		return errors.New("Sampling rule manifest must include a default rule.")
+	}
+	if "" != srm.Default.URLPath || "" != srm.Default.ServiceName || "" != srm.Default.HTTPMethod {
+		return errors.New("The default rule must not specify values for url_path, service_name, or http_method.")
+	}
+	if srm.Default.FixedTarget < 0 || srm.Default.Rate < 0 {
+		return errors.New("The default rule must specify non-negative values for fixed_target and rate.")
+	}
+
+	c := &utils.DefaultClock{}
+
+	srm.Default.reservoir = &Reservoir{
+		clock: c,
+		reservoir: &reservoir{
+			capacity: srm.Default.FixedTarget,
+		},
+	}
 
 	if srm.Rules != nil {
 		for _, r := range srm.Rules {
-			res, err := NewReservoir(r.FixedTarget)
-			if err != nil {
-				return err
+
+			if srm.Version == 1 {
+				err := validateVersion1(r)
+				if nil != err {
+					return err
+				}
+				r.Host = r.ServiceName // V1 sampling rule contains service name and not host
+				r.ServiceName = ""
 			}
-			r.reservoir = res
+
+			if srm.Version == 2 {
+				err := validateVersion2(r)
+				if nil != err {
+					return err
+				}
+			}
+
+			r.reservoir = &Reservoir{
+				clock: c,
+				reservoir: &reservoir{
+					capacity: r.FixedTarget,
+				},
+			}
 		}
+	}
+	return nil
+}
+
+func validateVersion2(rule *Rule) error {
+	if rule.FixedTarget < 0 || rule.Rate < 0 {
+		return errors.New("all rules must have non-negative values for fixed_target and rate")
+	}
+	if rule.ServiceName != "" || rule.Host == "" || rule.HTTPMethod == "" || rule.URLPath == "" {
+		return errors.New("all non-default rules must have values for url_path, host, and http_method")
+	}
+	return nil
+}
+
+func validateVersion1(rule *Rule) error {
+	if rule.FixedTarget < 0 || rule.Rate < 0 {
+		return errors.New("all rules must have non-negative values for fixed_target and rate")
+	}
+	if rule.Host != "" || rule.ServiceName == "" || rule.HTTPMethod == "" || rule.URLPath == "" {
+		return errors.New("all non-default rules must have values for url_path, service_name, and http_method")
 	}
 	return nil
 }

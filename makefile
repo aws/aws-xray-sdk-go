@@ -11,7 +11,7 @@ vet:
 lint:
 	golint ${SDK_BASE_FOLDERS}
 
-test:
+test::
 	go test -cover `go list ./... | grep -v vendor`
 
 fmt:
