@@ -10,6 +10,8 @@ package xray
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -20,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/http2"
 )
 
 var rt *roundtripper
@@ -58,7 +61,7 @@ func TestRoundTrip(t *testing.T) {
 
 	reader := strings.NewReader("")
 	ctx, root := BeginSegment(context.Background(), "Test")
-	req := httptest.NewRequest("GET", ts.URL, reader)
+	req, _ := http.NewRequest("GET", ts.URL, reader)
 	req = req.WithContext(ctx)
 	_, err := rt.RoundTrip(req)
 	root.Close(nil)
@@ -91,7 +94,7 @@ func TestRoundTripWithError(t *testing.T) {
 
 	reader := strings.NewReader("")
 	ctx, root := BeginSegment(context.Background(), "Test")
-	req := httptest.NewRequest("GET", ts.URL, reader)
+	req, _ := http.NewRequest("GET", ts.URL, reader)
 	req = req.WithContext(ctx)
 	_, err := rt.RoundTrip(req)
 	root.Close(nil)
@@ -193,7 +196,7 @@ func TestBadRoundTrip(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%v", err), subseg.Cause.Exceptions[0].Message)
 }
 
-func TestRoundTrip_reuse_datarace(t *testing.T) {
+func TestRoundTripReuseDatarace(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b := []byte(`200 - Nothing to see`)
 		w.WriteHeader(http.StatusOK)
@@ -210,7 +213,7 @@ func TestRoundTrip_reuse_datarace(t *testing.T) {
 			defer wg.Done()
 			reader := strings.NewReader("")
 			ctx, root := BeginSegment(context.Background(), "Test")
-			req := httptest.NewRequest("GET", strings.Replace(ts.URL, "127.0.0.1", "localhost", -1), reader)
+			req, _ := http.NewRequest("GET", strings.Replace(ts.URL, "127.0.0.1", "localhost", -1), reader)
 			req = req.WithContext(ctx)
 			res, err := rt.RoundTrip(req)
 			ioutil.ReadAll(res.Body)
@@ -224,4 +227,43 @@ func TestRoundTrip_reuse_datarace(t *testing.T) {
 		assert.NoError(t, e)
 	}
 	wg.Wait()
+}
+
+func TestRoundTripHttp2Datarace(t *testing.T) {
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b := []byte(`200 - Nothing to see`)
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}))
+	err := http2.ConfigureServer(ts.Config, nil)
+	assert.NoError(t, err)
+	ts.TLS = ts.Config.TLSConfig
+	ts.StartTLS()
+
+	defer ts.Close()
+
+	certpool := x509.NewCertPool()
+	certpool.AddCert(ts.Certificate())
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs: certpool,
+		},
+	}
+	http2.ConfigureTransport(tr)
+	rt := &roundtripper{
+		Base: tr,
+	}
+
+	reader := strings.NewReader("")
+	ctx, root := BeginSegment(context.Background(), "Test")
+	req, _ := http.NewRequest("GET", ts.URL, reader)
+	req = req.WithContext(ctx)
+	res, err := rt.RoundTrip(req)
+	assert.NoError(t, err)
+	ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	root.Close(nil)
+
+	_, e := TestDaemon.Recv()
+	assert.NoError(t, e)
 }

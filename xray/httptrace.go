@@ -15,6 +15,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"net/http/httptrace"
+	"sync"
 )
 
 // HTTPSubsegments is a set of context in different HTTP operation.
@@ -26,6 +27,7 @@ type HTTPSubsegments struct {
 	tlsCtx      context.Context
 	reqCtx      context.Context
 	responseCtx context.Context
+	mu          sync.Mutex
 }
 
 // NewHTTPSubsegments creates a new HTTPSubsegments to use in
@@ -149,15 +151,21 @@ func (xt *HTTPSubsegments) GotConn(info *httptrace.GotConnInfo, err error) {
 func (xt *HTTPSubsegments) WroteRequest(info httptrace.WroteRequestInfo) {
 	if xt.reqCtx != nil && GetSegment(xt.opCtx).InProgress {
 		GetSegment(xt.reqCtx).Close(info.Err)
-		xt.responseCtx, _ = BeginSubsegment(xt.opCtx, "response")
+		resCtx, _ := BeginSubsegment(xt.opCtx, "response")
+		xt.mu.Lock()
+		xt.responseCtx = resCtx
+		xt.mu.Unlock()
 	}
 }
 
 // GotFirstResponseByte closes the response subsegment if the HTTP
 // operation subsegment is still in progress.
 func (xt *HTTPSubsegments) GotFirstResponseByte() {
-	if xt.responseCtx != nil && GetSegment(xt.opCtx).InProgress {
-		GetSegment(xt.responseCtx).Close(nil)
+	xt.mu.Lock()
+	resCtx := xt.responseCtx
+	xt.mu.Unlock()
+	if resCtx != nil && GetSegment(xt.opCtx).InProgress {
+		GetSegment(resCtx).Close(nil)
 	}
 }
 
