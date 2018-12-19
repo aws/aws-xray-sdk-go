@@ -114,6 +114,7 @@ func (seg *Segment) assignConfiguration(cfg *Config) {
 		seg.GetConfiguration().ExceptionFormattingStrategy = globalCfg.exceptionFormattingStrategy
 		seg.GetConfiguration().SamplingStrategy = globalCfg.samplingStrategy
 		seg.GetConfiguration().StreamingStrategy = globalCfg.streamingStrategy
+		seg.GetConfiguration().Emitter = globalCfg.emitter
 		seg.GetConfiguration().ServiceVersion = globalCfg.serviceVersion
 	} else {
 		if cfg.ContextMissingStrategy != nil {
@@ -138,6 +139,12 @@ func (seg *Segment) assignConfiguration(cfg *Config) {
 			seg.GetConfiguration().StreamingStrategy = cfg.StreamingStrategy
 		} else {
 			seg.GetConfiguration().StreamingStrategy = globalCfg.streamingStrategy
+		}
+
+		if cfg.Emitter != nil {
+			seg.GetConfiguration().Emitter = cfg.Emitter
+		} else {
+			seg.GetConfiguration().Emitter = globalCfg.emitter
 		}
 
 		if cfg.ServiceVersion != "" {
@@ -264,7 +271,7 @@ func (subseg *Segment) CloseAndStream(err error) {
 	subseg.beforeEmitSubsegment(subseg.parent)
 	subseg.Unlock()
 
-	Emit(subseg)
+	subseg.emit()
 }
 
 // RemoveSubsegment removes a subsegment child from a segment or subsegment.
@@ -286,6 +293,10 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 	return false
 }
 
+func (seg *Segment) emit() {
+	seg.ParentSegment.GetConfiguration().Emitter.Emit(seg)
+}
+
 func (seg *Segment) handleContextDone() {
 	seg.Lock()
 	defer seg.Unlock()
@@ -300,12 +311,12 @@ func (seg *Segment) flush() {
 	if (seg.openSegments == 0 && seg.EndTime > 0) || seg.ContextDone {
 		if seg.parent == nil {
 			seg.Emitted = true
-			Emit(seg)
+			seg.emit()
 		} else if seg.parent != nil && seg.parent.Facade {
 			seg.Emitted = true
 			seg.beforeEmitSubsegment(seg.parent)
 			log.Tracef("emit lambda subsegment named: %v", seg.Name)
-			Emit(seg)
+			seg.emit()
 		} else {
 			seg.parent.safeFlush()
 		}
