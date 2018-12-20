@@ -17,7 +17,7 @@ import (
 func TestSegmentDataRace(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	for i := 0; i < 10; i += 1 { // flaky data race test, so we run it multiple times
+	for i := 0; i < 10; i++ { // flaky data race test, so we run it multiple times
 		_, seg := BeginSegment(ctx, "TestSegment")
 
 		go seg.Close(nil)

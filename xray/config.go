@@ -64,6 +64,12 @@ func newGlobalConfig() *globalConfig {
 	}
 	ret.streamingStrategy = sts
 
+	emt, err := NewDefaultEmitter(ret.daemonAddr)
+	if err != nil {
+		panic(err)
+	}
+	ret.emitter = emt
+
 	cm := ctxmissing.NewDefaultRuntimeErrorStrategy()
 
 	ret.contextMissingStrategy = cm
@@ -75,6 +81,7 @@ type globalConfig struct {
 	sync.RWMutex
 
 	daemonAddr                  *net.UDPAddr
+	emitter                     Emitter
 	serviceVersion              string
 	samplingStrategy            sampling.Strategy
 	streamingStrategy           StreamingStrategy
@@ -88,6 +95,7 @@ type globalConfig struct {
 type Config struct {
 	DaemonAddr                  string
 	ServiceVersion              string
+	Emitter                     Emitter
 	SamplingStrategy            sampling.Strategy
 	StreamingStrategy           StreamingStrategy
 	ExceptionFormattingStrategy exception.FormattingStrategy
@@ -103,8 +111,12 @@ func ContextWithConfig(ctx context.Context, c Config) (context.Context, error) {
 	daemonEndpoints, er := daemoncfg.GetDaemonEndpointsFromString(c.DaemonAddr)
 
 	if daemonEndpoints != nil {
-		go refreshEmitterWithAddress(daemonEndpoints.UDPAddr)
-		configureStrategy(c.SamplingStrategy, daemonEndpoints)
+		if c.Emitter != nil {
+			c.Emitter.RefreshEmitterWithAddress(daemonEndpoints.UDPAddr)
+		}
+		if c.SamplingStrategy != nil {
+			configureStrategy(c.SamplingStrategy, daemonEndpoints)
+		}
 	} else if er != nil {
 		errors = append(errors, er)
 	}
@@ -156,10 +168,14 @@ func Configure(c Config) error {
 		globalCfg.samplingStrategy = c.SamplingStrategy
 	}
 
+	if c.Emitter != nil {
+		globalCfg.emitter = c.Emitter
+	}
+
 	daemonEndpoints, er := daemoncfg.GetDaemonEndpointsFromString(c.DaemonAddr)
 	if daemonEndpoints != nil {
 		globalCfg.daemonAddr = daemonEndpoints.UDPAddr
-		go refreshEmitter()
+		globalCfg.emitter.RefreshEmitterWithAddress(globalCfg.daemonAddr)
 		configureStrategy(globalCfg.samplingStrategy, daemonEndpoints)
 	} else if er != nil {
 		errors = append(errors, er)

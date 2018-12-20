@@ -30,6 +30,8 @@ type TestStreamingStrategy struct{}
 
 type TestContextMissingStrategy struct{}
 
+type TestEmitter struct{}
+
 func (tss *TestSamplingStrategy) ShouldTrace(request *sampling.Request) *sampling.Decision {
 	return &sampling.Decision{
 		Sample: true,
@@ -65,6 +67,10 @@ func (sms *TestStreamingStrategy) StreamCompletedSubsegments(seg *Segment) [][]b
 	return test
 }
 
+func (te *TestEmitter) Emit(seg *Segment) {}
+
+func (te *TestEmitter) RefreshEmitterWithAddress(raddr *net.UDPAddr) {}
+
 func (cms *TestContextMissingStrategy) ContextMissing(v interface{}) {
 	fmt.Sprintf("Test ContextMissing Strategy %v", v)
 }
@@ -89,12 +95,19 @@ func ResetConfig() {
 	sms, _ := NewDefaultStreamingStrategy()
 	cms := ctxmissing.NewDefaultRuntimeErrorStrategy()
 
+	udpAddr := &net.UDPAddr{
+		IP:   net.IPv4(127, 0, 0, 1),
+		Port: 2000,
+	}
+	e, _ := NewDefaultEmitter(udpAddr)
+
 	Configure(Config{
 		DaemonAddr:                  "127.0.0.1:2000",
 		LogLevel:                    "info",
 		LogFormat:                   "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n",
 		SamplingStrategy:            ss,
 		StreamingStrategy:           sms,
+		Emitter:                     e,
 		ExceptionFormattingStrategy: efs,
 		ContextMissingStrategy:      cms,
 	})
@@ -203,6 +216,7 @@ func TestConfigureWithContext(t *testing.T) {
 	efs := &TestExceptionFormattingStrategy{}
 	sms := &TestStreamingStrategy{}
 	cms := &TestContextMissingStrategy{}
+	de := &TestEmitter{}
 
 	ctx, err := ContextWithConfig(context.Background(), Config{
 		DaemonAddr:                  daemonAddr,
@@ -210,6 +224,7 @@ func TestConfigureWithContext(t *testing.T) {
 		SamplingStrategy:            ss,
 		ExceptionFormattingStrategy: efs,
 		StreamingStrategy:           sms,
+		Emitter:                     de,
 		ContextMissingStrategy:      cms,
 		LogLevel:                    logLevel,
 		LogFormat:                   logFormat,
@@ -223,6 +238,27 @@ func TestConfigureWithContext(t *testing.T) {
 	assert.Equal(t, ss, cfg.SamplingStrategy)
 	assert.Equal(t, efs, cfg.ExceptionFormattingStrategy)
 	assert.Equal(t, sms, cfg.StreamingStrategy)
+	assert.Equal(t, de, cfg.Emitter)
+	assert.Equal(t, cms, cfg.ContextMissingStrategy)
+	assert.Equal(t, serviceVersion, cfg.ServiceVersion)
+
+	ResetConfig()
+}
+
+func TestSelectiveConfigWithContext(t *testing.T) {
+	daemonAddr := "127.0.0.1:3000"
+	serviceVersion := "TestVersion"
+	cms := &TestContextMissingStrategy{}
+
+	ctx, err := ContextWithConfig(context.Background(), Config{
+		DaemonAddr:             daemonAddr,
+		ServiceVersion:         serviceVersion,
+		ContextMissingStrategy: cms,
+	})
+
+	cfg := GetRecorder(ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, daemonAddr, cfg.DaemonAddr)
 	assert.Equal(t, cms, cfg.ContextMissingStrategy)
 	assert.Equal(t, serviceVersion, cfg.ServiceVersion)
 
