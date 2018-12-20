@@ -151,6 +151,11 @@ func (db *DB) SetMaxOpenConns(n int) { db.db.SetMaxOpenConns(n) }
 func (db *DB) populate(ctx context.Context, query string) {
 	seg := GetSegment(ctx)
 
+	if seg == nil {
+		processNilSegment(ctx)
+		return
+	}
+
 	seg.Lock()
 	seg.Namespace = "remote"
 	seg.GetSQL().ConnectionString = db.connectionString
@@ -191,6 +196,12 @@ func (stmt *Stmt) populate(ctx context.Context, query string) {
 	stmt.db.populate(ctx, query)
 
 	seg := GetSegment(ctx)
+
+	if seg == nil {
+		processNilSegment(ctx)
+		return
+	}
+
 	seg.Lock()
 	seg.GetSQL().Preparation = "statement"
 	seg.Unlock()
@@ -271,4 +282,14 @@ func stripPasswords(dsn string) string {
 	inBraces = false
 	flush()
 	return res.String()
+}
+
+func processNilSegment(ctx context.Context) {
+	cfg := GetRecorder(ctx)
+	failedMessage := "failed to get segment from context since segment is nil"
+	if cfg != nil && cfg.ContextMissingStrategy != nil {
+		cfg.ContextMissingStrategy.ContextMissing(failedMessage)
+	} else {
+		globalCfg.ContextMissingStrategy().ContextMissing(failedMessage)
+	}
 }
