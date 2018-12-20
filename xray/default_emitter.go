@@ -35,7 +35,7 @@ func NewDefaultEmitter(raddr *net.UDPAddr) (*DefaultEmitter, error) {
 	return d, nil
 }
 
-// RefreshEmitterWithAddress dials UDP based on the input UPD address.
+// RefreshEmitterWithAddress dials UDP based on the input UDP address.
 func (de *DefaultEmitter) RefreshEmitterWithAddress(raddr *net.UDPAddr) {
 	de.Lock()
 	de.conn, _ = net.DialUDP("udp", nil, raddr)
