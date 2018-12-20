@@ -1,3 +1,11 @@
+Release v1.0.0-rc.9 (2018-12-20)
+================================
+### SDK Enhancements
+* Fix http2 datarace in unit test: [PR #72](https://github.com/aws/aws-xray-sdk-go/pull/72)
+* Support passing customized emitter: [PR #76](https://github.com/aws/aws-xray-sdk-go/pull/76)
+* Apply Context Missing Strategy if segment is nil in SQL
+* Remove error message content check for certain daemon config unit tests
+
 Release v1.0.0-rc.8 (2018-10-04)
 ================================
 ### SDK Bugs
