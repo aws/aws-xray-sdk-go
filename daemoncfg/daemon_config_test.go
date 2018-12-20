@@ -18,7 +18,6 @@ import (
 
 var portErr = "invalid daemon address port"
 var addrErr = "invalid daemon address"
-var hostErr = "no such host"
 
 func TestGetDaemonEndpoints1(t *testing.T) { // default address set to udp and tcp
 	udpAddr := "127.0.0.1:2000"
@@ -176,7 +175,6 @@ func TestGetDaemonEndpointsFromStringInvalid5(t *testing.T) {
 	dEndpt, err := GetDaemonEndpointsFromString(dAddr)
 
 	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(fmt.Sprint(err), hostErr))
 	assert.Nil(t, dEndpt)
 }
 
@@ -212,7 +210,6 @@ func TestGetDaemonEndpointsForHostname1(t *testing.T) { // parsing hostname - si
 func TestGetDaemonEndpointsForHostname2(t *testing.T) { // Invalid hostname - single form
 	dEndpt, err := GetDaemonEndpointsFromString("XYZ:2000")
 	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(fmt.Sprint(err), hostErr))
 	assert.Nil(t, dEndpt)
 }
 
@@ -230,7 +227,6 @@ func TestGetDaemonEndpointsForHostname3(t *testing.T) { // parsing hostname - do
 func TestGetDaemonEndpointsForHostname4(t *testing.T) { // Invalid hostname - double form
 	dEndpt, err := GetDaemonEndpointsFromString("tcp:ABC:2000 udp:XYZ:2000")
 	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(fmt.Sprint(err), hostErr))
 	assert.Nil(t, dEndpt)
 }
 
