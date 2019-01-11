@@ -39,7 +39,6 @@ func NewDefaultEmitter(raddr *net.UDPAddr) (*DefaultEmitter, error) {
 func (de *DefaultEmitter) RefreshEmitterWithAddress(raddr *net.UDPAddr) {
 	de.Lock()
 	de.conn, _ = net.DialUDP("udp", nil, raddr)
-	log.Infof("Emitter using address: %v", raddr)
 	de.Unlock()
 }
 
