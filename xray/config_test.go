@@ -132,15 +132,11 @@ func TestInvalidEnvironmentDaemonAddress(t *testing.T) {
 
 func TestDefaultConfigureParameters(t *testing.T) {
 	daemonAddr := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 2000}
-	logLevel := "info"
-	logFormat := "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n"
 	efs, _ := exception.NewDefaultFormattingStrategy()
 	sms, _ := NewDefaultStreamingStrategy()
 	cms := ctxmissing.NewDefaultRuntimeErrorStrategy()
 
 	assert.Equal(t, daemonAddr, globalCfg.daemonAddr)
-	assert.Equal(t, logLevel, globalCfg.logLevel.String())
-	assert.Equal(t, logFormat, globalCfg.logFormat)
 	assert.Equal(t, efs, globalCfg.exceptionFormattingStrategy)
 	assert.Equal(t, "", globalCfg.serviceVersion)
 	assert.Equal(t, sms, globalCfg.streamingStrategy)
@@ -170,8 +166,6 @@ func TestSetConfigureParameters(t *testing.T) {
 	})
 
 	assert.Equal(t, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 3000}, globalCfg.daemonAddr)
-	assert.Equal(t, logLevel, globalCfg.logLevel.String())
-	assert.Equal(t, logFormat, globalCfg.logFormat)
 	assert.Equal(t, ss, globalCfg.samplingStrategy)
 	assert.Equal(t, efs, globalCfg.exceptionFormattingStrategy)
 	assert.Equal(t, sms, globalCfg.streamingStrategy)

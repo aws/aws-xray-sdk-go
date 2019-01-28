@@ -11,8 +11,8 @@ package ecs
 import (
 	"os"
 
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
-	log "github.com/cihub/seelog"
 )
 
 const Origin = "AWS::ECS::Container"
@@ -27,7 +27,7 @@ func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
 	hostname, err := os.Hostname()
 
 	if err != nil {
-		log.Errorf("Unable to retrieve hostname from OS. %v", err)
+		logger.Errorf("Unable to retrieve hostname from OS. %v", err)
 		return
 	}
 

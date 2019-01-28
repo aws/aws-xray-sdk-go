@@ -16,7 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	xraySvc "github.com/aws/aws-sdk-go/service/xray"
 	"github.com/aws/aws-xray-sdk-go/daemoncfg"
-	log "github.com/cihub/seelog"
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 )
 
 // proxy is an implementation of svcProxy that forwards requests to the XRay daemon
@@ -31,7 +31,7 @@ func NewProxy(d *daemoncfg.DaemonEndpoints) (svcProxy, error) {
 	if d == nil {
 		d = daemoncfg.GetDaemonEndpoints()
 	}
-	log.Infof("X-Ray proxy using address : %v", d.TCPAddr.String())
+	logger.Infof("X-Ray proxy using address : %v", d.TCPAddr.String())
 	url := "http://" + d.TCPAddr.String()
 
 	// Endpoint resolver for proxying requests through the daemon

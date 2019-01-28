@@ -13,8 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/cihub/seelog"
-
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/pkg/errors"
 )
 
@@ -69,7 +68,7 @@ func GetDaemonEndpointsFromString(dAddr string) (*DaemonEndpoints, error) {
 	// Try to get the X-Ray daemon address from an environment variable
 	if envDaemonAddr := os.Getenv("AWS_XRAY_DAEMON_ADDRESS"); envDaemonAddr != "" {
 		daemonAddr = envDaemonAddr
-		log.Infof("using daemon endpoints from environment variable AWS_XRAY_DAEMON_ADDRESS: %v", envDaemonAddr)
+		logger.Infof("using daemon endpoints from environment variable AWS_XRAY_DAEMON_ADDRESS: %v", envDaemonAddr)
 	} else if dAddr != "" {
 		daemonAddr = dAddr
 	}
@@ -85,12 +84,9 @@ func resolveAddress(dAddr string) (*DaemonEndpoints, error) {
 		return parseSingleForm(addr[0])
 	} else if len(addr) == 2 {
 		return parseDoubleForm(addr)
-
 	} else {
 		return nil, errors.New("invalid daemon address: " + dAddr)
 	}
-
-	return nil, nil
 }
 
 func parseDoubleForm(addr []string) (*DaemonEndpoints, error) {

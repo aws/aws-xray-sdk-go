@@ -11,11 +11,11 @@ package sampling
 import (
 	"sync"
 
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/pattern"
 	"github.com/aws/aws-xray-sdk-go/utils"
 
 	xraySvc "github.com/aws/aws-sdk-go/service/xray"
-	log "github.com/cihub/seelog"
 )
 
 // Properties is the base set of properties that define a sampling rule.
@@ -113,7 +113,7 @@ func (r *CentralizedRule) Sample() *Decision {
 	// Fallback to bernoulli sampling if quota has expired
 	if r.reservoir.expired(now) {
 		if r.reservoir.borrow(now) {
-			log.Tracef(
+			logger.Debugf(
 				"Sampling target has expired for rule %s. Borrowing a request.",
 				r.ruleName,
 			)
@@ -123,7 +123,7 @@ func (r *CentralizedRule) Sample() *Decision {
 			return sd
 		}
 
-		log.Tracef(
+		logger.Debugf(
 			"Sampling target has expired for rule %s. Using fixed rate.",
 			r.ruleName,
 		)
@@ -140,7 +140,7 @@ func (r *CentralizedRule) Sample() *Decision {
 		return sd
 	}
 
-	log.Tracef(
+	logger.Debugf(
 		"Sampling target has been exhausted for rule %s. Using fixed rate.",
 		r.ruleName,
 	)
