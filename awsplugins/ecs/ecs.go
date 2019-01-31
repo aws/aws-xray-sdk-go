@@ -8,10 +8,29 @@
 
 package ecs
 
-import "github.com/aws/aws-xray-sdk-go/awsplugins/ecs"
+import (
+	"os"
+
+	"github.com/aws/aws-xray-sdk-go/internal/plugins"
+	log "github.com/cihub/seelog"
+)
 
 const Origin = "AWS::ECS::Container"
 
-func init() {
-	ecs.Init()
+func Init() {
+	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.ECSMetadata == nil {
+		addPluginMetadata(plugins.InstancePluginMetadata)
+	}
+}
+
+func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
+	hostname, err := os.Hostname()
+
+	if err != nil {
+		log.Errorf("Unable to retrieve hostname from OS. %v", err)
+		return
+	}
+
+	pluginmd.ECSMetadata = &plugins.ECSMetadata{ContainerName: hostname}
+	pluginmd.Origin = Origin
 }
