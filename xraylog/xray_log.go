@@ -11,6 +11,7 @@ package xraylog
 import (
 	"fmt"
 	"io"
+	"sync"
 	"time"
 )
 
@@ -19,6 +20,8 @@ import (
 // logged (i.e. don't bother serializing debug messages if they aren't going
 // to show up).
 type Logger interface {
+	// Log can be called concurrently from multiple goroutines so make sure
+	// your implemenation is goroutine safe.
 	Log(level LogLevel, msg fmt.Stringer)
 }
 
@@ -45,17 +48,20 @@ func (ll LogLevel) String() string {
 	case LogLevelError:
 		return "ERROR"
 	default:
-		return fmt.Sprintf("UNKNOWN<%d>", ll)
+		return fmt.Sprintf("UNKNOWNLOGLEVEL<%d>", ll)
 	}
 }
 
 // NewDefaultLogger makes a Logger object that writes newline separated
 // messages to w, if the level of the message is at least minLogLevel.
+// The default logger synchronizes around Write() calls to the underlying
+// io.Writer.
 func NewDefaultLogger(w io.Writer, minLogLevel LogLevel) Logger {
-	return &defaultLogger{w, minLogLevel}
+	return &defaultLogger{w: w, minLevel: minLogLevel}
 }
 
 type defaultLogger struct {
+	sync.Mutex
 	w        io.Writer
 	minLevel LogLevel
 }
@@ -65,6 +71,8 @@ func (l *defaultLogger) Log(ll LogLevel, msg fmt.Stringer) {
 		return
 	}
 
+	l.Lock()
+	defer l.Unlock()
 	fmt.Fprintf(l.w, "%s [%s] %s\n", time.Now().Format(time.RFC3339), ll, msg)
 }
 
