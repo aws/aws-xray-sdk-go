@@ -10,10 +10,11 @@ package xray
 
 import (
 	"context"
-	log "github.com/cihub/seelog"
 	"net/http"
 	"net/http/httptrace"
 	"strconv"
+
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 )
 
 const emptyHostRename = "empty_host_error"
@@ -66,7 +67,7 @@ func (rt *roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
 		seg := GetSegment(ctx)
 		if seg == nil {
 			resp, err = rt.Base.RoundTrip(r)
-			log.Warnf("failed to record HTTP transaction: segment cannot be found.")
+			logger.Warnf("failed to record HTTP transaction: segment cannot be found.")
 			return err
 		}
 

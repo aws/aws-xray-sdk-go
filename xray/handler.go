@@ -17,12 +17,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
 
 	"github.com/aws/aws-xray-sdk-go/header"
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
 	"github.com/aws/aws-xray-sdk-go/pattern"
-	log "github.com/cihub/seelog"
 )
 
 // SegmentNamer is the interface for naming service node.
@@ -147,7 +147,7 @@ func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Requ
 		}
 		sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(samplingRequest)
 		seg.Sampled = sd.Sample
-		log.Tracef("SamplingStrategy decided: %t", seg.Sampled)
+		logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
 		seg.AddRuleName(sd)
 	}
 	if traceHeader.SamplingDecision == header.Requested {

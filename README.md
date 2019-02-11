@@ -204,6 +204,31 @@ func init() {
 }
 ```
 
+**Logger**
+
+xray uses an interface for its logger:
+
+```go
+type Logger interface {
+  Log(level LogLevel, msg fmt.Stringer)
+}
+
+const (
+  LogLevelDebug LogLevel = iota + 1
+  LogLevelInfo
+  LogLevelWarn
+  LogLevelError
+)
+```
+
+The default logger logs to stdout at "info" and above. To change the logger, call `xray.SetLogger(myLogger)`. There is a default logger implementation that writes to an `io.Writer` from a specified minimum log level. For example, to log to stderr at "error" and above:
+
+```go
+xray.SetLogger(xraylog.NewDefaultLogger(os.Stderr, xraylog.LogLevelError))
+```
+
+Note that the `xray.Config{}` fields `LogLevel` and `LogFormat` are deprecated and no longer have any effect.
+
 ## License
 
 The AWS X-Ray SDK for Go is licensed under the Apache 2.0 License. See LICENSE and NOTICE.txt for more information.

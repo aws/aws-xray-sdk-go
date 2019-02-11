@@ -14,7 +14,7 @@ import (
 	"net"
 	"sync"
 
-	log "github.com/cihub/seelog"
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 )
 
 // Header is added before sending segments to daemon.
@@ -39,7 +39,7 @@ func NewDefaultEmitter(raddr *net.UDPAddr) (*DefaultEmitter, error) {
 func (de *DefaultEmitter) RefreshEmitterWithAddress(raddr *net.UDPAddr) {
 	de.Lock()
 	de.conn, _ = net.DialUDP("udp", nil, raddr)
-	log.Infof("Emitter using address: %v", raddr)
+	logger.Infof("Emitter using address: %v", raddr)
 	de.Unlock()
 }
 
@@ -49,23 +49,17 @@ func (de *DefaultEmitter) Emit(seg *Segment) {
 		return
 	}
 
-	var logLevel string
-	if seg.Configuration != nil && seg.Configuration.LogLevel == "trace" {
-		logLevel = "trace"
-	} else if globalCfg.logLevel <= log.TraceLvl {
-		logLevel = "trace"
-	}
-
 	for _, p := range packSegments(seg, nil) {
-		if logLevel == "trace" {
-			b := &bytes.Buffer{}
-			json.Indent(b, p, "", " ")
-			log.Trace(b.String())
-		}
+		// defer expensive marshal until log message is actually logged
+		logger.DebugDeferred(func() string {
+			var b bytes.Buffer
+			json.Indent(&b, p, "", " ")
+			return b.String()
+		})
 		de.Lock()
 		_, err := de.conn.Write(append(Header, p...))
 		if err != nil {
-			log.Error(err)
+			logger.Error(err)
 		}
 		de.Unlock()
 	}

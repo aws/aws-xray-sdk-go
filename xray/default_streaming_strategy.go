@@ -12,7 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	log "github.com/cihub/seelog"
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 )
 
 var defaultMaxSubsegmentCount = 20
@@ -52,7 +52,7 @@ func (dSS *DefaultStreamingStrategy) RequiresStreaming(seg *Segment) bool {
 // StreamCompletedSubsegments separates subsegments from the provided
 // segment tree and sends them to daemon as streamed subsegment UDP packets.
 func (dSS *DefaultStreamingStrategy) StreamCompletedSubsegments(seg *Segment) [][]byte {
-	log.Trace("Beginning to stream subsegments.")
+	logger.Debug("Beginning to stream subsegments.")
 	var outSegments [][]byte
 	for i := 0; i < len(seg.rawSubsegments); i++ {
 		child := seg.rawSubsegments[i]
@@ -71,11 +71,11 @@ func (dSS *DefaultStreamingStrategy) StreamCompletedSubsegments(seg *Segment) []
 		child.beforeEmitSubsegment(seg)
 		cb, _ := json.Marshal(child)
 		outSegments = append(outSegments, cb)
-		log.Tracef("Streaming subsegment named '%s' from segment tree.", child.Name)
+		logger.Debugf("Streaming subsegment named '%s' from segment tree.", child.Name)
 		child.Unlock()
 
 		break
 	}
-	log.Trace("Finished streaming subsegments.")
+	logger.Debug("Finished streaming subsegments.")
 	return outSegments
 }
