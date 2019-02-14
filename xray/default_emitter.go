@@ -24,23 +24,35 @@ var Header = []byte(`{"format": "json", "version": 1}` + "\n")
 type DefaultEmitter struct {
 	sync.Mutex
 	conn *net.UDPConn
+	addr *net.UDPAddr
 }
 
 // NewDefaultEmitter initializes and returns a
 // pointer to an instance of DefaultEmitter.
 func NewDefaultEmitter(raddr *net.UDPAddr) (*DefaultEmitter, error) {
 	initLambda()
-	d := &DefaultEmitter{}
-	d.RefreshEmitterWithAddress(raddr)
+	d := &DefaultEmitter{addr: raddr}
 	return d, nil
 }
 
 // RefreshEmitterWithAddress dials UDP based on the input UDP address.
 func (de *DefaultEmitter) RefreshEmitterWithAddress(raddr *net.UDPAddr) {
 	de.Lock()
-	de.conn, _ = net.DialUDP("udp", nil, raddr)
-	logger.Infof("Emitter using address: %v", raddr)
+	de.refresh(raddr)
 	de.Unlock()
+}
+
+func (de *DefaultEmitter) refresh(raddr *net.UDPAddr) (err error) {
+	de.conn, err = net.DialUDP("udp", nil, raddr)
+	de.addr = raddr
+
+	if err != nil {
+		logger.Errorf("Error dialing emitter address %v: %s", raddr, err)
+		return err
+	}
+
+	logger.Infof("Emitter using address: %v", raddr)
+	return nil
 }
 
 // Emit segment or subsegment if root segment is sampled.
@@ -57,6 +69,14 @@ func (de *DefaultEmitter) Emit(seg *Segment) {
 			return b.String()
 		})
 		de.Lock()
+
+		if de.conn == nil {
+			if err := de.refresh(de.addr); err != nil {
+				de.Unlock()
+				return
+			}
+		}
+
 		_, err := de.conn.Write(append(Header, p...))
 		if err != nil {
 			logger.Error(err)
