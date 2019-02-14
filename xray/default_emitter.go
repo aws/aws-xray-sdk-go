@@ -72,6 +72,7 @@ func (de *DefaultEmitter) Emit(seg *Segment) {
 
 		if de.conn == nil {
 			if err := de.refresh(de.addr); err != nil {
+				de.Unlock()
 				return
 			}
 		}
