@@ -28,6 +28,7 @@ import (
 const RequestIDKey string = "request_id"
 const ExtendedRequestIDKey string = "id_2"
 const S3ExtendedRequestIDHeaderKey string = "x-amz-id-2"
+const TraceIDHeaderKey = "x-amzn-trace-id"
 
 type jsonMap struct {
 	object interface{}
@@ -63,7 +64,7 @@ var xRayBeforeValidateHandler = request.NamedHandler{
 		marshalctx, _ := BeginSubsegment(ctx, "marshal")
 
 		r.HTTPRequest = r.HTTPRequest.WithContext(marshalctx)
-		r.HTTPRequest.Header.Set("x-amzn-trace-id", opseg.DownstreamHeader().String())
+		r.HTTPRequest.Header.Set(TraceIDHeaderKey, opseg.DownstreamHeader().String())
 	},
 }
 
