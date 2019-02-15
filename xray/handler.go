@@ -92,7 +92,7 @@ func HandlerWithContext(ctx context.Context, sn SegmentNamer, h http.Handler) ht
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name := sn.Name(r.Host)
 
-		traceHeader := header.FromString(r.Header.Get("x-amzn-trace-id"))
+		traceHeader := header.FromString(r.Header.Get(TraceIDHeaderKey))
 
 		r = r.WithContext(ctx)
 		c, seg := NewSegmentFromHeader(r.Context(), name, traceHeader)
@@ -110,7 +110,7 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name := sn.Name(r.Host)
 
-		traceHeader := header.FromString(r.Header.Get("x-amzn-trace-id"))
+		traceHeader := header.FromString(r.Header.Get(TraceIDHeaderKey))
 		ctx, seg := NewSegmentFromHeader(r.Context(), name, traceHeader)
 
 		r = r.WithContext(ctx)
@@ -155,7 +155,7 @@ func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Requ
 		respHeader.WriteString(strconv.Itoa(btoi(seg.Sampled)))
 	}
 
-	w.Header().Set("x-amzn-trace-id", respHeader.String())
+	w.Header().Set(TraceIDHeaderKey, respHeader.String())
 	seg.Unlock()
 
 	resp := &responseCapturer{w, 200, 0}

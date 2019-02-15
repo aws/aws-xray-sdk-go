@@ -91,7 +91,7 @@ func TestHandlerWithContextForNonRootHandler(t *testing.T) {
 	defer ts.Close()
 
 	req := httptest.NewRequest("DELETE", ts.URL, strings.NewReader(""))
-	req.Header.Set("x-amzn-trace-id", "Root=fakeid; Parent=reqid; Sampled=1")
+	req.Header.Set(TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
 
 	_, err := http.DefaultTransport.RoundTrip(req)
 	assert.NoError(t, err)
@@ -143,7 +143,7 @@ func TestNonRootHandler(t *testing.T) {
 	defer ts.Close()
 
 	req := httptest.NewRequest("DELETE", ts.URL, strings.NewReader(""))
-	req.Header.Set("x-amzn-trace-id", "Root=fakeid; Parent=reqid; Sampled=1")
+	req.Header.Set(TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
 
 	_, err := http.DefaultTransport.RoundTrip(req)
 	assert.NoError(t, err)

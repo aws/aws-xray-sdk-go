@@ -88,7 +88,7 @@ func (rt *roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
 		seg.GetHTTP().GetRequest().Method = r.Method
 		seg.GetHTTP().GetRequest().URL = r.URL.String()
 
-		r.Header.Set("x-amzn-trace-id", seg.DownstreamHeader().String())
+		r.Header.Set(TraceIDHeaderKey, seg.DownstreamHeader().String())
 		seg.Unlock()
 
 		resp, err = rt.Base.RoundTrip(r)
