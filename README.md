@@ -64,7 +64,6 @@ import (
 func init() {
   xray.Configure(xray.Config{
     DaemonAddr:       "127.0.0.1:2000", // default
-    LogLevel:         "info",           // default
     ServiceVersion:   "1.2.3",
   })
 }
@@ -221,7 +220,7 @@ const (
 )
 ```
 
-The default logger logs to stdout at "info" and above. To change the logger, call `xray.SetLogger(myLogger)`. There is a default logger implementation that writes to an `io.Writer` from a specified minimum log level. For example, to log to stderr at "error" and above:
+The default logger logs to [stdout](https://golang.org/pkg/syscall/#Stdout) at "info" and above. To change the logger, call `xray.SetLogger(myLogger)`. There is a default logger implementation that writes to an `io.Writer` from a specified minimum log level. For example, to log to stderr at "error" and above:
 
 ```go
 xray.SetLogger(xraylog.NewDefaultLogger(os.Stderr, xraylog.LogLevelError))

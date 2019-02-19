@@ -1,3 +1,12 @@
+Release v1.0.0-rc.10 (2019-02-19)
+================================
+### SDK Breaking Changes
+* `xray.Config{}` fields `LogLevel` and `LogFormat` are deprecated and no longer have any effect. Users will have to reset their min log level if they weren't using the default of "info" using `xray.SetLogger()` . The log levels `Trace` and `Tracef` are replaced by `Debug` and `Debugf` respectively. [PR #82](https://github.com/aws/aws-xray-sdk-go/pull/82), [Issue #15](https://github.com/aws/aws-xray-sdk-go/issues/15)
+
+### SDK Enhancements
+* Don't try to udp dial emitter at package load time [PR #83](https://github.com/aws/aws-xray-sdk-go/pull/83)
+* Explicit plugin initialization [PR #81](https://github.com/aws/aws-xray-sdk-go/pull/81)
+
 Release v1.0.0-rc.9 (2018-12-20)
 ================================
 ### SDK Enhancements
