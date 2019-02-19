@@ -4,5 +4,6 @@ The following people have contributed to the AWS X-Ray SDK for Go's design and/o
 * Bilal Khan
 * James Bowman
 * Lulu Zhao
+* Muir Manders
 * Raymond Lin
 * Rohit Banga

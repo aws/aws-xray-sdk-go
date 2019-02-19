@@ -17,12 +17,12 @@ import (
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/daemoncfg"
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
 
 	"github.com/aws/aws-xray-sdk-go/utils"
 
 	xraySvc "github.com/aws/aws-sdk-go/service/xray"
-	log "github.com/cihub/seelog"
 )
 
 // CentralizedStrategy is an implementation of SamplingStrategy. It
@@ -135,7 +135,7 @@ func (ss *CentralizedStrategy) ShouldTrace(request *Request) *Decision {
 	if request.ServiceType == "" {
 		request.ServiceType = plugins.InstancePluginMetadata.Origin
 	}
-	log.Tracef(
+	logger.Debugf(
 		"Determining ShouldTrace decision for:\n\thost: %s\n\tpath: %s\n\tmethod: %s\n\tservicename: %s\n\tservicetype: %s",
 		request.Host,
 		request.Url,
@@ -146,7 +146,7 @@ func (ss *CentralizedStrategy) ShouldTrace(request *Request) *Decision {
 
 	// Use fallback if manifest is expired
 	if ss.manifest.expired() {
-		log.Trace("Centralized sampling data expired. Using fallback sampling strategy")
+		logger.Debug("Centralized sampling data expired. Using fallback sampling strategy")
 
 		return ss.fallback.ShouldTrace(request)
 	}
@@ -165,20 +165,20 @@ func (ss *CentralizedStrategy) ShouldTrace(request *Request) *Decision {
 			continue
 		}
 
-		log.Tracef("Applicable rule: %s", r.ruleName)
+		logger.Debugf("Applicable rule: %s", r.ruleName)
 
 		return r.Sample()
 	}
 
 	// Match against default rule
 	if r := ss.manifest.Default; r != nil {
-		log.Tracef("Applicable rule: %s", r.ruleName)
+		logger.Debugf("Applicable rule: %s", r.ruleName)
 
 		return r.Sample()
 	}
 
 	// Use fallback if default rule is unavailable
-	log.Trace("Centralized default sampling rule unavailable. Using fallback sampling strategy")
+	logger.Debug("Centralized default sampling rule unavailable. Using fallback sampling strategy")
 
 	return ss.fallback.ShouldTrace(request)
 }
@@ -207,9 +207,9 @@ func (ss *CentralizedStrategy) startRulePoller() {
 	// Initial refresh
 	go func() {
 		if err := ss.refreshManifest(); err != nil {
-			log.Tracef("Error occurred during initial refresh of sampling rules. %v", err)
+			logger.Debugf("Error occurred during initial refresh of sampling rules. %v", err)
 		} else {
-			log.Info("Successfully fetched sampling rules")
+			logger.Info("Successfully fetched sampling rules")
 		}
 	}()
 
@@ -221,9 +221,9 @@ func (ss *CentralizedStrategy) startRulePoller() {
 		for range t.C() {
 			t.Reset()
 			if err := ss.refreshManifest(); err != nil {
-				log.Tracef("Error occurred while refreshing sampling rules. %v", err)
+				logger.Debugf("Error occurred while refreshing sampling rules. %v", err)
 			} else {
-				log.Info("Successfully fetched sampling rules")
+				logger.Info("Successfully fetched sampling rules")
 			}
 		}
 	}()
@@ -239,7 +239,7 @@ func (ss *CentralizedStrategy) startTargetPoller() {
 		for range t.C() {
 			t.Reset()
 			if err := ss.refreshTargets(); err != nil {
-				log.Tracef("Error occurred while refreshing targets for sampling rules. %v", err)
+				logger.Debugf("Error occurred while refreshing targets for sampling rules. %v", err)
 			}
 		}
 	}()
@@ -277,43 +277,43 @@ func (ss *CentralizedStrategy) refreshManifest() (err error) {
 		// Extract rule from record
 		svcRule := record.SamplingRule
 		if svcRule == nil {
-			log.Trace("Sampling rule missing from sampling rule record.")
+			logger.Debug("Sampling rule missing from sampling rule record.")
 			failed = true
 			continue
 		}
 
 		if svcRule.RuleName == nil {
-			log.Trace("Sampling rule without rule name is not supported")
+			logger.Debug("Sampling rule without rule name is not supported")
 			failed = true
 			continue
 		}
 
 		// Only sampling rule with version 1 is valid
 		if svcRule.Version == nil {
-			log.Trace("Sampling rule without version number is not supported: ", *svcRule.RuleName)
+			logger.Debug("Sampling rule without version number is not supported: ", *svcRule.RuleName)
 			failed = true
 			continue
 		}
 		version := *svcRule.Version
 		if version != int64(1) {
-			log.Trace("Sampling rule without version 1 is not supported: ", *svcRule.RuleName)
+			logger.Debug("Sampling rule without version 1 is not supported: ", *svcRule.RuleName)
 			failed = true
 			continue
 		}
 
 		if len(svcRule.Attributes) != 0 {
-			log.Trace("Sampling rule with non nil Attributes is not applicable: ", *svcRule.RuleName)
+			logger.Debug("Sampling rule with non nil Attributes is not applicable: ", *svcRule.RuleName)
 			continue
 		}
 
 		if svcRule.ResourceARN == nil {
-			log.Trace("Sampling rule without ResourceARN is not applicable: ", *svcRule.RuleName)
+			logger.Debug("Sampling rule without ResourceARN is not applicable: ", *svcRule.RuleName)
 			continue
 		}
 
 		resourceARN := *svcRule.ResourceARN
 		if resourceARN != "*" {
-			log.Trace("Sampling rule with ResourceARN not equal to * is not applicable: ", *svcRule.RuleName)
+			logger.Debug("Sampling rule with ResourceARN not equal to * is not applicable: ", *svcRule.RuleName)
 			continue
 		}
 
@@ -321,7 +321,7 @@ func (ss *CentralizedStrategy) refreshManifest() (err error) {
 		r, putErr := ss.manifest.putRule(svcRule)
 		if putErr != nil {
 			failed = true
-			log.Tracef("Error occurred creating/updating rule. %v", putErr)
+			logger.Debugf("Error occurred creating/updating rule. %v", putErr)
 		} else if r != nil {
 			actives[r] = true
 		}
@@ -368,7 +368,7 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 
 	// Do not refresh targets if no statistics to report
 	if len(statistics) == 0 {
-		log.Tracef("No statistics to report. Not refreshing sampling targets.")
+		logger.Debugf("No statistics to report. Not refreshing sampling targets.")
 		return nil
 	}
 
@@ -382,13 +382,13 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 	for _, t := range output.SamplingTargetDocuments {
 		if err = ss.updateTarget(t); err != nil {
 			failed = true
-			log.Tracef("Error occurred updating target for rule. %v", err)
+			logger.Debugf("Error occurred updating target for rule. %v", err)
 		}
 	}
 
 	// Consume unprocessed statistics messages
 	for _, s := range output.UnprocessedStatistics {
-		log.Tracef(
+		logger.Debugf(
 			"Error occurred updating sampling target for rule: %s, code: %s, message: %s",
 			s.RuleName,
 			s.ErrorCode,
@@ -415,7 +415,7 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 	if failed {
 		err = errors.New("error occurred updating sampling targets")
 	} else {
-		log.Info("Successfully refreshed sampling targets")
+		logger.Info("Successfully refreshed sampling targets")
 	}
 
 	// Set refresh flag if modifiedAt timestamp from remote is greater than ours.
@@ -430,11 +430,11 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 	}
 	// Perform out-of-band async manifest refresh if flag is set
 	if refresh {
-		log.Info("Refreshing sampling rules out-of-band.")
+		logger.Infof("Refreshing sampling rules out-of-band.")
 
 		go func() {
 			if err = ss.refreshManifest(); err != nil {
-				log.Tracef("Error occurred refreshing sampling rules out-of-band. %v", err)
+				logger.Debugf("Error occurred refreshing sampling rules out-of-band. %v", err)
 			}
 		}()
 	}

@@ -8,38 +8,10 @@
 
 package beanstalk
 
-import (
-	"encoding/json"
-	"io/ioutil"
-
-	"github.com/aws/aws-xray-sdk-go/internal/plugins"
-	log "github.com/cihub/seelog"
-)
+import "github.com/aws/aws-xray-sdk-go/awsplugins/beanstalk"
 
 const Origin = "AWS::ElasticBeanstalk::Environment"
 
 func init() {
-	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.BeanstalkMetadata == nil {
-		addPluginMetadata(plugins.InstancePluginMetadata)
-	}
-}
-
-func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
-	ebConfigPath := "/var/elasticbeanstalk/xray/environment.conf"
-
-	rawConfig, err := ioutil.ReadFile(ebConfigPath)
-	if err != nil {
-		log.Errorf("Unable to read Elastic Beanstalk configuration file %s: %v", ebConfigPath, err)
-		return
-	}
-
-	config := &plugins.BeanstalkMetadata{}
-	err = json.Unmarshal(rawConfig, config)
-	if err != nil {
-		log.Errorf("Unable to unmarshal Elastic Beanstalk configuration file %s: %v", ebConfigPath, err)
-		return
-	}
-
-	pluginmd.BeanstalkMetadata = config
-	pluginmd.Origin = Origin
+	beanstalk.Init()
 }

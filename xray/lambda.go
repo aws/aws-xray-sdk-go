@@ -10,11 +10,12 @@ package xray
 
 import (
 	"context"
-	"github.com/aws/aws-xray-sdk-go/header"
-	log "github.com/cihub/seelog"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/aws/aws-xray-sdk-go/header"
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 )
 
 // LambdaTraceHeaderKey is key to get trace header from context.
@@ -53,11 +54,11 @@ func initLambda() {
 		now := time.Now()
 		filePath, err := createFile(SDKInitializedFileFolder, SDKInitializedFileName)
 		if err != nil {
-			log.Tracef("unable to create file at %s. failed to signal SDK initialization with error: %v", filePath, err)
+			logger.Debugf("unable to create file at %s. failed to signal SDK initialization with error: %v", filePath, err)
 		} else {
 			e := os.Chtimes(filePath, now, now)
 			if e != nil {
-				log.Tracef("unable to write to %s. failed to signal SDK initialization with error: %v", filePath, e)
+				logger.Debugf("unable to write to %s. failed to signal SDK initialization with error: %v", filePath, e)
 			}
 		}
 	}
@@ -75,14 +76,13 @@ func createFile(dir string, name string) (string, error) {
 		e := os.MkdirAll(dir, os.ModePerm)
 		if e != nil {
 			return filePath, e
-		} else {
-			var file, err = os.Create(filePath)
-			if err != nil {
-				return filePath, err
-			}
-			file.Close()
-			return filePath, nil
 		}
+		var file, err = os.Create(filePath)
+		if err != nil {
+			return filePath, err
+		}
+		file.Close()
+		return filePath, nil
 	} else if err != nil {
 		return filePath, err
 	}

@@ -66,7 +66,7 @@ func TestExpiredReservoirBernoulliSample(t *testing.T) {
 		F64: 0.05,
 	}
 
-	sr := &samplingRule{
+	p := &Properties{
 		Rate: 0.06,
 	}
 
@@ -82,11 +82,11 @@ func TestExpiredReservoirBernoulliSample(t *testing.T) {
 	}
 
 	csr := &CentralizedRule{
-		ruleName:     "r1",
-		reservoir:    cr,
-		samplingRule: sr,
-		clock:        clock,
-		rand:         rand,
+		ruleName:   "r1",
+		reservoir:  cr,
+		Properties: p,
+		clock:      clock,
+		rand:       rand,
 	}
 
 	sd := csr.Sample()
@@ -145,7 +145,7 @@ func TestBernoulliSamplePositve(t *testing.T) {
 		F64: 0.05,
 	}
 
-	sr := &samplingRule{
+	p := &Properties{
 		Rate: 0.06,
 	}
 
@@ -156,11 +156,11 @@ func TestBernoulliSamplePositve(t *testing.T) {
 	}
 
 	csr := &CentralizedRule{
-		ruleName:     "r1",
-		reservoir:    cr,
-		samplingRule: sr,
-		rand:         rand,
-		clock:        clock,
+		ruleName:   "r1",
+		reservoir:  cr,
+		Properties: p,
+		rand:       rand,
+		clock:      clock,
 	}
 
 	sd := csr.Sample()
@@ -188,7 +188,7 @@ func TestBernoulliSampleNegative(t *testing.T) {
 		F64: 0.07,
 	}
 
-	sr := &samplingRule{
+	p := &Properties{
 		Rate: 0.06,
 	}
 
@@ -199,11 +199,11 @@ func TestBernoulliSampleNegative(t *testing.T) {
 	}
 
 	csr := &CentralizedRule{
-		ruleName:     "r1",
-		reservoir:    cr,
-		samplingRule: sr,
-		rand:         rand,
-		clock:        clock,
+		ruleName:   "r1",
+		reservoir:  cr,
+		Properties: p,
+		rand:       rand,
+		clock:      clock,
 	}
 
 	sd := csr.Sample()
@@ -261,7 +261,7 @@ func TestLocalBernoulliSample(t *testing.T) {
 	}
 
 	// 6% sampling rate
-	sr := &samplingRule{
+	p := &Properties{
 		Rate: 0.06,
 	}
 
@@ -271,9 +271,9 @@ func TestLocalBernoulliSample(t *testing.T) {
 	}
 
 	lsr := &Rule{
-		reservoir:    lr,
-		rand:         rand,
-		samplingRule: sr,
+		reservoir:  lr,
+		rand:       rand,
+		Properties: p,
 	}
 
 	sd := lsr.Sample()

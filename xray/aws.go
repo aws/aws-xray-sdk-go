@@ -21,13 +21,14 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/resources"
-	log "github.com/cihub/seelog"
 )
 
 const RequestIDKey string = "request_id"
 const ExtendedRequestIDKey string = "id_2"
 const S3ExtendedRequestIDHeaderKey string = "x-amz-id-2"
+const TraceIDHeaderKey = "x-amzn-trace-id"
 
 type jsonMap struct {
 	object interface{}
@@ -63,7 +64,7 @@ var xRayBeforeValidateHandler = request.NamedHandler{
 		marshalctx, _ := BeginSubsegment(ctx, "marshal")
 
 		r.HTTPRequest = r.HTTPRequest.WithContext(marshalctx)
-		r.HTTPRequest.Header.Set("x-amzn-trace-id", opseg.DownstreamHeader().String())
+		r.HTTPRequest.Header.Set(TraceIDHeaderKey, opseg.DownstreamHeader().String())
 	},
 }
 
@@ -225,7 +226,7 @@ func parseWhitelistJSON(filename string) []byte {
 	if filename != "" {
 		readBytes, err := ioutil.ReadFile(filename)
 		if err != nil {
-			log.Errorf("Error occurred while reading customized AWS whitelist JSON file. %v \nReverting to default AWS whitelist JSON file.", err)
+			logger.Errorf("Error occurred while reading customized AWS whitelist JSON file. %v \nReverting to default AWS whitelist JSON file.", err)
 		} else {
 			return readBytes
 		}
@@ -244,7 +245,7 @@ func keyValue(r interface{}, tag string) interface{} {
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
-		log.Errorf("keyValue only accepts structs; got %T", v)
+		logger.Errorf("keyValue only accepts structs; got %T", v)
 	}
 	typ := v.Type()
 	for i := 1; i < v.NumField(); i++ {
@@ -327,7 +328,7 @@ func extractParameters(whitelistKey string, rType int, r *request.Request, white
 	if params != nil {
 		children, err := params.children()
 		if err != nil {
-			log.Errorf("failed to get values for aws attribute: %v", err)
+			logger.Errorf("failed to get values for aws attribute: %v", err)
 			return
 		}
 		for _, child := range children {
@@ -351,7 +352,7 @@ func extractDescriptors(whitelistKey string, rType int, r *request.Request, whit
 	if responseDtr != nil {
 		items, err := responseDtr.childrenMap()
 		if err != nil {
-			log.Errorf("failed to get values for aws attribute: %v", err)
+			logger.Errorf("failed to get values for aws attribute: %v", err)
 			return
 		}
 		for k := range items {
@@ -374,7 +375,7 @@ func descriptorType(descriptorMap map[string]interface{}) string {
 	} else if descriptorMap["value"] != nil {
 		typeValue = "value"
 	} else {
-		log.Error("Missing keys in request / response descriptors in AWS whitelist JSON file.")
+		logger.Error("Missing keys in request / response descriptors in AWS whitelist JSON file.")
 	}
 	return typeValue
 }

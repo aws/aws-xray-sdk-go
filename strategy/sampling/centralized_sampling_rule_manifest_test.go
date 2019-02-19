@@ -69,7 +69,7 @@ func TestCreateUserRule(t *testing.T) {
 	clock := &utils.DefaultClock{}
 	rand := &utils.DefaultRand{}
 
-	sr := &samplingRule{
+	p := &Properties{
 		ServiceName: serviceName,
 		HTTPMethod:  httpMethod,
 		URLPath:     urlPath,
@@ -86,14 +86,14 @@ func TestCreateUserRule(t *testing.T) {
 	}
 
 	exp := &CentralizedRule{
-		reservoir:    cr,
-		ruleName:     ruleName,
-		priority:     priority,
-		samplingRule: sr,
-		clock:        clock,
-		rand:         rand,
-		serviceType:  serviceTye,
-		resourceARN:  resARN,
+		reservoir:   cr,
+		ruleName:    ruleName,
+		priority:    priority,
+		Properties:  p,
+		clock:       clock,
+		rand:        rand,
+		serviceType: serviceTye,
+		resourceARN: resARN,
 	}
 
 	// Add to manifest, index, and sort
@@ -131,7 +131,7 @@ func TestCreateDefaultRule(t *testing.T) {
 	clock := &utils.DefaultClock{}
 	rand := &utils.DefaultRand{}
 
-	sr := &samplingRule{
+	p := &Properties{
 		FixedTarget: reservoirSize,
 		Rate:        fixedRate,
 	}
@@ -144,11 +144,11 @@ func TestCreateDefaultRule(t *testing.T) {
 	}
 
 	exp := &CentralizedRule{
-		reservoir:    cr,
-		ruleName:     ruleName,
-		samplingRule: sr,
-		clock:        clock,
-		rand:         rand,
+		reservoir:  cr,
+		ruleName:   ruleName,
+		Properties: p,
+		clock:      clock,
+		rand:       rand,
 	}
 
 	// Add to manifest
@@ -166,7 +166,7 @@ func TestUpdateDefaultRule(t *testing.T) {
 	// Original default sampling rule
 	r := &CentralizedRule{
 		ruleName: "Default",
-		samplingRule: &samplingRule{
+		Properties: &Properties{
 			FixedTarget: 10,
 			Rate:        0.05,
 		},
@@ -194,7 +194,7 @@ func TestUpdateDefaultRule(t *testing.T) {
 	}
 
 	// Expected centralized sampling rule
-	sr := &samplingRule{
+	p := &Properties{
 		FixedTarget: reservoirSize,
 		Rate:        fixedRate,
 	}
@@ -206,11 +206,11 @@ func TestUpdateDefaultRule(t *testing.T) {
 	}
 
 	exp := &CentralizedRule{
-		reservoir:    cr,
-		ruleName:     ruleName,
-		samplingRule: sr,
-		clock:        clock,
-		rand:         rand,
+		reservoir:  cr,
+		ruleName:   ruleName,
+		Properties: p,
+		clock:      clock,
+		rand:       rand,
 	}
 
 	// Update default rule in manifest
@@ -292,7 +292,7 @@ func TestUpdateUserRule(t *testing.T) {
 	r1 := &CentralizedRule{
 		ruleName: "r1",
 		priority: 5,
-		samplingRule: &samplingRule{
+		Properties: &Properties{
 			ServiceName: "*.foo.com",
 			HTTPMethod:  "GET",
 			URLPath:     "/resource/*",
@@ -344,7 +344,7 @@ func TestUpdateUserRule(t *testing.T) {
 	}
 
 	// Expected updated centralized sampling rule
-	sr := &samplingRule{
+	p := &Properties{
 		ServiceName: serviceName,
 		HTTPMethod:  httpMethod,
 		URLPath:     urlPath,
@@ -360,13 +360,13 @@ func TestUpdateUserRule(t *testing.T) {
 	}
 
 	exp := &CentralizedRule{
-		reservoir:    cr,
-		ruleName:     ruleName,
-		priority:     priority,
-		samplingRule: sr,
-		resourceARN:  resARN,
-		serviceType:  serviceTye,
-		attributes:   attributes,
+		reservoir:   cr,
+		ruleName:    ruleName,
+		priority:    priority,
+		Properties:  p,
+		resourceARN: resARN,
+		serviceType: serviceTye,
+		attributes:  attributes,
 	}
 
 	// Assert that rule has been updated

@@ -8,34 +8,10 @@
 
 package ec2
 
-import (
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-xray-sdk-go/internal/plugins"
-	log "github.com/cihub/seelog"
-)
+import "github.com/aws/aws-xray-sdk-go/awsplugins/ec2"
 
 const Origin = "AWS::EC2::Instance"
 
 func init() {
-	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.EC2Metadata == nil {
-		addPluginMetadata(plugins.InstancePluginMetadata)
-	}
-}
-
-func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
-	session, e := session.NewSession()
-	if e != nil {
-		log.Errorf("Unable to create a new ec2 session: %v", e)
-		return
-	}
-	client := ec2metadata.New(session)
-	doc, err := client.GetInstanceIdentityDocument()
-	if err != nil {
-		log.Errorf("Unable to read EC2 instance metadata: %v", err)
-		return
-	}
-
-	pluginmd.EC2Metadata = &plugins.EC2Metadata{InstanceID: doc.InstanceID, AvailabilityZone: doc.AvailabilityZone}
-	pluginmd.Origin = Origin
+	ec2.Init()
 }

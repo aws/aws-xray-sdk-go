@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
-	log "github.com/cihub/seelog"
 )
 
 // NewTraceID generates a string format of random trace ID.
@@ -82,7 +82,7 @@ func basicSegment(name string, h *header.Header) *Segment {
 		name = name[:200]
 	}
 	seg := &Segment{parent: nil}
-	log.Tracef("Beginning segment named %s", name)
+	logger.Debugf("Beginning segment named %s", name)
 	seg.ParentSegment = seg
 
 	seg.Lock()
@@ -114,6 +114,7 @@ func (seg *Segment) assignConfiguration(cfg *Config) {
 		seg.GetConfiguration().ExceptionFormattingStrategy = globalCfg.exceptionFormattingStrategy
 		seg.GetConfiguration().SamplingStrategy = globalCfg.samplingStrategy
 		seg.GetConfiguration().StreamingStrategy = globalCfg.streamingStrategy
+		seg.GetConfiguration().Emitter = globalCfg.emitter
 		seg.GetConfiguration().ServiceVersion = globalCfg.serviceVersion
 	} else {
 		if cfg.ContextMissingStrategy != nil {
@@ -138,6 +139,12 @@ func (seg *Segment) assignConfiguration(cfg *Config) {
 			seg.GetConfiguration().StreamingStrategy = cfg.StreamingStrategy
 		} else {
 			seg.GetConfiguration().StreamingStrategy = globalCfg.streamingStrategy
+		}
+
+		if cfg.Emitter != nil {
+			seg.GetConfiguration().Emitter = cfg.Emitter
+		} else {
+			seg.GetConfiguration().Emitter = globalCfg.emitter
 		}
 
 		if cfg.ServiceVersion != "" {
@@ -174,7 +181,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	}
 
 	seg := &Segment{parent: parent}
-	log.Tracef("Beginning subsegment named %s", name)
+	logger.Debugf("Beginning subsegment named %s", name)
 
 	seg.Lock()
 	defer seg.Unlock()
@@ -213,9 +220,9 @@ func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (c
 	seg.Sampled = h.SamplingDecision == header.Sampled
 	switch h.SamplingDecision {
 	case header.Sampled:
-		log.Trace("Incoming header decided: Sampled=true")
+		logger.Debug("Incoming header decided: Sampled=true")
 	case header.NotSampled:
-		log.Trace("Incoming header decided: Sampled=false")
+		logger.Debug("Incoming header decided: Sampled=false")
 	}
 
 	seg.IncomingHeader = h
@@ -229,9 +236,9 @@ func (seg *Segment) Close(err error) {
 	seg.Lock()
 	defer seg.Unlock()
 	if seg.parent != nil {
-		log.Tracef("Closing subsegment named %s", seg.Name)
+		logger.Debugf("Closing subsegment named %s", seg.Name)
 	} else {
-		log.Tracef("Closing segment named %s", seg.Name)
+		logger.Debugf("Closing segment named %s", seg.Name)
 	}
 	seg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = false
@@ -248,12 +255,12 @@ func (subseg *Segment) CloseAndStream(err error) {
 	subseg.Lock()
 
 	if subseg.parent != nil {
-		log.Tracef("Ending subsegment named: %s", subseg.Name)
+		logger.Debugf("Ending subsegment named: %s", subseg.Name)
 		subseg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
 		subseg.InProgress = false
 		subseg.Emitted = true
 		if subseg.parent.RemoveSubsegment(subseg) {
-			log.Tracef("Removing subsegment named: %s", subseg.Name)
+			logger.Debugf("Removing subsegment named: %s", subseg.Name)
 		}
 	}
 
@@ -264,7 +271,7 @@ func (subseg *Segment) CloseAndStream(err error) {
 	subseg.beforeEmitSubsegment(subseg.parent)
 	subseg.Unlock()
 
-	Emit(subseg)
+	subseg.emit()
 }
 
 // RemoveSubsegment removes a subsegment child from a segment or subsegment.
@@ -286,6 +293,10 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 	return false
 }
 
+func (seg *Segment) emit() {
+	seg.ParentSegment.GetConfiguration().Emitter.Emit(seg)
+}
+
 func (seg *Segment) handleContextDone() {
 	seg.Lock()
 	defer seg.Unlock()
@@ -300,12 +311,12 @@ func (seg *Segment) flush() {
 	if (seg.openSegments == 0 && seg.EndTime > 0) || seg.ContextDone {
 		if seg.parent == nil {
 			seg.Emitted = true
-			Emit(seg)
+			seg.emit()
 		} else if seg.parent != nil && seg.parent.Facade {
 			seg.Emitted = true
 			seg.beforeEmitSubsegment(seg.parent)
-			log.Tracef("emit lambda subsegment named: %v", seg.Name)
-			Emit(seg)
+			logger.Debugf("emit lambda subsegment named: %v", seg.Name)
+			seg.emit()
 		} else {
 			seg.parent.safeFlush()
 		}

@@ -20,7 +20,7 @@ If you also want to install SDK's testing dependencies. They can be installed us
 go get -u -t github.com/aws/aws-xray-sdk-go/...
 ```
 
-You may also use [Glide](https://github.com/Masterminds/glide) to manage dependencies by using 
+You may also use [Glide](https://github.com/Masterminds/glide) to manage dependencies by using
 
 ```
 glide install
@@ -175,11 +175,59 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
     if err != nil {
         return name, err
     }
-   
+
     return fmt.Sprintf("Hello %s!", name), nil
 }
 ```
 
+**Plugins**
+
+The plugins under "github.com/aws/aws-xray-sdk-go/plugins/" are activated at package load time. This can be convenient in some cases, but often you want to load them conditionally at runtime (e.g. don't load in tests). For this purpose, there is a new set of plugins under "github.com/aws/aws-xray-sdk-go/awsplugins/" that have an explicit `Init()` function you must call to load the plugin:
+
+```go
+import (
+  "os"
+
+  "github.com/aws/aws-xray-sdk-go/awsplugins/ec2"
+  "github.com/aws/aws-xray-sdk-go/xray"
+)
+
+func init() {
+  // conditionally load plugin
+  if os.Getenv("ENVIRONMENT") == "production" {
+    ec2.Init()
+  }
+
+  xray.Configure(xray.Config{
+    ServiceVersion:   "1.2.3",
+  })
+}
+```
+
+**Logger**
+
+xray uses an interface for its logger:
+
+```go
+type Logger interface {
+  Log(level LogLevel, msg fmt.Stringer)
+}
+
+const (
+  LogLevelDebug LogLevel = iota + 1
+  LogLevelInfo
+  LogLevelWarn
+  LogLevelError
+)
+```
+
+The default logger logs to stdout at "info" and above. To change the logger, call `xray.SetLogger(myLogger)`. There is a default logger implementation that writes to an `io.Writer` from a specified minimum log level. For example, to log to stderr at "error" and above:
+
+```go
+xray.SetLogger(xraylog.NewDefaultLogger(os.Stderr, xraylog.LogLevelError))
+```
+
+Note that the `xray.Config{}` fields `LogLevel` and `LogFormat` are deprecated and no longer have any effect.
 
 ## License
 

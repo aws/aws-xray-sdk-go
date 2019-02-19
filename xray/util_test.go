@@ -91,7 +91,7 @@ type XRayHeaders struct {
 }
 
 func ParseHeadersForTest(h http.Header) XRayHeaders {
-	traceHeader := header.FromString(h.Get("x-amzn-trace-id"))
+	traceHeader := header.FromString(h.Get(TraceIDHeaderKey))
 
 	return XRayHeaders{
 		RootTraceID: traceHeader.TraceID,

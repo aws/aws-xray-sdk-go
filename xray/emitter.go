@@ -8,99 +8,10 @@
 
 package xray
 
-import (
-	"bytes"
-	"encoding/json"
-	"net"
-	"sync"
+import "net"
 
-	log "github.com/cihub/seelog"
-)
-
-// Header is added before sending segments to daemon.
-var Header = []byte(`{"format": "json", "version": 1}` + "\n")
-
-type emitter struct {
-	sync.Mutex
-	conn *net.UDPConn
-}
-
-var e = &emitter{}
-
-func init() {
-	initLambda()
-	refreshEmitter()
-}
-
-func refreshEmitter() {
-	e.Lock()
-	e.conn, _ = net.DialUDP("udp", nil, globalCfg.DaemonAddr())
-	log.Infof("Emitter using address from global config: %v", globalCfg.DaemonAddr())
-	e.Unlock()
-}
-
-func refreshEmitterWithAddress(raddr *net.UDPAddr) {
-	e.Lock()
-	e.conn, _ = net.DialUDP("udp", nil, raddr)
-	log.Infof("Emitter using address: %v", raddr)
-	e.Unlock()
-}
-
-// Emit segment or subsegment if root segment is sampled.
-func Emit(seg *Segment) {
-	if seg == nil || !seg.ParentSegment.Sampled {
-		return
-	}
-
-	var logLevel string
-	if seg.Configuration != nil && seg.Configuration.LogLevel == "trace" {
-		logLevel = "trace"
-	} else if globalCfg.logLevel <= log.TraceLvl {
-		logLevel = "trace"
-	}
-
-	for _, p := range packSegments(seg, nil) {
-		if logLevel == "trace" {
-			b := &bytes.Buffer{}
-			json.Indent(b, p, "", " ")
-			log.Trace(b.String())
-		}
-		e.Lock()
-		_, err := e.conn.Write(append(Header, p...))
-		if err != nil {
-			log.Error(err)
-		}
-		e.Unlock()
-	}
-}
-
-func packSegments(seg *Segment, outSegments [][]byte) [][]byte {
-	trimSubsegment := func(s *Segment) []byte {
-		ss := globalCfg.StreamingStrategy()
-		if seg.ParentSegment.Configuration != nil && seg.ParentSegment.Configuration.StreamingStrategy != nil {
-			ss = seg.ParentSegment.Configuration.StreamingStrategy
-		}
-		for ss.RequiresStreaming(s) {
-			if len(s.rawSubsegments) == 0 {
-				break
-			}
-			cb := ss.StreamCompletedSubsegments(s)
-			outSegments = append(outSegments, cb...)
-		}
-		b, _ := json.Marshal(s)
-		return b
-	}
-
-	for _, s := range seg.rawSubsegments {
-		outSegments = packSegments(s, outSegments)
-		if b := trimSubsegment(s); b != nil {
-			seg.Subsegments = append(seg.Subsegments, b)
-		}
-	}
-	if seg.parent == nil {
-		if b := trimSubsegment(seg); b != nil {
-			outSegments = append(outSegments, b)
-		}
-	}
-	return outSegments
+// Emitter provides an interface for implementing emitting trace entities.
+type Emitter interface {
+	Emit(seg *Segment)
+	RefreshEmitterWithAddress(raddr *net.UDPAddr)
 }

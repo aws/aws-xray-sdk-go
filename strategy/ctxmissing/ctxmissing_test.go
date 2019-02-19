@@ -9,30 +9,14 @@
 package ctxmissing
 
 import (
-	log "github.com/cihub/seelog"
-	"github.com/stretchr/testify/assert"
+	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
+	"github.com/aws/aws-xray-sdk-go/xraylog"
+	"github.com/stretchr/testify/assert"
 )
-
-type LogWriter struct {
-	Logs []string
-}
-
-func (sw *LogWriter) Write(p []byte) (n int, err error) {
-	sw.Logs = append(sw.Logs, string(p))
-	return len(p), nil
-}
-
-func LogSetup() *LogWriter {
-	writer := &LogWriter{}
-	logger, err := log.LoggerFromWriterWithMinLevelAndFormat(writer, log.TraceLvl, "%Ns [%Level] %Msg")
-	if err != nil {
-		panic(err)
-	}
-	log.ReplaceLogger(logger)
-	return writer
-}
 
 func TestDefaultRuntimeErrorStrategy(t *testing.T) {
 	defer func() {
@@ -45,8 +29,13 @@ func TestDefaultRuntimeErrorStrategy(t *testing.T) {
 }
 
 func TestDefaultLogErrorStrategy(t *testing.T) {
-	logger := LogSetup()
+	oldLogger := logger.Logger
+	defer func() { logger.Logger = oldLogger }()
+
+	var buf bytes.Buffer
+	logger.Logger = xraylog.NewDefaultLogger(&buf, xraylog.LogLevelDebug)
+
 	l := NewDefaultLogErrorStrategy()
 	l.ContextMissing("TestLogError")
-	assert.True(t, strings.Contains(logger.Logs[0], "Suppressing AWS X-Ray context missing panic: TestLogError"))
+	assert.True(t, strings.Contains(buf.String(), "Suppressing AWS X-Ray context missing panic: TestLogError"))
 }
