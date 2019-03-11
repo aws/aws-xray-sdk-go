@@ -9,9 +9,7 @@ go:
   - "1.8"
   - "1.9"
   - "1.10"
-  - "1.11"
-  - "tip"
-    
+  - "1.11"    
 
 install:
   - go get -v github.com/Masterminds/glide
