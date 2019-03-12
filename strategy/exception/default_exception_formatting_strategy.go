@@ -102,14 +102,13 @@ func (dEFS *DefaultFormattingStrategy) Errorf(formatString string, args ...inter
 func (dEFS *DefaultFormattingStrategy) Panic(message string) *XRayError {
 	e := dEFS.Error(message)
 	e.Type = "panic"
-	e.Stack = e.Stack[4:]
+	e.Stack = filterPanicStack(e.Stack)
 	return e
 }
 
 // Panicf formats according to a format specifier and returns value of XRayError.
 func (dEFS *DefaultFormattingStrategy) Panicf(formatString string, args ...interface{}) *XRayError {
 	e := dEFS.Panic(fmt.Sprintf(formatString, args...))
-	e.Stack = e.Stack[1:]
 	return e
 }
 
@@ -166,6 +165,26 @@ func newExceptionID() string {
 		panic(err)
 	}
 	return fmt.Sprintf("%02x", r)
+}
+
+func filterPanicStack(stack []uintptr) []uintptr {
+	// filter out frames through the first runtime/panic.go frame
+	frames := runtime.CallersFrames(stack)
+
+	loc := 0
+	index := 0
+	d := true
+	for frame, more := frames.Next(); d; frame, more = frames.Next() {
+		loc++
+		path, _, label := parseFrame(frame)
+		if label == "gopanic" && path == "runtime/panic.go" {
+			index = loc
+			break
+		}
+		d = more
+	}
+
+	return stack[index:]
 }
 
 func convertStack(s []uintptr) []Stack {
