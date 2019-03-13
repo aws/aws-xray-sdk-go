@@ -1,14 +1,8 @@
 hash: 7982445a3cefebc316723d41344d9253e8391bb69c64dbd8d4a1b7552961cb50
-updated: 2018-09-25T11:50:35.522709234-07:00
+updated: 2019-03-06T16:52:51.338897-08:00
 imports:
-- name: github.com/aws/aws-lambda-go
-  version: 0936c0677343deb60929d172f45e3707b33c7881
-  subpackages:
-  - lambda
-  - lambda/messages
-  - lambdacontext
 - name: github.com/aws/aws-sdk-go
-  version: 0d5157217e4c72d0fc7fabad8e0501d3d5cb768d
+  version: 6ff66bb2b8ac90ac25b1dbbf9806f09651630789
   subpackages:
   - aws
   - aws/awserr
@@ -19,6 +13,7 @@ imports:
   - aws/credentials
   - aws/credentials/ec2rolecreds
   - aws/credentials/endpointcreds
+  - aws/credentials/processcreds
   - aws/credentials/stscreds
   - aws/csm
   - aws/defaults
@@ -27,6 +22,7 @@ imports:
   - aws/request
   - aws/session
   - aws/signer/v4
+  - internal/ini
   - internal/sdkio
   - internal/sdkrand
   - internal/sdkuri
@@ -39,19 +35,16 @@ imports:
   - private/protocol/rest
   - private/protocol/restjson
   - private/protocol/xml/xmlutil
-  - service/dynamodb
   - service/sts
   - service/xray
 - name: github.com/cihub/seelog
   version: d2c6e5aa9fbfdd1c624e140287063c7730654115
 - name: github.com/DATA-DOG/go-sqlmock
   version: b983233bc0bbea4dc6e8ec8c8c923d935765ffec
-- name: github.com/go-ini/ini
-  version: c787282c39ac1fc618827141a1f762240def08a3
 - name: github.com/jmespath/go-jmespath
-  version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
+  version: c2b33e8439af944379acbdd9c3a5fe0bc44bd8a5
 - name: github.com/pkg/errors
-  version: 645ef00459ed84a119197bfb8d8205042c6df63d
+  version: ba968bfe8b2f7e042a574c888954fccecfa385b4
 - name: github.com/stretchr/testify
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
@@ -67,3 +60,17 @@ testImports:
   version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
   subpackages:
   - difflib
+- name: golang.org/x/net
+  version: 16b79f2e4e95ea23b2bf9903c9809ff7b013ce85
+  subpackages:
+  - http/httpguts
+  - http2
+  - http2/hpack
+  - idna
+- name: golang.org/x/text
+  version: 5d731a35f4867878fc89f7744f7b6debb3beded6
+  subpackages:
+  - secure/bidirule
+  - transform
+  - unicode/bidi
+  - unicode/norm
