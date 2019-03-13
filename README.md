@@ -9,9 +9,14 @@
 The AWS X-Ray SDK for Go is compatible with Go 1.7 and above.
 
 Install the SDK using the following command (The SDK's non-testing dependencies will be installed):
+Use `go get` to retrieve the SDK to add it to your `GOPATH` workspace, or your project's Go module dependencies (Go 1.11 and up):
+```
+go get github.com/aws/aws-xray-sdk-go
+```
+To update the SDK, use `go get -u` to retrieve the latest version of the SDK.
 
 ```
-go get -u github.com/aws/aws-xray-sdk-go/...
+go get -u github.com/aws/aws-xray-sdk-go
 ```
 
 If you also want to install SDK's testing dependencies. They can be installed using:
@@ -25,6 +30,21 @@ You may also use [Glide](https://github.com/Masterminds/glide) to manage depende
 ```
 glide install
 ```
+
+### Dep
+If you are using Go 1.9 and above, you can also use [Dep](https://github.com/golang/dep) to add the SDK to your application's dependencies.
+Using Dep will help your application stay pinned to a specific version of the SDK.
+
+To add the SDK to your application using Dep, run:
+
+```
+dep ensure -add github.com/aws/aws-xray-sdk-go
+```
+
+### Go Modules
+If you are using Go modules, your `go get` will default to the latest tagged release version of the SDK.
+To get a specific release version of the SDK use `@<tag>` in your `go get` command.
+
 
 ## Getting Help
 

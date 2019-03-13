@@ -13,16 +13,50 @@ go:
   - "1.12"
   - "tip"
 
+notifications:
+  email:
+    recipients:
+      - aws-xray-peryton@amazon.com
+    on_success: never
+    on_failure: always
+
+env:
+  - DEP_VERSION="0.5.1" GO111MODULE="on"
+
+before_install:
+  - echo $TRAVIS_GO_VERSION
+  - if [ $TRAVIS_GO_VERSION == "1.7" ] ||
+    [ $TRAVIS_GO_VERSION == "1.8" ]; then
+      export DEP_MANAGEMENT_TOOL="GLIDE";
+    elif [ $TRAVIS_GO_VERSION == "1.9" ] ||
+    [ $TRAVIS_GO_VERSION == "1.10" ]; then
+      export DEP_MANAGEMENT_TOOL="DEP";
+    else
+      export DEP_MANAGEMENT_TOOL="MODULE";
+    fi
+  - echo $DEP_MANAGEMENT_TOOL
+  - if [ $DEP_MANAGEMENT_TOOL == "GLIDE" ]; then
+      go get -v github.com/Masterminds/glide;
+      cd $GOPATH/src/github.com/Masterminds/glide && git checkout 67790b3dbede72cfdc54aa53be4706322c9499e0 && go install && cd -;
+    elif [ $DEP_MANAGEMENT_TOOL == "DEP" ]; then
+      curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o $GOPATH/bin/dep;
+      chmod +x $GOPATH/bin/dep;
+    fi
+
 install:
-  - go get -v github.com/Masterminds/glide
-  - cd $GOPATH/src/github.com/Masterminds/glide && git checkout 67790b3dbede72cfdc54aa53be4706322c9499e0 && go install && cd -
-  - glide install
+  - if [ $DEP_MANAGEMENT_TOOL == "GLIDE" ]; then
+      glide install;
+    elif [ $DEP_MANAGEMENT_TOOL == "DEP" ]; then
+      dep ensure;
+    else
+      go get;
+    fi
 
 script:
   - make test
 
 matrix:
   allow_failures:
+    - go: tip
     - go: "1.7"
     - go: "1.8"
-    - go: tip
