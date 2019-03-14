@@ -6,7 +6,7 @@
 
 ## Installing
 
-The AWS X-Ray SDK for Go is compatible with Go 1.7 and above.
+The AWS X-Ray SDK for Go is compatible with Go 1.9 and above.
 
 Install the SDK using the following command (The SDK's non-testing dependencies will be installed):
 Use `go get` to retrieve the SDK to add it to your `GOPATH` workspace, or your project's Go module dependencies (Go 1.11 and up):
