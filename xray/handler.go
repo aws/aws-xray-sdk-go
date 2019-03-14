@@ -158,20 +158,21 @@ func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Requ
 	w.Header().Set(TraceIDHeaderKey, respHeader.String())
 	seg.Unlock()
 
-	resp := &responseCapturer{w, 200, 0}
+	capturer := &responseCapturer{w, 200, 0}
+	resp := capturer.wrappedResponseWriter()
 	h.ServeHTTP(resp, r)
 
 	seg.Lock()
-	seg.GetHTTP().GetResponse().Status = resp.status
-	seg.GetHTTP().GetResponse().ContentLength, _ = strconv.Atoi(resp.Header().Get("Content-Length"))
+	seg.GetHTTP().GetResponse().Status = capturer.status
+	seg.GetHTTP().GetResponse().ContentLength, _ = strconv.Atoi(capturer.Header().Get("Content-Length"))
 
-	if resp.status >= 400 && resp.status < 500 {
+	if capturer.status >= 400 && capturer.status < 500 {
 		seg.Error = true
 	}
-	if resp.status == 429 {
+	if capturer.status == 429 {
 		seg.Throttle = true
 	}
-	if resp.status >= 500 && resp.status < 600 {
+	if capturer.status >= 500 && capturer.status < 600 {
 		seg.Fault = true
 	}
 	seg.Unlock()
@@ -188,22 +189,6 @@ func clientIP(r *http.Request) (string, bool) {
 		return r.RemoteAddr, false
 	}
 	return ip, false
-}
-
-type responseCapturer struct {
-	http.ResponseWriter
-	status int
-	length int
-}
-
-func (w *responseCapturer) WriteHeader(status int) {
-	w.status = status
-	w.ResponseWriter.WriteHeader(status)
-}
-
-func (w *responseCapturer) Write(data []byte) (int, error) {
-	w.length += len(data)
-	return w.ResponseWriter.Write(data)
 }
 
 func btoi(b bool) int {
