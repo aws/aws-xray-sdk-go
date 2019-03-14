@@ -9,15 +9,17 @@
 package xray
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"context"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewFixedSegmentName(t *testing.T) {
@@ -154,4 +156,31 @@ func TestNonRootHandler(t *testing.T) {
 	assert.Equal(t, "fakeid", s.TraceID)
 	assert.Equal(t, "reqid", s.ParentID)
 	assert.Equal(t, true, s.Sampled)
+}
+
+func TestXRayHandlerPreservesOptionalInterfaces(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, isCloseNotifier := w.(http.CloseNotifier)
+		_, isFlusher := w.(http.Flusher)
+		_, isHijacker := w.(http.Hijacker)
+		_, isPusher := w.(http.Pusher)
+		_, isReaderFrom := w.(io.ReaderFrom)
+
+		assert.True(t, isCloseNotifier)
+		assert.True(t, isFlusher)
+		assert.True(t, isHijacker)
+		assert.True(t, isReaderFrom)
+		// Pusher is only available when using http/2, so should not be present
+		assert.False(t, isPusher)
+
+		w.WriteHeader(202)
+	})
+
+	ts := httptest.NewServer(Handler(NewFixedSegmentNamer("test"), handler))
+	defer ts.Close()
+
+	req := httptest.NewRequest("GET", ts.URL, strings.NewReader(""))
+
+	_, err := http.DefaultTransport.RoundTrip(req)
+	assert.NoError(t, err)
 }
