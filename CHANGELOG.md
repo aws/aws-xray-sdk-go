@@ -1,3 +1,13 @@
+Release v1.0.0-rc.11 (2019-03-15)
+================================
+### SDK Breaking Changes
+* Dropped support for go versions 1.7 and 1.8. Users will need to use go version 1.9 or higher. [PR #91](https://github.com/aws/aws-xray-sdk-go/pull/91)
+
+### SDK Enhancements
+* Adds support for go [dep](https://github.com/golang/dep) and go modules. [PR #90](https://github.com/aws/aws-xray-sdk-go/pull/90)
+* Fixes a bug where optional interfaces on `http.ResponseWriter` (e.g. `http.Flusher`, `http.CloseNotifier`, etc.)
+were not visible due to how the xray Handler wrapped the `http.ResponseWriter`. [PR #91](https://github.com/aws/aws-xray-sdk-go/pull/91)
+
 Release v1.0.0-rc.10 (2019-02-19)
 ================================
 ### SDK Breaking Changes
