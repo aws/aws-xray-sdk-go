@@ -26,7 +26,7 @@ type proxy struct {
 }
 
 // NewProxy returns a Proxy
-func NewProxy(d *daemoncfg.DaemonEndpoints) (svcProxy, error) {
+func newProxy(d *daemoncfg.DaemonEndpoints) (svcProxy, error) {
 
 	if d == nil {
 		d = daemoncfg.GetDaemonEndpoints()
