@@ -189,7 +189,7 @@ func (ss *CentralizedStrategy) start() {
 
 	if !ss.pollerStart {
 		var er error
-		ss.proxy, er = NewProxy(ss.daemonEndpoints)
+		ss.proxy, er = newProxy(ss.daemonEndpoints)
 		if er != nil {
 			panic(er)
 		}
