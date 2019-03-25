@@ -82,6 +82,12 @@ func (db *DB) QueryRow(ctx context.Context, query string, args ...interface{}) *
 	return res
 }
 
+// Prepare creates a prepared statement for later queries or executions.
+func (tx *Tx) Prepare(ctx context.Context, query string) (*Stmt, error) {
+	stmt, err := tx.tx.PrepareContext(ctx, query)
+	return &Stmt{tx.db, stmt, query}, err
+}
+
 // Exec captures executing a query that doesn't return rows and adds
 // corresponding information into subsegment.
 func (tx *Tx) Exec(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
