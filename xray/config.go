@@ -47,7 +47,14 @@ var globalCfg = newGlobalConfig()
 func newGlobalConfig() *globalConfig {
 	ret := &globalConfig{}
 
-	ret.daemonAddr = daemoncfg.GetDaemonEndpoints().UDPAddr
+	daemonEndpoint, err := daemoncfg.GetDaemonEndpointsFromEnv()
+	if err != nil {
+		panic(err)
+	}
+	if daemonEndpoint == nil {
+		daemonEndpoint = daemoncfg.GetDefaultDaemonEndpoints()
+	}
+	ret.daemonAddr = daemonEndpoint.UDPAddr
 
 	ss, err := sampling.NewCentralizedStrategy()
 	if err != nil {

@@ -47,6 +47,45 @@ func TestGetDaemonEndpoints2(t *testing.T) { // default address set to udp and t
 	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
 }
 
+func TestGetDaemonEndpointsFromEnv1(t *testing.T) {
+	udpAddr := "127.0.0.1:4000"
+	tcpAddr := "127.0.0.1:5000"
+	udpEndpt, _ := resolveUDPAddr(udpAddr)
+	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
+
+	dAddr := "tcp:" + tcpAddr + " udp:" + udpAddr
+
+	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", dAddr)
+	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
+
+	dEndpt, _ := GetDaemonEndpointsFromEnv()
+
+	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
+	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
+}
+
+func TestGetDaemonEndpointsFromEnv2(t *testing.T) {
+	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "")
+	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
+
+	dEndpt, err := GetDaemonEndpointsFromEnv()
+
+	assert.Nil(t, dEndpt)
+	assert.Nil(t, err)
+}
+
+func TestGetDefaultDaemonEndpoints(t *testing.T) {
+	udpAddr := "127.0.0.1:2000"
+	tcpAddr := "127.0.0.1:2000"
+	udpEndpt, _ := resolveUDPAddr(udpAddr)
+	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
+
+	dEndpt := GetDefaultDaemonEndpoints()
+
+	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
+	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
+}
+
 func TestGetDaemonEndpointsFromString1(t *testing.T) {
 	udpAddr := "127.0.0.1:2000"
 	tcpAddr := "127.0.0.1:2000"
