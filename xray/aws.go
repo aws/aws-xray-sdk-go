@@ -21,6 +21,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/resources"
 )
@@ -137,15 +138,16 @@ var xRayAfterRetryHandler = request.NamedHandler{
 	},
 }
 
-func pushHandlers(c *client.Client) {
-	c.Handlers.Validate.PushFrontNamed(xRayBeforeValidateHandler)
-	c.Handlers.Build.PushBackNamed(xRayAfterBuildHandler)
-	c.Handlers.Sign.PushFrontNamed(xRayBeforeSignHandler)
-	c.Handlers.Send.PushBackNamed(xRayAfterSendHandler)
-	c.Handlers.Unmarshal.PushFrontNamed(xRayBeforeUnmarshalHandler)
-	c.Handlers.Unmarshal.PushBackNamed(xRayAfterUnmarshalHandler)
-	c.Handlers.Retry.PushFrontNamed(xRayBeforeRetryHandler)
-	c.Handlers.AfterRetry.PushBackNamed(xRayAfterRetryHandler)
+func pushHandlers(handlers *request.Handlers, completionWhitelistFilename string) {
+	handlers.Validate.PushFrontNamed(xRayBeforeValidateHandler)
+	handlers.Build.PushBackNamed(xRayAfterBuildHandler)
+	handlers.Sign.PushFrontNamed(xRayBeforeSignHandler)
+	handlers.Send.PushBackNamed(xRayAfterSendHandler)
+	handlers.Unmarshal.PushFrontNamed(xRayBeforeUnmarshalHandler)
+	handlers.Unmarshal.PushBackNamed(xRayAfterUnmarshalHandler)
+	handlers.Retry.PushFrontNamed(xRayBeforeRetryHandler)
+	handlers.AfterRetry.PushBackNamed(xRayAfterRetryHandler)
+	handlers.Complete.PushFrontNamed(xrayCompleteHandler(completionWhitelistFilename))
 }
 
 // AWS adds X-Ray tracing to an AWS client.
@@ -153,8 +155,7 @@ func AWS(c *client.Client) {
 	if c == nil {
 		panic("Please initialize the provided AWS client before passing to the AWS() method.")
 	}
-	pushHandlers(c)
-	c.Handlers.Complete.PushFrontNamed(xrayCompleteHandler(""))
+	pushHandlers(&c.Handlers, "")
 }
 
 // AWSWithWhitelist allows a custom parameter whitelist JSON file to be defined.
@@ -162,8 +163,21 @@ func AWSWithWhitelist(c *client.Client, filename string) {
 	if c == nil {
 		panic("Please initialize the provided AWS client before passing to the AWSWithWhitelist() method.")
 	}
-	pushHandlers(c)
-	c.Handlers.Complete.PushFrontNamed(xrayCompleteHandler(filename))
+	pushHandlers(&c.Handlers, filename)
+}
+
+// AWSSession adds X-Ray tracing to an AWS session. Clients created under this
+// session will inherit X-Ray tracing.
+func AWSSession(s *session.Session) *session.Session {
+	pushHandlers(&s.Handlers, "")
+	return s
+}
+
+// AWSSessionWithWhitelist allows a custom parameter whitelist JSON file to be
+// defined.
+func AWSSessionWithWhitelist(s *session.Session, filename string) *session.Session {
+	pushHandlers(&s.Handlers, filename)
+	return s
 }
 
 func xrayCompleteHandler(filename string) request.NamedHandler {

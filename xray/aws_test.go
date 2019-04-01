@@ -14,22 +14,86 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestClientSuccessfulConnection(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b := []byte(`{}`)
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-	}))
+func TestAWS(t *testing.T) {
+	// Runs a suite of tests against two different methods of registering
+	// handlers on an AWS client.
 
-	svc := lambda.New(session.Must(session.NewSession(&aws.Config{
-		Endpoint:    aws.String(ts.URL),
+	type test func(*testing.T, *lambda.Lambda)
+	tests := []struct {
+		name     string
+		test     test
+		failConn bool
+	}{
+		{"failed connection", testClientFailedConnection, true},
+		{"successful connection", testClientSuccessfulConnection, false},
+		{"without segment", testClientWithoutSegment, false},
+	}
+
+	onClient := func(s *session.Session) *lambda.Lambda {
+		svc := lambda.New(s)
+		AWS(svc.Client)
+		return svc
+	}
+
+	onSession := func(s *session.Session) *lambda.Lambda {
+		return lambda.New(AWSSession(s))
+	}
+
+	const whitelist = "../resources/AWSWhitelist.json"
+
+	onClientWithWhitelist := func(s *session.Session) *lambda.Lambda {
+		svc := lambda.New(s)
+		AWSWithWhitelist(svc.Client, whitelist)
+		return svc
+	}
+
+	onSessionWithWhitelist := func(s *session.Session) *lambda.Lambda {
+		return lambda.New(AWSSessionWithWhitelist(s, whitelist))
+	}
+
+	type constructor func(*session.Session) *lambda.Lambda
+	constructors := []struct {
+		name        string
+		constructor constructor
+	}{
+		{"AWS()", onClient},
+		{"AWSSession()", onSession},
+		{"AWSWithWhitelist()", onClientWithWhitelist},
+		{"AWSSessionWithWhitelist()", onSessionWithWhitelist},
+	}
+
+	// Run all combinations of constructors + tests.
+	for _, cons := range constructors {
+		t.Run(cons.name, func(t *testing.T) {
+			for _, test := range tests {
+				t.Run(test.name, func(t *testing.T) {
+					test.test(t, cons.constructor(fakeSession(t, test.failConn)))
+				})
+			}
+		})
+	}
+}
+
+func fakeSession(t *testing.T, failConn bool) *session.Session {
+	cfg := &aws.Config{
 		Region:      aws.String("fake-moon-1"),
-		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop")})))
+		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop"),
+	}
+	if !failConn {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			b := []byte(`{}`)
+			w.WriteHeader(http.StatusOK)
+			w.Write(b)
+		}))
+		cfg.Endpoint = aws.String(ts.URL)
+	}
+	s, err := session.NewSession(cfg)
+	assert.NoError(t, err)
+	return s
+}
 
+func testClientSuccessfulConnection(t *testing.T, svc *lambda.Lambda) {
 	ctx, root := BeginSegment(context.Background(), "Test")
-
-	AWS(svc.Client)
-
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	root.Close(nil)
 	assert.NoError(t, err)
@@ -76,15 +140,8 @@ func TestClientSuccessfulConnection(t *testing.T) {
 	}
 }
 
-func TestClientFailedConnection(t *testing.T) {
-	svc := lambda.New(session.Must(session.NewSession(&aws.Config{
-		Region:      aws.String("fake-moon-1"),
-		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop")})))
-
+func testClientFailedConnection(t *testing.T, svc *lambda.Lambda) {
 	ctx, root := BeginSegment(context.Background(), "Test")
-
-	AWS(svc.Client)
-
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	root.Close(nil)
 	assert.Error(t, err)
@@ -116,24 +173,11 @@ func TestClientFailedConnection(t *testing.T) {
 	assert.NotEmpty(t, connectSubseg.Subsegments)
 }
 
-func TestClientWithoutSegment(t *testing.T) {
+func testClientWithoutSegment(t *testing.T, svc *lambda.Lambda) {
 	Configure(Config{ContextMissingStrategy: &TestContextMissingStrategy{}})
 	defer ResetConfig()
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b := []byte(`{}`)
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-	}))
-
-	svc := lambda.New(session.Must(session.NewSession(&aws.Config{
-		Endpoint:    aws.String(ts.URL),
-		Region:      aws.String("fake-moon-1"),
-		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop")})))
 
 	ctx := context.Background()
-
-	AWS(svc.Client)
-
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	assert.NoError(t, err)
 }
