@@ -39,7 +39,7 @@ func NewHTTPSubsegments(opCtx context.Context) *HTTPSubsegments {
 // GetConn begins a connect subsegment if the HTTP operation
 // subsegment is still in progress.
 func (xt *HTTPSubsegments) GetConn(hostPort string) {
-	if GetSegment(xt.opCtx).InProgress {
+	if GetSegment(xt.opCtx).safeInProgress() {
 		xt.connCtx, _ = BeginSubsegment(xt.opCtx, "connect")
 	}
 }
@@ -121,7 +121,7 @@ func (xt *HTTPSubsegments) TLSHandshakeDone(connState tls.ConnectionState, err e
 // metadata to the subsegment. If the connection is marked as reused,
 // the connect subsegment is deleted.
 func (xt *HTTPSubsegments) GotConn(info *httptrace.GotConnInfo, err error) {
-	if xt.connCtx != nil && GetSegment(xt.opCtx).InProgress { // GetConn may not have been called (client_test.TestBadRoundTrip)
+	if xt.connCtx != nil && GetSegment(xt.opCtx).safeInProgress() { // GetConn may not have been called (client_test.TestBadRoundTrip)
 		if info != nil {
 			if info.Reused {
 				GetSegment(xt.opCtx).RemoveSubsegment(GetSegment(xt.connCtx))
@@ -136,6 +136,8 @@ func (xt *HTTPSubsegments) GotConn(info *httptrace.GotConnInfo, err error) {
 				AddMetadataToNamespace(xt.connCtx, "http", "connection", metadata)
 				GetSegment(xt.connCtx).Close(err)
 			}
+		} else if xt.connCtx != nil && GetSegment(xt.connCtx).safeInProgress() {
+			GetSegment(xt.connCtx).Close(err)
 		}
 
 		if err == nil {
@@ -156,6 +158,14 @@ func (xt *HTTPSubsegments) WroteRequest(info httptrace.WroteRequestInfo) {
 		xt.responseCtx = resCtx
 		xt.mu.Unlock()
 	}
+
+	// In case the GotConn http trace handler wasn't called,
+	// we close the connection subsegment since a connection
+	// had to have been acquired before attempting to write
+	// the request.
+	// if xt.connCtx != nil && GetSegment(xt.connCtx).safeInProgress() {
+	// 	GetSegment(xt.connCtx).Close(nil)
+	// }
 }
 
 // GotFirstResponseByte closes the response subsegment if the HTTP

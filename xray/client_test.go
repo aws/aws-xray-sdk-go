@@ -196,6 +196,32 @@ func TestBadRoundTrip(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%v", err), subseg.Cause.Exceptions[0].Message)
 }
 
+func TestBadRoundTripDial(t *testing.T) {
+	ctx, root := BeginSegment(context.Background(), "Test")
+	reader := strings.NewReader("")
+	// Make a request against an unreachable endpoint.
+	req := httptest.NewRequest("GET", "https://0.0.0.0:0", reader)
+	req = req.WithContext(ctx)
+	_, err := rt.RoundTrip(req)
+	root.Close(nil)
+	assert.Error(t, err)
+
+	s, e := TestDaemon.Recv()
+	assert.NoError(t, e)
+	subseg := &Segment{}
+	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
+	assert.Equal(t, fmt.Sprintf("%v", err), subseg.Cause.Exceptions[0].Message)
+
+	// Also ensure that the 'connect' subsegment is closed and showing fault
+	connectSeg := &Segment{}
+	assert.NoError(t, json.Unmarshal(subseg.Subsegments[0], &connectSeg))
+	assert.Equal(t, "connect", connectSeg.Name)
+	assert.NotZero(t, connectSeg.EndTime)
+	assert.False(t, connectSeg.InProgress)
+	assert.True(t, connectSeg.Fault)
+	assert.NotEmpty(t, connectSeg.Subsegments)
+}
+
 func TestRoundTripReuseDatarace(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b := []byte(`200 - Nothing to see`)

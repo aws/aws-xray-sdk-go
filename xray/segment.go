@@ -285,7 +285,7 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 			seg.rawSubsegments[len(seg.rawSubsegments)-1] = nil
 			seg.rawSubsegments = seg.rawSubsegments[:len(seg.rawSubsegments)-1]
 
-			seg.totalSubSegments--
+			seg.ParentSegment.totalSubSegments--
 			seg.openSegments--
 			return true
 		}
