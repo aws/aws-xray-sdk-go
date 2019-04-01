@@ -28,6 +28,7 @@ func TestClientFailedConnection(t *testing.T) {
 	assert.NoError(t, e)
 
 	subseg := &Segment{}
+	assert.NotEmpty(t, s.Subsegments)
 	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
 	assert.True(t, subseg.Fault)
 	// Should contain 'marshal' and 'attempt' subsegments only.
