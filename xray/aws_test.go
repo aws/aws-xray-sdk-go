@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/stretchr/testify/assert"
@@ -13,8 +14,8 @@ import (
 
 func TestClientFailedConnection(t *testing.T) {
 	svc := lambda.New(session.Must(session.NewSession(&aws.Config{
-		Endpoint: aws.String("fake.endpoint.amazonaws.com"),
-		Region:   aws.String("fake-moon-1")})))
+		Region:   aws.String("fake-moon-1"),
+		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop")})))
 
 	ctx, root := BeginSegment(context.Background(), "Test")
 
@@ -43,6 +44,7 @@ func TestClientFailedConnection(t *testing.T) {
 	// The subsegment should fail since the endpoint is not valid,
 	// and should not be InProgress.
 	connectSubseg := &Segment{}
+	assert.NotEmpty(t, attemptSubseg.Subsegments)
 	assert.NoError(t, json.Unmarshal(attemptSubseg.Subsegments[0], &connectSubseg))
 	assert.Equal(t, "connect", connectSubseg.Name)
 	assert.False(t, connectSubseg.InProgress)
