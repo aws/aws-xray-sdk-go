@@ -47,7 +47,7 @@ func (xt *HTTPSubsegments) GetConn(hostPort string) {
 // DNSStart begins a dns subsegment if the HTTP operation
 // subsegment is still in progress.
 func (xt *HTTPSubsegments) DNSStart(info httptrace.DNSStartInfo) {
-	if GetSegment(xt.opCtx).safeInProgress() {
+	if GetSegment(xt.opCtx).safeInProgress() && xt.connCtx != nil {
 		xt.dnsCtx, _ = BeginSubsegment(xt.connCtx, "dns")
 	}
 }
@@ -71,7 +71,7 @@ func (xt *HTTPSubsegments) DNSDone(info httptrace.DNSDoneInfo) {
 // ConnectStart begins a dial subsegment if the HTTP operation
 // subsegment is still in progress.
 func (xt *HTTPSubsegments) ConnectStart(network, addr string) {
-	if GetSegment(xt.opCtx).safeInProgress() {
+	if GetSegment(xt.opCtx).safeInProgress() && xt.connCtx != nil {
 		xt.connectCtx, _ = BeginSubsegment(xt.connCtx, "dial")
 	}
 }
@@ -125,6 +125,10 @@ func (xt *HTTPSubsegments) GotConn(info *httptrace.GotConnInfo, err error) {
 		if info != nil {
 			if info.Reused {
 				GetSegment(xt.opCtx).RemoveSubsegment(GetSegment(xt.connCtx))
+				xt.mu.Lock()
+				// Remove the connCtx context since it is no longer needed.
+				xt.connCtx = nil
+				xt.mu.Unlock()
 			} else {
 				metadata := make(map[string]interface{})
 				metadata["reused"] = info.Reused
@@ -163,9 +167,9 @@ func (xt *HTTPSubsegments) WroteRequest(info httptrace.WroteRequestInfo) {
 	// we close the connection subsegment since a connection
 	// had to have been acquired before attempting to write
 	// the request.
-	// if xt.connCtx != nil && GetSegment(xt.connCtx).safeInProgress() {
-	// 	GetSegment(xt.connCtx).Close(nil)
-	// }
+	if xt.connCtx != nil && GetSegment(xt.connCtx).safeInProgress() {
+		GetSegment(xt.connCtx).Close(nil)
+	}
 }
 
 // GotFirstResponseByte closes the response subsegment if the HTTP

@@ -77,6 +77,30 @@ func TestRoundTrip(t *testing.T) {
 	assert.Equal(t, 200, subseg.HTTP.Response.Status)
 	assert.Equal(t, responseContentLength, subseg.HTTP.Response.ContentLength)
 	assert.Equal(t, headers.RootTraceID, s.TraceID)
+
+	connectSeg := &Segment{}
+	for _, sub := range subseg.Subsegments {
+		tempSeg := &Segment{}
+		assert.NoError(t, json.Unmarshal(sub, &tempSeg))
+		if tempSeg.Name == "connect" {
+			connectSeg = tempSeg
+			break
+		}
+	}
+
+	// Ensure that a 'connect' subsegment was created and closed
+	assert.Equal(t, "connect", connectSeg.Name)
+	assert.False(t, connectSeg.InProgress)
+	assert.NotZero(t, connectSeg.EndTime)
+	assert.NotEmpty(t, connectSeg.Subsegments)
+
+	// Ensure that the 'connect' subsegments are completed.
+	for _, sub := range connectSeg.Subsegments {
+		tempSeg := &Segment{}
+		assert.NoError(t, json.Unmarshal(sub, &tempSeg))
+		assert.False(t, tempSeg.InProgress)
+		assert.NotZero(t, tempSeg.EndTime)
+	}
 }
 
 func TestRoundTripWithError(t *testing.T) {
