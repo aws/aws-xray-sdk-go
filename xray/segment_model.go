@@ -125,11 +125,9 @@ type SQLData struct {
 
 // DownstreamHeader returns a header for passing to downstream calls.
 func (s *Segment) DownstreamHeader() *header.Header {
-	r := s.ParentSegment.IncomingHeader
-	if r == nil {
-		r = &header.Header{
-			TraceID: s.ParentSegment.TraceID,
-		}
+	r := &header.Header{}
+	if parent := s.ParentSegment.IncomingHeader; parent != nil {
+		*r = *parent // copy parent incoming header
 	}
 	if r.TraceID == "" {
 		r.TraceID = s.ParentSegment.TraceID
