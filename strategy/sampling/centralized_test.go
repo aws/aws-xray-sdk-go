@@ -2513,12 +2513,14 @@ A:
 			break A
 		default:
 			// Assert that rule was added to manifest and the timestamp refreshed
+			ss.manifest.Lock()
 			if len(ss.manifest.Rules) == 1 &&
 				len(ss.manifest.Index) == 1 &&
 				ss.manifest.refreshedAt == 1500000000 {
-
+				ss.manifest.Unlock()
 				break A
 			}
+			ss.manifest.Unlock()
 		}
 	}
 }

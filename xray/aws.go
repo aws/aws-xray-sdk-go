@@ -103,7 +103,18 @@ var xRayBeforeSendHandler = request.NamedHandler{
 var xRayAfterSendHandler = request.NamedHandler{
 	Name: "XRayAfterSendHandler",
 	Fn: func(r *request.Request) {
-		endSubsegment(r)
+		curseg := GetSegment(r.HTTPRequest.Context())
+
+		if curseg.Name == "attempt" {
+			// An error could have prevented the connect subsegment from closing,
+			// so clean it up here.
+			for _, subsegment := range curseg.rawSubsegments {
+				if subsegment.Name == "connect" && subsegment.safeInProgress() {
+					subsegment.Close(nil)
+					return
+				}
+			}
+		}
 	},
 }
 
@@ -143,6 +154,7 @@ func pushHandlers(c *client.Client) {
 	c.Handlers.Validate.PushFrontNamed(xRayBeforeValidateHandler)
 	c.Handlers.Build.PushBackNamed(xRayAfterBuildHandler)
 	c.Handlers.Sign.PushFrontNamed(xRayBeforeSignHandler)
+	c.Handlers.Send.PushBackNamed(xRayAfterSendHandler)
 	c.Handlers.Unmarshal.PushFrontNamed(xRayBeforeUnmarshalHandler)
 	c.Handlers.Unmarshal.PushBackNamed(xRayAfterUnmarshalHandler)
 	c.Handlers.Retry.PushFrontNamed(xRayBeforeRetryHandler)
