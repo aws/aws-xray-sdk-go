@@ -115,3 +115,25 @@ func TestClientFailedConnection(t *testing.T) {
 	assert.NotZero(t, connectSubseg.EndTime)
 	assert.NotEmpty(t, connectSubseg.Subsegments)
 }
+
+func TestClientWithoutSegment(t *testing.T) {
+	Configure(Config{ContextMissingStrategy: &TestContextMissingStrategy{}})
+	defer ResetConfig()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b := []byte(`{}`)
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}))
+
+	svc := lambda.New(session.Must(session.NewSession(&aws.Config{
+		Endpoint:    aws.String(ts.URL),
+		Region:      aws.String("fake-moon-1"),
+		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop")})))
+
+	ctx := context.Background()
+
+	AWS(svc.Client)
+
+	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
+	assert.NoError(t, err)
+}
