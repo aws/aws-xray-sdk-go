@@ -43,7 +43,7 @@ install:
     fi
 
 script:
-  - make test
+  - make test-with-race
 
 matrix:
   allow_failures:
