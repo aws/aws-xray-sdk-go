@@ -43,22 +43,35 @@ func GetDaemonEndpoints() *DaemonEndpoints {
 	}
 
 	if daemonEndpoint == nil { // env variable not set
-		udpAddr := &net.UDPAddr{ // use default address
-			IP:   net.IPv4(127, 0, 0, 1),
-			Port: 2000,
-		}
-
-		tcpAddr := &net.TCPAddr{ // use default address
-			IP:   net.IPv4(127, 0, 0, 1),
-			Port: 2000,
-		}
-
-		return &DaemonEndpoints{
-			UDPAddr: udpAddr,
-			TCPAddr: tcpAddr,
-		}
+		return GetDefaultDaemonEndpoints()
 	}
 	return daemonEndpoint // env variable successfully parsed
+}
+
+// GetDaemonEndpointsFromEnv resolves the daemon address if set in the environment variable.
+func GetDaemonEndpointsFromEnv() (*DaemonEndpoints, error) {
+	if envDaemonAddr := os.Getenv("AWS_XRAY_DAEMON_ADDRESS"); envDaemonAddr != "" {
+		return resolveAddress(envDaemonAddr)
+	}
+	return nil, nil
+}
+
+// GetDefaultDaemonEndpoints returns the default UDP and TCP address of the daemon.
+func GetDefaultDaemonEndpoints() *DaemonEndpoints {
+	udpAddr := &net.UDPAddr{
+		IP:   net.IPv4(127, 0, 0, 1),
+		Port: 2000,
+	}
+
+	tcpAddr := &net.TCPAddr{
+		IP:   net.IPv4(127, 0, 0, 1),
+		Port: 2000,
+	}
+
+	return &DaemonEndpoints{
+		UDPAddr: udpAddr,
+		TCPAddr: tcpAddr,
+	}
 }
 
 // GetDaemonEndpointsFromString parses provided daemon address if the environment variable is invalid or not set.
