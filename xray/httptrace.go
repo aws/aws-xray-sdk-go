@@ -47,6 +47,8 @@ func (xt *HTTPSubsegments) GetConn(hostPort string) {
 // DNSStart begins a dns subsegment if the HTTP operation
 // subsegment is still in progress.
 func (xt *HTTPSubsegments) DNSStart(info httptrace.DNSStartInfo) {
+	xt.mu.Lock()
+	defer xt.mu.Unlock()
 	if GetSegment(xt.opCtx).safeInProgress() && xt.connCtx != nil {
 		xt.dnsCtx, _ = BeginSubsegment(xt.connCtx, "dns")
 	}
@@ -71,6 +73,8 @@ func (xt *HTTPSubsegments) DNSDone(info httptrace.DNSDoneInfo) {
 // ConnectStart begins a dial subsegment if the HTTP operation
 // subsegment is still in progress.
 func (xt *HTTPSubsegments) ConnectStart(network, addr string) {
+	xt.mu.Lock()
+	defer xt.mu.Unlock()
 	if GetSegment(xt.opCtx).safeInProgress() && xt.connCtx != nil {
 		xt.connectCtx, _ = BeginSubsegment(xt.connCtx, "dial")
 	}
