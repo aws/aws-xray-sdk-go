@@ -285,6 +285,10 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 			seg.rawSubsegments[len(seg.rawSubsegments)-1] = nil
 			seg.rawSubsegments = seg.rawSubsegments[:len(seg.rawSubsegments)-1]
 
+			if seg.ParentSegment != seg {
+				seg.ParentSegment.Lock()
+				defer seg.ParentSegment.Unlock()
+			}
 			seg.ParentSegment.totalSubSegments--
 			seg.openSegments--
 			return true

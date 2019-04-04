@@ -105,7 +105,7 @@ var xRayAfterSendHandler = request.NamedHandler{
 	Fn: func(r *request.Request) {
 		curseg := GetSegment(r.HTTPRequest.Context())
 
-		if curseg.Name == "attempt" {
+		if curseg != nil && curseg.Name == "attempt" {
 			// An error could have prevented the connect subsegment from closing,
 			// so clean it up here.
 			for _, subsegment := range curseg.rawSubsegments {
