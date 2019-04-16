@@ -279,6 +279,49 @@ func TestRoundTripReuseDatarace(t *testing.T) {
 	wg.Wait()
 }
 
+func TestRoundTripReuseTLSDatarace(t *testing.T) {
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b := []byte(`200 - Nothing to see`)
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}))
+	defer ts.Close()
+
+	certpool := x509.NewCertPool()
+	certpool.AddCert(ts.Certificate())
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs: certpool,
+		},
+	}
+	rt := &roundtripper{
+		Base: tr,
+	}
+
+	wg := sync.WaitGroup{}
+	n := 30
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			reader := strings.NewReader("")
+			ctx, root := BeginSegment(context.Background(), "Test")
+			req, _ := http.NewRequest("GET", ts.URL, reader)
+			req = req.WithContext(ctx)
+			res, err := rt.RoundTrip(req)
+			assert.NoError(t, err)
+			ioutil.ReadAll(res.Body)
+			res.Body.Close() // make net/http/transport.go connection reuse
+			root.Close(nil)
+		}()
+	}
+	for i := 0; i < n; i++ {
+		_, e := TestDaemon.Recv()
+		assert.NoError(t, e)
+	}
+	wg.Wait()
+}
+
 func TestRoundTripHttp2Datarace(t *testing.T) {
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b := []byte(`200 - Nothing to see`)
