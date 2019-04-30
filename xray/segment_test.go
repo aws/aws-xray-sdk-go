@@ -12,6 +12,8 @@ import (
 	"context"
 	"sync"
 	"testing"
+
+	"github.com/aws/aws-xray-sdk-go/header"
 )
 
 func TestSegmentDataRace(t *testing.T) {
@@ -40,6 +42,27 @@ func TestSubsegmentDataRace(t *testing.T) {
 			ctx, seg2 := BeginSubsegment(ctx, "TestSubsegment2")
 			seg2.Close(nil)
 			seg.Close(nil)
+		}()
+	}
+	wg.Wait()
+}
+
+func TestSegmentDownstreamHeader(t *testing.T) {
+	ctx := context.Background()
+	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &header.Header{
+		TraceID:  "fakeid",
+		ParentID: "reqid",
+	})
+	defer seg.Close(nil)
+
+	wg := sync.WaitGroup{}
+	n := 2
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			_, seg2 := BeginSubsegment(ctx, "TestSubsegment")
+			seg2.DownstreamHeader() // simulate roundtripper.RoundTrip sets TraceIDHeaderKey
+			wg.Done()
 		}()
 	}
 	wg.Wait()
