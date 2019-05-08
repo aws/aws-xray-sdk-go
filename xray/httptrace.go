@@ -97,7 +97,7 @@ func (xt *HTTPSubsegments) ConnectDone(network, addr string, err error) {
 // TLSHandshakeStart begins a tls subsegment if the HTTP operation
 // subsegment is still in progress.
 func (xt *HTTPSubsegments) TLSHandshakeStart() {
-	if GetSegment(xt.opCtx).safeInProgress() && xt.connCtx != nil {
+	if GetSegment(xt.opCtx).safeInProgress() {
 		xt.tlsCtx, _ = BeginSubsegment(xt.connCtx, "tls")
 	}
 }
