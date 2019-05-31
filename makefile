@@ -19,3 +19,6 @@ test-with-race: test
 
 fmt:
 	go fmt `go list ./... | grep -v vendor`
+
+golangci-lint:
+	golangci-lint run

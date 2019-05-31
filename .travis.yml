@@ -41,9 +41,11 @@ install:
     else
       go get;
     fi
+  - [ $DEP_MANAGEMENT_TOOL == "DEP" ] || go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
 
 script:
   - make test-with-race
+  - [ $DEP_MANAGEMENT_TOOL == "DEP" ] || make golangci-lint
 
 matrix:
   allow_failures:
