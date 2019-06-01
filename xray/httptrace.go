@@ -19,6 +19,11 @@ import (
 )
 
 // HTTPSubsegments is a set of context in different HTTP operation.
+// Note: from ClientTrace godoc
+//               Functions may be called concurrently from different goroutines
+//
+// HTTPSubsegments must operate as though all functions on it can be called in
+// different goroutines and must protect against races
 type HTTPSubsegments struct {
 	opCtx       context.Context
 	connCtx     context.Context
@@ -39,6 +44,8 @@ func NewHTTPSubsegments(opCtx context.Context) *HTTPSubsegments {
 // GetConn begins a connect subsegment if the HTTP operation
 // subsegment is still in progress.
 func (xt *HTTPSubsegments) GetConn(hostPort string) {
+	xt.mu.Lock()
+	defer xt.mu.Unlock()
 	if GetSegment(xt.opCtx).safeInProgress() {
 		xt.connCtx, _ = BeginSubsegment(xt.opCtx, "connect")
 	}
@@ -60,6 +67,8 @@ func (xt *HTTPSubsegments) DNSStart(info httptrace.DNSStartInfo) {
 // and whether or not the call was coalesced is added as
 // metadata to the dns subsegment.
 func (xt *HTTPSubsegments) DNSDone(info httptrace.DNSDoneInfo) {
+	xt.mu.Lock()
+	defer xt.mu.Unlock()
 	if xt.dnsCtx != nil && GetSegment(xt.opCtx).safeInProgress() {
 		metadata := make(map[string]interface{})
 		metadata["addresses"] = info.Addrs
@@ -85,6 +94,8 @@ func (xt *HTTPSubsegments) ConnectStart(network, addr string) {
 // (if any). Information about the network over which the dial
 // was made is added as metadata to the subsegment.
 func (xt *HTTPSubsegments) ConnectDone(network, addr string, err error) {
+	xt.mu.Lock()
+	defer xt.mu.Unlock()
 	if xt.connectCtx != nil && GetSegment(xt.opCtx).safeInProgress() {
 		metadata := make(map[string]interface{})
 		metadata["network"] = network
@@ -97,6 +108,8 @@ func (xt *HTTPSubsegments) ConnectDone(network, addr string, err error) {
 // TLSHandshakeStart begins a tls subsegment if the HTTP operation
 // subsegment is still in progress.
 func (xt *HTTPSubsegments) TLSHandshakeStart() {
+	xt.mu.Lock()
+	defer xt.mu.Unlock()
 	if GetSegment(xt.opCtx).safeInProgress() && xt.connCtx != nil {
 		xt.tlsCtx, _ = BeginSubsegment(xt.connCtx, "tls")
 	}
@@ -107,6 +120,8 @@ func (xt *HTTPSubsegments) TLSHandshakeStart() {
 // error value(if any). Information about the tls connection
 // is added as metadata to the subsegment.
 func (xt *HTTPSubsegments) TLSHandshakeDone(connState tls.ConnectionState, err error) {
+	xt.mu.Lock()
+	defer xt.mu.Unlock()
 	if xt.tlsCtx != nil && GetSegment(xt.opCtx).safeInProgress() {
 		metadata := make(map[string]interface{})
 		metadata["did_resume"] = connState.DidResume
@@ -125,14 +140,14 @@ func (xt *HTTPSubsegments) TLSHandshakeDone(connState tls.ConnectionState, err e
 // metadata to the subsegment. If the connection is marked as reused,
 // the connect subsegment is deleted.
 func (xt *HTTPSubsegments) GotConn(info *httptrace.GotConnInfo, err error) {
+	xt.mu.Lock()
+	defer xt.mu.Unlock()
 	if xt.connCtx != nil && GetSegment(xt.opCtx).safeInProgress() { // GetConn may not have been called (client_test.TestBadRoundTrip)
 		if info != nil {
 			if info.Reused {
 				GetSegment(xt.opCtx).RemoveSubsegment(GetSegment(xt.connCtx))
-				xt.mu.Lock()
 				// Remove the connCtx context since it is no longer needed.
 				xt.connCtx = nil
-				xt.mu.Unlock()
 			} else {
 				metadata := make(map[string]interface{})
 				metadata["reused"] = info.Reused
@@ -159,12 +174,12 @@ func (xt *HTTPSubsegments) GotConn(info *httptrace.GotConnInfo, err error) {
 // subsegment is still in progress, passing the error value
 // (if any). The response subsegment is then begun.
 func (xt *HTTPSubsegments) WroteRequest(info httptrace.WroteRequestInfo) {
+	xt.mu.Lock()
+	defer xt.mu.Unlock()
 	if xt.reqCtx != nil && GetSegment(xt.opCtx).InProgress {
 		GetSegment(xt.reqCtx).Close(info.Err)
 		resCtx, _ := BeginSubsegment(xt.opCtx, "response")
-		xt.mu.Lock()
 		xt.responseCtx = resCtx
-		xt.mu.Unlock()
 	}
 
 	// In case the GotConn http trace handler wasn't called,
@@ -180,8 +195,8 @@ func (xt *HTTPSubsegments) WroteRequest(info httptrace.WroteRequestInfo) {
 // operation subsegment is still in progress.
 func (xt *HTTPSubsegments) GotFirstResponseByte() {
 	xt.mu.Lock()
+	defer xt.mu.Unlock()
 	resCtx := xt.responseCtx
-	xt.mu.Unlock()
 	if resCtx != nil && GetSegment(xt.opCtx).InProgress {
 		GetSegment(resCtx).Close(nil)
 	}
