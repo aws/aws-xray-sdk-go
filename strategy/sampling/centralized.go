@@ -433,7 +433,7 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 		logger.Infof("Refreshing sampling rules out-of-band.")
 
 		go func() {
-			if err = ss.refreshManifest(); err != nil {
+			if err := ss.refreshManifest(); err != nil {
 				logger.Debugf("Error occurred refreshing sampling rules out-of-band. %v", err)
 			}
 		}()
