@@ -87,19 +87,6 @@ var xRayBeforeSignHandler = request.NamedHandler{
 	},
 }
 
-var xRayAfterSignHandler = request.NamedHandler{
-	Name: "XRayAfterSignHandler",
-	Fn: func(r *request.Request) {
-		endSubsegment(r)
-	},
-}
-
-var xRayBeforeSendHandler = request.NamedHandler{
-	Name: "XRayBeforeSendHandler",
-	Fn: func(r *request.Request) {
-	},
-}
-
 var xRayAfterSendHandler = request.NamedHandler{
 	Name: "XRayAfterSendHandler",
 	Fn: func(r *request.Request) {
@@ -287,8 +274,7 @@ func (j *jsonMap) data() interface{} {
 }
 
 func (j *jsonMap) search(keys ...string) *jsonMap {
-	var object interface{}
-	object = j.data()
+	object := j.data()
 
 	for target := 0; target < len(keys); target++ {
 		if mmap, ok := object.(map[string]interface{}); ok {
