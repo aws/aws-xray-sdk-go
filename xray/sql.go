@@ -42,7 +42,10 @@ func SQL(driver, dsn string) (*DB, error) {
 	if u, err := url.Parse(urlDsn); err == nil && (u.Scheme != "" || u.User != nil || u.RawQuery != "" || strings.Contains(u.Path, "@")) {
 		// Check that this isn't in the form of user/pass@host:port/db, as that will shove the host into the path
 		if strings.Contains(u.Path, "@") {
-			u, _ = url.Parse(fmt.Sprintf("%s//%s%%2F%s", u.Scheme, u.Host, u.Path[1:]))
+			u, err = url.Parse(fmt.Sprintf("%s//%s%%2F%s", u.Scheme, u.Host, u.Path[1:]))
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// Strip password from user:password pair in address
