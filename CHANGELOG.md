@@ -14,6 +14,7 @@ Release v1.0.0-rc.12 (2019-06-10)
 * Fixes race bugs with `ClientTrace`. [PR #115](https://github.com/aws/aws-xray-sdk-go/pull/115)
 * Updates lock abstraction for `defaultLogger`. [PR #113](https://github.com/aws/aws-xray-sdk-go/pull/113)
 * Adds `golangci-lint` into travis CI. [PR #114](https://github.com/aws/aws-xray-sdk-go/pull/114)
+* Fixes uncaught error on SQL url parse. [PR #121](https://github.com/aws/aws-xray-sdk-go/pull/121)
 
 Release v1.0.0-rc.11 (2019-03-15)
 ================================
