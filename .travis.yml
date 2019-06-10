@@ -14,7 +14,7 @@ go:
 notifications:
   email:
     recipients:
-      - luluzhao@amazon.com
+      - aws-xray-peryton@amazon.com
     on_success: never
     on_failure: always
 
