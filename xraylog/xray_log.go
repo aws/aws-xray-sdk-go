@@ -61,7 +61,7 @@ func NewDefaultLogger(w io.Writer, minLogLevel LogLevel) Logger {
 }
 
 type defaultLogger struct {
-	sync.Mutex
+	mu sync.Mutex
 	w        io.Writer
 	minLevel LogLevel
 }
@@ -71,8 +71,8 @@ func (l *defaultLogger) Log(ll LogLevel, msg fmt.Stringer) {
 		return
 	}
 
-	l.Lock()
-	defer l.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	fmt.Fprintf(l.w, "%s [%s] %s\n", time.Now().Format(time.RFC3339), ll, msg)
 }
 

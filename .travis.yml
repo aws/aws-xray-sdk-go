@@ -7,7 +7,7 @@ sudo: required
 go:
   - "1.9"
   - "1.10"
-  - "1.11" 
+  - "1.11"
   - "1.12"
   - "tip"
 
@@ -41,9 +41,18 @@ install:
     else
       go get;
     fi
+  # Only bother running lints on the latest version.  Some of the linters fail to install on older versions of go.
+  - if [ $TRAVIS_GO_VERSION == "1.12" ]; then
+      go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0;
+    fi
 
 script:
   - make test-with-race
+  # We are in the process of resolving all the lint warnings for x-ray-sdk-go.  Still run the linter to expose these
+  # and resolve to clean these up.
+  - if [ $TRAVIS_GO_VERSION == "1.12" ]; then
+      make golangci-lint || true;
+    fi
 
 matrix:
   allow_failures:
