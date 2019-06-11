@@ -162,7 +162,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 		name = name[:200]
 	}
 
-	parent := &Segment{}
+	var parent *Segment
 	// first time to create facade segment
 	if getTraceHeaderFromContext(ctx) != nil && GetSegment(ctx) == nil {
 		_, parent = newFacadeSegment(ctx)
@@ -445,10 +445,8 @@ func (seg *Segment) AddError(err error) error {
 	return nil
 }
 
-func (seg *Segment) addError(err error) error {
+func (seg *Segment) addError(err error) {
 	seg.Fault = true
 	seg.GetCause().WorkingDirectory, _ = os.Getwd()
 	seg.GetCause().Exceptions = append(seg.GetCause().Exceptions, seg.ParentSegment.GetConfiguration().ExceptionFormattingStrategy.ExceptionFromError(err))
-
-	return nil
 }

@@ -966,7 +966,7 @@ func TestRefreshManifestRuleAddition(t *testing.T) {
 	assert.Equal(t, r2, ss.manifest.Rules[1])
 	assert.Equal(t, r3, ss.manifest.Rules[2])
 
-	// Assert on size of manfiest
+	// Assert on size of manifest
 	assert.Equal(t, 3, len(ss.manifest.Rules))
 	assert.Equal(t, 3, len(ss.manifest.Index))
 

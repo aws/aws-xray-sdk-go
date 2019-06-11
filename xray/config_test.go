@@ -72,7 +72,7 @@ func (te *TestEmitter) Emit(seg *Segment) {}
 func (te *TestEmitter) RefreshEmitterWithAddress(raddr *net.UDPAddr) {}
 
 func (cms *TestContextMissingStrategy) ContextMissing(v interface{}) {
-	fmt.Sprintf("Test ContextMissing Strategy %v", v)
+	fmt.Printf("Test ContextMissing Strategy %v\n", v)
 }
 
 func stashEnv() []string {
