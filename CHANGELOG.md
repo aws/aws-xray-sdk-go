@@ -1,4 +1,4 @@
-Release v1.0.0-rc.12 (2019-06-10)
+Release v1.0.0-rc.12 (2019-06-11)
 ================================
 ### SDK Breaking Changes
 * Updates `sampling.NewProxy` method to be private. [PR #93](https://github.com/aws/aws-xray-sdk-go/pull/93)
