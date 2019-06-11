@@ -1,3 +1,21 @@
+Release v1.0.0-rc.12 (2019-06-11)
+================================
+### SDK Breaking Changes
+* Updates `sampling.NewProxy` method to be private. [PR #93](https://github.com/aws/aws-xray-sdk-go/pull/93)
+
+### SDK Enhancements
+* Fixes a bug for failing to close in-progress `connect` subsegments in some cases. [PR #102](https://github.com/aws/aws-xray-sdk-go/pull/102)
+* Fixes data races condition. [PR #103](https://github.com/aws/aws-xray-sdk-go/pull/103)
+* Fixes a nil pointer issue. [PR #109](https://github.com/aws/aws-xray-sdk-go/pull/109)
+* Refactors `newGlobalConfig` to avoid initializing log. [PR #96](https://github.com/aws/aws-xray-sdk-go/pull/96)
+* Adds `-race` to travis test script. [PR #104](https://github.com/aws/aws-xray-sdk-go/pull/104)
+* Fixes data race condition for parallel http client request. [PR #100](https://github.com/aws/aws-xray-sdk-go/pull/100)
+* Adds support for `tx.Prepare`. [PR #95](https://github.com/aws/aws-xray-sdk-go/pull/95)
+* Fixes race bugs with `ClientTrace`. [PR #115](https://github.com/aws/aws-xray-sdk-go/pull/115)
+* Updates lock abstraction for `defaultLogger`. [PR #113](https://github.com/aws/aws-xray-sdk-go/pull/113)
+* Adds `golangci-lint` into travis CI. [PR #114](https://github.com/aws/aws-xray-sdk-go/pull/114)
+* Fixes uncaught error on SQL url parse. [PR #121](https://github.com/aws/aws-xray-sdk-go/pull/121)
+
 Release v1.0.0-rc.11 (2019-03-15)
 ================================
 ### SDK Breaking Changes
