@@ -87,13 +87,13 @@ type CentralizedRule struct {
 	// Provides random numbers
 	rand utils.Rand
 
-	sync.RWMutex
+	mu sync.RWMutex
 }
 
 // stale returns true if the quota is due for a refresh. False otherwise.
 func (r *CentralizedRule) stale(now int64) bool {
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	return r.requests != 0 && now >= r.reservoir.refreshedAt+r.reservoir.interval
 }
@@ -105,8 +105,8 @@ func (r *CentralizedRule) Sample() *Decision {
 		Rule: &r.ruleName,
 	}
 
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	r.requests++
 
@@ -165,7 +165,7 @@ func (r *CentralizedRule) bernoulliSample() bool {
 // snapshot takes a snapshot of the sampling statistics counters, returning
 // xraySvc.SamplingStatistics. It also resets statistics counters.
 func (r *CentralizedRule) snapshot() *xraySvc.SamplingStatisticsDocument {
-	r.Lock()
+	r.mu.Lock()
 
 	name := &r.ruleName
 
@@ -176,7 +176,7 @@ func (r *CentralizedRule) snapshot() *xraySvc.SamplingStatisticsDocument {
 	// Reset counters
 	r.requests, r.sampled, r.borrows = 0, 0, 0
 
-	r.Unlock()
+	r.mu.Unlock()
 
 	now := r.clock.Now()
 	s := &xraySvc.SamplingStatisticsDocument{
