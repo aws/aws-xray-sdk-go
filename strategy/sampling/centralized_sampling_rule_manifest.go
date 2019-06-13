@@ -32,7 +32,7 @@ type CentralizedManifest struct {
 	Index       map[string]*CentralizedRule
 	refreshedAt int64
 	clock       utils.Clock
-	sync.RWMutex
+	mu          sync.RWMutex
 }
 
 // putRule updates the named rule if it already exists or creates it if it does not.
@@ -48,9 +48,9 @@ func (m *CentralizedManifest) putRule(svcRule *xraySvc.SamplingRule) (r *Central
 
 	// Default rule
 	if name == defaultRule {
-		m.RLock()
+		m.mu.RLock()
 		r = m.Default
-		m.RUnlock()
+		m.mu.RUnlock()
 
 		// Update rule if already exists
 		if r != nil {
@@ -66,9 +66,9 @@ func (m *CentralizedManifest) putRule(svcRule *xraySvc.SamplingRule) (r *Central
 	}
 
 	// User-defined rule
-	m.RLock()
+	m.mu.RLock()
 	r, ok := m.Index[name]
-	m.RUnlock()
+	m.mu.RUnlock()
 
 	// Create rule if it does not exist
 	if !ok {
@@ -122,8 +122,8 @@ func (m *CentralizedManifest) createUserRule(svcRule *xraySvc.SamplingRule) *Cen
 		rand:        rand,
 	}
 
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	// Return early if rule already exists
 	if r, ok := m.Index[*svcRule.RuleName]; ok {
@@ -156,8 +156,8 @@ func (m *CentralizedManifest) updateUserRule(r *CentralizedRule, svcRule *xraySv
 
 	p, c := *svcRule.Priority, *svcRule.ReservoirSize
 
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	r.Properties = pr
 	r.priority = p
@@ -196,8 +196,8 @@ func (m *CentralizedManifest) createDefaultRule(svcRule *xraySvc.SamplingRule) *
 		rand:       rand,
 	}
 
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	// Return early if rule already exists
 	if d := m.Default; d != nil {
@@ -228,8 +228,8 @@ func (m *CentralizedManifest) updateDefaultRule(svcRule *xraySvc.SamplingRule) {
 
 	c := *svcRule.ReservoirSize
 
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	r.Properties = p
 	r.reservoir.capacity = c
@@ -238,8 +238,8 @@ func (m *CentralizedManifest) updateDefaultRule(svcRule *xraySvc.SamplingRule) {
 // prune removes all rules in the manifest not present in the given list of active rules.
 // Preserves ordering of sorted array.
 func (m *CentralizedManifest) prune(actives map[*CentralizedRule]bool) {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	// Iterate in reverse order to avoid adjusting index for each deleted rule
 	for i := len(m.Rules) - 1; i >= 0; i-- {
@@ -278,8 +278,8 @@ func (m *CentralizedManifest) sort() {
 		return m.Rules[i].priority < m.Rules[j].priority
 	}
 
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	sort.Slice(m.Rules, less)
 }
@@ -287,8 +287,8 @@ func (m *CentralizedManifest) sort() {
 // expired returns true if the manifest has not been successfully refreshed in
 // 'manifestTTL' seconds.
 func (m *CentralizedManifest) expired() bool {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
 	return m.refreshedAt < m.clock.Now().Unix()-manifestTTL
 }

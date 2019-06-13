@@ -53,7 +53,7 @@ type CentralizedStrategy struct {
 	// represents daemon endpoints
 	daemonEndpoints *daemoncfg.DaemonEndpoints
 
-	sync.RWMutex
+	mu sync.RWMutex
 }
 
 // svcProxy is the interface for API calls to X-Ray service.
@@ -157,9 +157,9 @@ func (ss *CentralizedStrategy) ShouldTrace(request *Request) *Decision {
 	// Match against known rules
 	for _, r := range ss.manifest.Rules {
 
-		r.RLock()
+		r.mu.RLock()
 		applicable := r.AppliesTo(request)
-		r.RUnlock()
+		r.mu.RUnlock()
 
 		if !applicable {
 			continue
@@ -185,7 +185,7 @@ func (ss *CentralizedStrategy) ShouldTrace(request *Request) *Decision {
 
 // start initiates rule and target pollers.
 func (ss *CentralizedStrategy) start() {
-	ss.Lock()
+	ss.mu.Lock()
 
 	if !ss.pollerStart {
 		var er error
@@ -199,7 +199,7 @@ func (ss *CentralizedStrategy) start() {
 
 	ss.pollerStart = true
 
-	ss.Unlock()
+	ss.mu.Unlock()
 }
 
 // startRulePoller starts rule poller.
@@ -494,8 +494,8 @@ func (ss *CentralizedStrategy) updateTarget(t *xraySvc.SamplingTargetDocument) (
 		return fmt.Errorf("rule %s not found", *t.RuleName)
 	}
 
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	r.reservoir.refreshedAt = ss.clock.Now().Unix()
 
