@@ -176,7 +176,7 @@ func (xt *HTTPSubsegments) GotConn(info *httptrace.GotConnInfo, err error) {
 func (xt *HTTPSubsegments) WroteRequest(info httptrace.WroteRequestInfo) {
 	xt.mu.Lock()
 	defer xt.mu.Unlock()
-	if xt.reqCtx != nil && GetSegment(xt.opCtx).InProgress {
+	if xt.reqCtx != nil && GetSegment(xt.opCtx).safeInProgress() {
 		GetSegment(xt.reqCtx).Close(info.Err)
 		resCtx, _ := BeginSubsegment(xt.opCtx, "response")
 		xt.responseCtx = resCtx
@@ -197,7 +197,7 @@ func (xt *HTTPSubsegments) GotFirstResponseByte() {
 	xt.mu.Lock()
 	defer xt.mu.Unlock()
 	resCtx := xt.responseCtx
-	if resCtx != nil && GetSegment(xt.opCtx).InProgress {
+	if resCtx != nil && GetSegment(xt.opCtx).safeInProgress() {
 		GetSegment(resCtx).Close(nil)
 	}
 }
