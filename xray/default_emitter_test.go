@@ -11,10 +11,11 @@ package xray
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNoNeedStreamingStrategy(t *testing.T) {

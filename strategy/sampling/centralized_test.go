@@ -966,7 +966,7 @@ func TestRefreshManifestRuleAddition(t *testing.T) {
 	assert.Equal(t, r2, ss.manifest.Rules[1])
 	assert.Equal(t, r3, ss.manifest.Rules[2])
 
-	// Assert on size of manfiest
+	// Assert on size of manifest
 	assert.Equal(t, 3, len(ss.manifest.Rules))
 	assert.Equal(t, 3, len(ss.manifest.Index))
 
@@ -2513,14 +2513,14 @@ A:
 			break A
 		default:
 			// Assert that rule was added to manifest and the timestamp refreshed
-			ss.manifest.Lock()
+			ss.manifest.mu.Lock()
 			if len(ss.manifest.Rules) == 1 &&
 				len(ss.manifest.Index) == 1 &&
 				ss.manifest.refreshedAt == 1500000000 {
-				ss.manifest.Unlock()
+				ss.manifest.mu.Unlock()
 				break A
 			}
-			ss.manifest.Unlock()
+			ss.manifest.mu.Unlock()
 		}
 	}
 }

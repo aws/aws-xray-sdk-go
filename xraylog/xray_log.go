@@ -61,7 +61,7 @@ func NewDefaultLogger(w io.Writer, minLogLevel LogLevel) Logger {
 }
 
 type defaultLogger struct {
-	mu sync.Mutex
+	mu       sync.Mutex
 	w        io.Writer
 	minLevel LogLevel
 }

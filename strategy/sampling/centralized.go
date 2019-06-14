@@ -53,7 +53,7 @@ type CentralizedStrategy struct {
 	// represents daemon endpoints
 	daemonEndpoints *daemoncfg.DaemonEndpoints
 
-	sync.RWMutex
+	mu sync.RWMutex
 }
 
 // svcProxy is the interface for API calls to X-Ray service.
@@ -151,15 +151,15 @@ func (ss *CentralizedStrategy) ShouldTrace(request *Request) *Decision {
 		return ss.fallback.ShouldTrace(request)
 	}
 
-	ss.manifest.RLock()
-	defer ss.manifest.RUnlock()
+	ss.manifest.mu.RLock()
+	defer ss.manifest.mu.RUnlock()
 
 	// Match against known rules
 	for _, r := range ss.manifest.Rules {
 
-		r.RLock()
+		r.mu.RLock()
 		applicable := r.AppliesTo(request)
-		r.RUnlock()
+		r.mu.RUnlock()
 
 		if !applicable {
 			continue
@@ -185,7 +185,7 @@ func (ss *CentralizedStrategy) ShouldTrace(request *Request) *Decision {
 
 // start initiates rule and target pollers.
 func (ss *CentralizedStrategy) start() {
-	ss.Lock()
+	ss.mu.Lock()
 
 	if !ss.pollerStart {
 		var er error
@@ -199,7 +199,7 @@ func (ss *CentralizedStrategy) start() {
 
 	ss.pollerStart = true
 
-	ss.Unlock()
+	ss.mu.Unlock()
 }
 
 // startRulePoller starts rule poller.
@@ -339,9 +339,9 @@ func (ss *CentralizedStrategy) refreshManifest() (err error) {
 	ss.manifest.sort()
 
 	// Update refreshedAt timestamp
-	ss.manifest.Lock()
+	ss.manifest.mu.Lock()
 	ss.manifest.refreshedAt = now
-	ss.manifest.Unlock()
+	ss.manifest.mu.Unlock()
 
 	return
 }
@@ -420,9 +420,9 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 
 	// Set refresh flag if modifiedAt timestamp from remote is greater than ours.
 	if remote := output.LastRuleModification; remote != nil {
-		ss.manifest.RLock()
+		ss.manifest.mu.RLock()
 		local := ss.manifest.refreshedAt
-		ss.manifest.RUnlock()
+		ss.manifest.mu.RUnlock()
 
 		if remote.Unix() >= local {
 			refresh = true
@@ -447,8 +447,8 @@ func (ss *CentralizedStrategy) snapshots() []*xraySvc.SamplingStatisticsDocument
 	statistics := make([]*xraySvc.SamplingStatisticsDocument, 0, len(ss.manifest.Rules)+1)
 	now := ss.clock.Now().Unix()
 
-	ss.manifest.RLock()
-	defer ss.manifest.RUnlock()
+	ss.manifest.mu.RLock()
+	defer ss.manifest.mu.RUnlock()
 
 	// Generate sampling statistics for user-defined rules
 	for _, r := range ss.manifest.Rules {
@@ -486,16 +486,16 @@ func (ss *CentralizedStrategy) updateTarget(t *xraySvc.SamplingTargetDocument) (
 	}
 
 	// Rule for given target
-	ss.manifest.RLock()
+	ss.manifest.mu.RLock()
 	r, ok := ss.manifest.Index[*t.RuleName]
-	ss.manifest.RUnlock()
+	ss.manifest.mu.RUnlock()
 
 	if !ok {
 		return fmt.Errorf("rule %s not found", *t.RuleName)
 	}
 
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	r.reservoir.refreshedAt = ss.clock.Now().Unix()
 

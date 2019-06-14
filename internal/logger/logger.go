@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-xray-sdk-go/xraylog"
 )
 
-// This internal pacakge hides the actual logging functions from the user.
+// This internal package hides the actual logging functions from the user.
 
 // The Logger instance used by xray to log. Set via xray.SetLogger().
 var Logger xraylog.Logger = xraylog.NewDefaultLogger(os.Stdout, xraylog.LogLevelInfo)

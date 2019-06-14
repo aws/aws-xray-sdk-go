@@ -39,7 +39,7 @@ func TestSubsegmentDataRace(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			ctx, seg := BeginSubsegment(ctx, "TestSubsegment1")
-			ctx, seg2 := BeginSubsegment(ctx, "TestSubsegment2")
+			_, seg2 := BeginSubsegment(ctx, "TestSubsegment2")
 			seg2.Close(nil)
 			seg.Close(nil)
 		}()
