@@ -215,14 +215,14 @@ import (
 func HandleRequest(ctx context.Context, name string) (string, error) {
 
     facadeSegmentName := "facade"
-    traceIDtr, isTraced := ctx.Value("x-amzn-trace-id").(string)
+    traceIDstr, isTraced := ctx.Value("x-amzn-trace-id").(string)
 
     msg := "Request not traced"
 
     if isTraced {
-        msg = fmt.Sprintf("request traced with %s", traceIDtr)
+        msg = fmt.Sprintf("request traced with %s", traceIDstr)
 
-        header := header.FromString(traceIDtr)
+        header := header.FromString(traceIDstr)
         newCtx, seg := xray.BeginFacadeSegment(ctx, facadeSegmentName, header)
         if seg == nil {
             return "error", fmt.Errorf("couldn't make segment")
