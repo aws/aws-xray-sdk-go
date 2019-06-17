@@ -212,7 +212,7 @@ import (
     "time"
 )
 
-func HandleRequest(ctx context.Context, name string) (string, error) {
+func HandleRequest(ctx context.Context, id int) (string, error) {
 
     facadeSegmentName := "facade"
     traceIDstr, isTraced := ctx.Value("x-amzn-trace-id").(string)
@@ -235,7 +235,6 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
         }
         defer db.Close()
 
-        id := 123
         var username string
         var created time.Time
         err = db.QueryRow(newCtx, "SELECT username, created_at FROM users WHERE id=?", id).Scan(&username, &created)
