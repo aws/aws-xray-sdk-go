@@ -199,6 +199,61 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
 }
 ```
 
+To use the xray calls directly with lambda - for use with sql for example - you must begin a new facade segment and use the resulting context in relevant context-enabled calls.
+
+```go
+package yourpkg
+
+import (
+    "context"
+    "fmt"
+    "github.com/aws/aws-xray-sdk-go/header"
+    "github.com/aws/aws-xray-sdk-go/xray"
+    "time"
+)
+
+func HandleRequest(ctx context.Context, name string) (string, error) {
+
+    facadeSegmentName := "facade"
+    traceIDtr, isTraced := ctx.Value("x-amzn-trace-id").(string)
+
+    msg := "Request not traced"
+
+    if isTraced {
+        msg = fmt.Sprintf("request traced with %s", traceIDtr)
+
+        header := header.FromString(traceIDtr)
+        newCtx, seg := xray.BeginFacadeSegment(ctx, facadeSegmentName, header)
+        if seg == nil {
+            return "error", fmt.Errorf("couldn't make segment")
+        }
+        defer seg.Close(nil)
+
+        db, err := xray.SQL("postgres", "postgres://user:password@host:port/db")
+        if err != nil {
+            return "error", err
+        }
+        defer db.Close()
+
+        id := 123
+        var username string
+        var created time.Time
+        err = db.QueryRow(newCtx, "SELECT username, created_at FROM users WHERE id=?", id).Scan(&username, &created)
+        if err != nil {
+            return "error", err
+        }
+
+        msg = fmt.Sprintf("%s: %s, %s", msg, username, created)
+
+    } else {
+      // open a regular connection
+    }
+
+    return msg, nil
+}
+```
+
+
 **Plugins**
 
 The plugins under "github.com/aws/aws-xray-sdk-go/plugins/" are activated at package load time. This can be convenient in some cases, but often you want to load them conditionally at runtime (e.g. don't load in tests). For this purpose, there is a new set of plugins under "github.com/aws/aws-xray-sdk-go/awsplugins/" that have an explicit `Init()` function you must call to load the plugin:
