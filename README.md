@@ -237,10 +237,18 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
     if err != nil {
         return name, err
     }
+    
     _, err = ctxhttp.Get(ctx, xray.Client(nil), "https://www.twitch.tv/")
     if err != nil {
         return name, err
     }
+    
+    _, subseg := xray.BeginSubsegment(ctx, "subsegment-name")
+    subseg.Close(nil)
+    
+    db := xray.SQL("postgres", "postgres://user:password@host:port/db")
+    row, _ := db.QueryRow(ctx, "SELECT 1")
+    
     return fmt.Sprintf("Hello %s!", name), nil
 }
 ```
