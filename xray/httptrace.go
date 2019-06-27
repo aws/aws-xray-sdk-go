@@ -148,7 +148,7 @@ func (xt *HTTPSubsegments) GotConn(info *httptrace.GotConnInfo, err error) {
 // WroteHeaders closes the request-headers subsegment if the HTTP operation
 // subsegment is still in progress.
 func (xt *HTTPSubsegments) WroteHeaders() {
-	if xt.reqHeadersCtx != nil && GetSegment(xt.opCtx).InProgress {
+	if xt.reqHeadersCtx != nil && GetSegment(xt.opCtx).safeInProgress {
 		GetSegment(xt.reqHeadersCtx).Close(nil)
 	}
 }
