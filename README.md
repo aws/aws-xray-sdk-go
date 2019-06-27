@@ -88,6 +88,54 @@ func init() {
   })
 }
 ```
+***Logger***
+
+xray uses an interface for its logger:
+
+```go
+type Logger interface {
+  Log(level LogLevel, msg fmt.Stringer)
+}
+
+const (
+  LogLevelDebug LogLevel = iota + 1
+  LogLevelInfo
+  LogLevelWarn
+  LogLevelError
+)
+```
+
+The default logger logs to [stdout](https://golang.org/pkg/syscall/#Stdout) at "info" and above. To change the logger, call `xray.SetLogger(myLogger)`. There is a default logger implementation that writes to an `io.Writer` from a specified minimum log level. For example, to log to stderr at "error" and above:
+
+```go
+xray.SetLogger(xraylog.NewDefaultLogger(os.Stderr, xraylog.LogLevelError))
+```
+
+Note that the `xray.Config{}` fields `LogLevel` and `LogFormat` are deprecated starting from version `1.0.0-rc.10` and no longer have any effect.
+
+***Plugins***
+
+The plugins under "github.com/aws/aws-xray-sdk-go/plugins/" are activated at package load time. This can be convenient in some cases, but often you want to load them conditionally at runtime (e.g. don't load in tests). For this purpose, there is a new set of plugins under "github.com/aws/aws-xray-sdk-go/awsplugins/" that have an explicit `Init()` function you must call to load the plugin:
+
+```go
+import (
+  "os"
+
+  "github.com/aws/aws-xray-sdk-go/awsplugins/ec2"
+  "github.com/aws/aws-xray-sdk-go/xray"
+)
+
+func init() {
+  // conditionally load plugin
+  if os.Getenv("ENVIRONMENT") == "production" {
+    ec2.Init()
+  }
+
+  xray.Configure(xray.Config{
+    ServiceVersion:   "1.2.3",
+  })
+}
+```
 
 **Start a custom segment/subsegment**
 
@@ -95,7 +143,7 @@ func init() {
   // Start a segment
   ctx, seg := xray.BeginSegment(context.Background(), "service-name")
   // Start a subsegment
-  ctx, subSeg := xray.BeginSubsegment(ctx, "subsegment-name")
+  subCtx, subSeg := xray.BeginSubsegment(ctx, "subsegment-name")
   // ...
   // Add metadata or annotation here if necessary
   // ...
@@ -170,8 +218,7 @@ func main() {
 For Lambda support use version v1.0.0-rc.1 and higher
 ```
 
-Use AWS X-Ray SDK for Go to generate custom subsegments inside AWS Lambda handler function.
-
+Regarding Lambda integration, lambda will be responsible for generating segments for customers and send them. AWS X-Ray Go SDK will make sure there will be a FacadeSegment inside lambda context so that customers are able to instrument their application successfully for subsegments generation case which including `Capture`, `HTTP Client`, `AWS`, `SQL` and `Custom Subsegments` usage.
 ```go
 func HandleRequest(ctx context.Context, name string) (string, error) {
     xray.Configure(xray.Config{LogLevel: "trace"})
@@ -194,59 +241,9 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
     if err != nil {
         return name, err
     }
-
     return fmt.Sprintf("Hello %s!", name), nil
 }
 ```
-
-**Plugins**
-
-The plugins under "github.com/aws/aws-xray-sdk-go/plugins/" are activated at package load time. This can be convenient in some cases, but often you want to load them conditionally at runtime (e.g. don't load in tests). For this purpose, there is a new set of plugins under "github.com/aws/aws-xray-sdk-go/awsplugins/" that have an explicit `Init()` function you must call to load the plugin:
-
-```go
-import (
-  "os"
-
-  "github.com/aws/aws-xray-sdk-go/awsplugins/ec2"
-  "github.com/aws/aws-xray-sdk-go/xray"
-)
-
-func init() {
-  // conditionally load plugin
-  if os.Getenv("ENVIRONMENT") == "production" {
-    ec2.Init()
-  }
-
-  xray.Configure(xray.Config{
-    ServiceVersion:   "1.2.3",
-  })
-}
-```
-
-**Logger**
-
-xray uses an interface for its logger:
-
-```go
-type Logger interface {
-  Log(level LogLevel, msg fmt.Stringer)
-}
-
-const (
-  LogLevelDebug LogLevel = iota + 1
-  LogLevelInfo
-  LogLevelWarn
-  LogLevelError
-)
-```
-
-The default logger logs to [stdout](https://golang.org/pkg/syscall/#Stdout) at "info" and above. To change the logger, call `xray.SetLogger(myLogger)`. There is a default logger implementation that writes to an `io.Writer` from a specified minimum log level. For example, to log to stderr at "error" and above:
-
-```go
-xray.SetLogger(xraylog.NewDefaultLogger(os.Stderr, xraylog.LogLevelError))
-```
-
-Note that the `xray.Config{}` fields `LogLevel` and `LogFormat` are deprecated and no longer have any effect.
 
 ## License
 
