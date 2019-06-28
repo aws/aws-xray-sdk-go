@@ -219,6 +219,8 @@ For Lambda support use version v1.0.0-rc.1 and higher
 ```
 
 Regarding Lambda integration, lambda will be responsible for generating segments for customers and send them. AWS X-Ray Go SDK will make sure there will be a FacadeSegment inside lambda context so that customers are able to instrument their application successfully for subsegments generation case which including `Capture`, `HTTP Client`, `AWS`, `SQL` and `Custom Subsegments` usage.
+
+Any operations regarding segment is not supported when using Lambda function.
 ```go
 func HandleRequest(ctx context.Context, name string) (string, error) {
     xray.Configure(xray.Config{LogLevel: "trace"})
