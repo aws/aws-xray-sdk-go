@@ -25,12 +25,6 @@ If you also want to install SDK's testing dependencies. They can be installed us
 go get -u -t github.com/aws/aws-xray-sdk-go/...
 ```
 
-You may also use [Glide](https://github.com/Masterminds/glide) to manage dependencies by using
-
-```
-glide install
-```
-
 ### Dep
 If you are using Go 1.9 and above, you can also use [Dep](https://github.com/golang/dep) to add the SDK to your application's dependencies.
 Using Dep will help your application stay pinned to a specific version of the SDK.
