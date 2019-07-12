@@ -447,6 +447,15 @@
           }
         }
       }
+    },
+    "sns": {
+      "operations": {
+        "Publish": {
+          "request_parameters": [
+            "TopicArn"
+          ]
+        }
+      }
     }
   }
 }
