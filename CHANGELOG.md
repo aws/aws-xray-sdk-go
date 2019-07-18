@@ -1,3 +1,18 @@
+Release v1.0.0-rc.13 (2019-07-18)
+================================
+### SDK New Features
+* Support capturing AWS SNS Topic ARN. [PR #132](https://github.com/aws/aws-xray-sdk-go/pull/132)
+* Add `xray.AWSSession` to install handlers on session. [PR #97](https://github.com/aws/aws-xray-sdk-go/pull/97)
+
+### SDK Breaking Changes
+* Remove Glide(dependency management tool) support. [PR #129](https://github.com/aws/aws-xray-sdk-go/pull/129)
+
+### SDK Enhancements
+* Update README regarding Lambda use cases. [PR #128](https://github.com/aws/aws-xray-sdk-go/pull/128)
+* Fix a bug to close in_progress response subsegment. [PR #125](https://github.com/aws/aws-xray-sdk-go/pull/125)
+* Move mutex to private member for sampling. [PR #123](https://github.com/aws/aws-xray-sdk-go/pull/123)
+* Fix format after running Lints. [PR #117](https://github.com/aws/aws-xray-sdk-go/pull/117)
+
 Release v1.0.0-rc.12 (2019-06-11)
 ================================
 ### SDK Breaking Changes
