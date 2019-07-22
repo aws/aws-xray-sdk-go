@@ -39,7 +39,8 @@ func SQL(driver, dsn string) (*DB, error) {
 	}
 	// Here we're trying to detect things like `host:port/database` as a URL, which is pretty hard
 	// So we just assume that if it's got a scheme, a user, or a query that it's probably a URL
-	if u, err := url.Parse(urlDsn); err == nil && (u.Scheme != "" || u.User != nil || u.RawQuery != "" || strings.Contains(u.Path, "@")) {
+        u, err := url.Parse(urlDsn)
+	if err == nil && (u.Scheme != "" || u.User != nil || u.RawQuery != "" || strings.Contains(u.Path, "@")) {
 		// Check that this isn't in the form of user/pass@host:port/db, as that will shove the host into the path
 		if strings.Contains(u.Path, "@") {
 			u, err = url.Parse(fmt.Sprintf("%s//%s%%2F%s", u.Scheme, u.Host, u.Path[1:]))
@@ -70,6 +71,12 @@ func SQL(driver, dsn string) (*DB, error) {
 		db.url = u.String()
 		if !strings.Contains(dsn, "//") {
 			db.url = db.url[2:]
+		}
+	} else if err != nil && strings.Contains(err.Error(), "net/url: invalid userinfo") {
+		i := strings.LastIndex(urlDsn, "@")
+		if i > 0 {
+			host := urlDsn[i+1:]
+			db.connectionString = host
 		}
 	} else {
 		// We don't *think* it's a URL, so now we have to try our best to strip passwords from

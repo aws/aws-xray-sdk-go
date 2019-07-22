@@ -122,6 +122,26 @@ func (s *sqlTestSuite) TestPasswordURLSchemaless() {
 	s.Equal("user@host:port/database", s.db.url)
 }
 
+func (s *sqlTestSuite) TestPasswordURLSchemalessWithProtocol() {
+	s.mockDB("mysql://user:password@tcp(host:port)/database?parseTime=true")
+	s.mockPSQL(nil)
+	s.connect()
+ 
+	s.Require().NoError(s.mock.ExpectationsWereMet())
+	s.Equal("", s.db.connectionString)
+	s.Equal("mysql://user@tcp(host:port)/database?parseTime=true", s.db.url)
+}
+ 
+func (s *sqlTestSuite) TestInValidUserInfoURLSchemaless() {
+	s.mockDB("mysql://user:passwo[]rd@tcp(host:port)/database?parseTime=true")
+	s.mockPSQL(nil)
+	s.connect()
+ 
+	s.Require().NoError(s.mock.ExpectationsWereMet())
+	s.Equal("tcp(host:port)/database?parseTime=true", s.db.connectionString)
+	s.Equal("", s.db.url)
+}
+
 func (s *sqlTestSuite) TestPasswordURLSchemalessUserlessQuery() {
 	s.mockDB("host:port/database?password=password")
 	s.mockPSQL(nil)
