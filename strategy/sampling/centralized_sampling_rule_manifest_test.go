@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	xraySvc "github.com/aws/aws-sdk-go/service/xray"
+	xraySvc "github.com/aws/aws-sdk-go-v2/service/xray"
 	"github.com/aws/aws-xray-sdk-go/utils"
 )
 
@@ -224,7 +224,7 @@ func TestUpdateDefaultRule(t *testing.T) {
 func TestCreateUserRuleNoOp(t *testing.T) {
 	resARN := "*"
 	serviceTye := ""
-	attributes := make(map[string]*string)
+	attributes := make(map[string]string)
 	r1 := &CentralizedRule{
 		ruleName: "r1",
 		priority: 5,
@@ -287,7 +287,7 @@ func TestCreateUserRuleNoOp(t *testing.T) {
 func TestUpdateUserRule(t *testing.T) {
 	resARN := "*"
 	serviceTye := ""
-	attributes := make(map[string]*string)
+	attributes := make(map[string]string)
 	// Original rule
 	r1 := &CentralizedRule{
 		ruleName: "r1",
@@ -383,7 +383,7 @@ func TestUpdateUserRule(t *testing.T) {
 func TestPutRuleRecovery(t *testing.T) {
 	resARN := "*"
 	serviceTye := ""
-	attributes := make(map[string]*string)
+	attributes := make(map[string]string)
 	rules := []*CentralizedRule{}
 
 	index := map[string]*CentralizedRule{}

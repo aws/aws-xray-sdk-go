@@ -22,7 +22,7 @@ import (
 
 	"github.com/aws/aws-xray-sdk-go/utils"
 
-	xraySvc "github.com/aws/aws-sdk-go/service/xray"
+	xraySvc "github.com/aws/aws-sdk-go-v2/service/xray"
 )
 
 // CentralizedStrategy is an implementation of SamplingStrategy. It
@@ -58,8 +58,8 @@ type CentralizedStrategy struct {
 
 // svcProxy is the interface for API calls to X-Ray service.
 type svcProxy interface {
-	GetSamplingTargets(s []*xraySvc.SamplingStatisticsDocument) (*xraySvc.GetSamplingTargetsOutput, error)
-	GetSamplingRules() ([]*xraySvc.SamplingRuleRecord, error)
+	GetSamplingTargets(s []xraySvc.SamplingStatisticsDocument) (*xraySvc.GetSamplingTargetsOutput, error)
+	GetSamplingRules() ([]xraySvc.SamplingRuleRecord, error)
 }
 
 // NewCentralizedStrategy creates a centralized sampling strategy with a fallback on
@@ -380,7 +380,7 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 
 	// Update sampling targets
 	for _, t := range output.SamplingTargetDocuments {
-		if err = ss.updateTarget(t); err != nil {
+		if err = ss.updateTarget(&t); err != nil {
 			failed = true
 			logger.Debugf("Error occurred updating target for rule. %v", err)
 		}
@@ -443,8 +443,8 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 
 // samplingStatistics takes a snapshot of sampling statistics from all rules, resetting
 // statistics counters in the process.
-func (ss *CentralizedStrategy) snapshots() []*xraySvc.SamplingStatisticsDocument {
-	statistics := make([]*xraySvc.SamplingStatisticsDocument, 0, len(ss.manifest.Rules)+1)
+func (ss *CentralizedStrategy) snapshots() []xraySvc.SamplingStatisticsDocument {
+	statistics := make([]xraySvc.SamplingStatisticsDocument, 0, len(ss.manifest.Rules)+1)
 	now := ss.clock.Now().Unix()
 
 	ss.manifest.mu.RLock()

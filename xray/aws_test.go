@@ -3,14 +3,13 @@ package xray
 import (
 	"context"
 	"encoding/json"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/defaults"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +17,7 @@ func TestAWS(t *testing.T) {
 	// Runs a suite of tests against two different methods of registering
 	// handlers on an AWS client.
 
-	type test func(*testing.T, *lambda.Lambda)
+	type test func(*testing.T, *lambda.Client)
 	tests := []struct {
 		name     string
 		test     test
@@ -29,37 +28,37 @@ func TestAWS(t *testing.T) {
 		{"without segment", testClientWithoutSegment, false},
 	}
 
-	onClient := func(s *session.Session) *lambda.Lambda {
+	onClient := func(s aws.Config) *lambda.Client {
 		svc := lambda.New(s)
 		AWS(svc.Client)
 		return svc
 	}
 
-	onSession := func(s *session.Session) *lambda.Lambda {
-		return lambda.New(AWSSession(s))
+	onConfig := func(s aws.Config) *lambda.Client {
+		return lambda.New(AWSConfig(s))
 	}
 
 	const whitelist = "../resources/AWSWhitelist.json"
 
-	onClientWithWhitelist := func(s *session.Session) *lambda.Lambda {
+	onClientWithWhitelist := func(s aws.Config) *lambda.Client {
 		svc := lambda.New(s)
 		AWSWithWhitelist(svc.Client, whitelist)
 		return svc
 	}
 
-	onSessionWithWhitelist := func(s *session.Session) *lambda.Lambda {
-		return lambda.New(AWSSessionWithWhitelist(s, whitelist))
+	onConfigWithWhitelist := func(s aws.Config) *lambda.Client {
+		return lambda.New(AWSConfigWithWhitelist(s, whitelist))
 	}
 
-	type constructor func(*session.Session) *lambda.Lambda
+	type constructor func(aws.Config) *lambda.Client
 	constructors := []struct {
 		name        string
 		constructor constructor
 	}{
 		{"AWS()", onClient},
-		{"AWSSession()", onSession},
+		{"AWSConfig()", onConfig},
 		{"AWSWithWhitelist()", onClientWithWhitelist},
-		{"AWSSessionWithWhitelist()", onSessionWithWhitelist},
+		{"AWSConfigWithWhitelist()", onConfigWithWhitelist},
 	}
 
 	// Run all combinations of constructors + tests.
@@ -74,27 +73,28 @@ func TestAWS(t *testing.T) {
 	}
 }
 
-func fakeSession(t *testing.T, failConn bool) *session.Session {
-	cfg := &aws.Config{
-		Region:      aws.String("fake-moon-1"),
-		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop"),
-	}
+func fakeSession(t *testing.T, failConn bool) aws.Config {
+	cfg := defaults.Config()
+	cfg.Region = "fake-moon-1"
+	cfg.Credentials = aws.NewStaticCredentialsProvider("akid", "secret", "noop")
+	cfg.Retryer = aws.DefaultRetryer{}
+
 	if !failConn {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			b := []byte(`{}`)
 			w.WriteHeader(http.StatusOK)
 			w.Write(b)
 		}))
-		cfg.Endpoint = aws.String(ts.URL)
+		cfg.EndpointResolver = aws.ResolveWithEndpointURL(ts.URL)
+	} else {
+		cfg.EndpointResolver = aws.ResolveWithEndpointURL("https://fake-moon-1.amazonaws.com")
 	}
-	s, err := session.NewSession(cfg)
-	assert.NoError(t, err)
-	return s
+	return cfg
 }
 
-func testClientSuccessfulConnection(t *testing.T, svc *lambda.Lambda) {
+func testClientSuccessfulConnection(t *testing.T, svc *lambda.Client) {
 	ctx, root := BeginSegment(context.Background(), "Test")
-	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
+	_, err := svc.ListFunctionsRequest(&lambda.ListFunctionsInput{}).Send(ctx)
 	root.Close(nil)
 	assert.NoError(t, err)
 
@@ -140,9 +140,9 @@ func testClientSuccessfulConnection(t *testing.T, svc *lambda.Lambda) {
 	}
 }
 
-func testClientFailedConnection(t *testing.T, svc *lambda.Lambda) {
+func testClientFailedConnection(t *testing.T, svc *lambda.Client) {
 	ctx, root := BeginSegment(context.Background(), "Test")
-	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
+	_, err := svc.ListFunctionsRequest(&lambda.ListFunctionsInput{}).Send(ctx)
 	root.Close(nil)
 	assert.Error(t, err)
 
@@ -153,8 +153,8 @@ func testClientFailedConnection(t *testing.T, svc *lambda.Lambda) {
 	assert.NotEmpty(t, s.Subsegments)
 	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
 	assert.True(t, subseg.Fault)
-	// Should contain 'marshal' and 'attempt' subsegments only.
-	assert.Len(t, subseg.Subsegments, 2)
+	// Should contain 'marshal', 'attempt' and 'wait' (for retries) subsegments only.
+	assert.Len(t, subseg.Subsegments, 3)
 
 	attemptSubseg := &Segment{}
 	assert.NoError(t, json.Unmarshal(subseg.Subsegments[1], &attemptSubseg))
@@ -173,11 +173,11 @@ func testClientFailedConnection(t *testing.T, svc *lambda.Lambda) {
 	assert.NotEmpty(t, connectSubseg.Subsegments)
 }
 
-func testClientWithoutSegment(t *testing.T, svc *lambda.Lambda) {
+func testClientWithoutSegment(t *testing.T, svc *lambda.Client) {
 	Configure(Config{ContextMissingStrategy: &TestContextMissingStrategy{}})
 	defer ResetConfig()
 
 	ctx := context.Background()
-	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
+	_, err := svc.ListFunctionsRequest(&lambda.ListFunctionsInput{}).Send(ctx)
 	assert.NoError(t, err)
 }

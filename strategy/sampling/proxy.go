@@ -9,12 +9,10 @@
 package sampling
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	xraySvc "github.com/aws/aws-sdk-go/service/xray"
+	"context"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/defaults"
+	xraySvc "github.com/aws/aws-sdk-go-v2/service/xray"
 	"github.com/aws/aws-xray-sdk-go/daemoncfg"
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 )
@@ -22,7 +20,7 @@ import (
 // proxy is an implementation of svcProxy that forwards requests to the XRay daemon
 type proxy struct {
 	// XRay client for sending unsigned proxied requests to the daemon
-	xray *xraySvc.XRay
+	xray *xraySvc.Client
 }
 
 // NewProxy returns a Proxy
@@ -34,29 +32,17 @@ func newProxy(d *daemoncfg.DaemonEndpoints) (svcProxy, error) {
 	logger.Infof("X-Ray proxy using address : %v", d.TCPAddr.String())
 	url := "http://" + d.TCPAddr.String()
 
-	// Endpoint resolver for proxying requests through the daemon
-	f := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
-		return endpoints.ResolvedEndpoint{
-			URL: url,
-		}, nil
-	}
-
 	// Dummy session for unsigned requests
-	sess, err := session.NewSession(&aws.Config{
-		Region:           aws.String("us-west-1"),
-		Credentials:      credentials.NewStaticCredentials("", "", ""),
-		EndpointResolver: endpoints.ResolverFunc(f),
-	})
+	cfg := defaults.Config()
+	cfg.Region = "us-west-1"
+	cfg.Credentials = aws.NewStaticCredentialsProvider("", "", "")
+	// Endpoint resolver for proxying requests through the daemon
+	cfg.EndpointResolver = aws.ResolveWithEndpointURL(url)
 
-	if err != nil {
-		return nil, err
-	}
-
-	x := xraySvc.New(sess)
-
+	x := xraySvc.New(cfg)
 	// Remove Signer and replace with No-Op handler
 	x.Handlers.Sign.Clear()
-	x.Handlers.Sign.PushBack(func(*request.Request) {
+	x.Handlers.Sign.PushBack(func(request *aws.Request) {
 		// Do nothing
 	})
 
@@ -66,24 +52,24 @@ func newProxy(d *daemoncfg.DaemonEndpoints) (svcProxy, error) {
 }
 
 // GetSamplingTargets calls the XRay daemon for sampling targets
-func (p *proxy) GetSamplingTargets(s []*xraySvc.SamplingStatisticsDocument) (*xraySvc.GetSamplingTargetsOutput, error) {
+func (p *proxy) GetSamplingTargets(s []xraySvc.SamplingStatisticsDocument) (*xraySvc.GetSamplingTargetsOutput, error) {
 	input := &xraySvc.GetSamplingTargetsInput{
 		SamplingStatisticsDocuments: s,
 	}
 
-	output, err := p.xray.GetSamplingTargets(input)
+	output, err := p.xray.GetSamplingTargetsRequest(input).Send(context.TODO())
 	if err != nil {
 		return nil, err
 	}
 
-	return output, nil
+	return output.GetSamplingTargetsOutput, nil
 }
 
 // GetSamplingRules calls the XRay daemon for sampling rules
-func (p *proxy) GetSamplingRules() ([]*xraySvc.SamplingRuleRecord, error) {
+func (p *proxy) GetSamplingRules() ([]xraySvc.SamplingRuleRecord, error) {
 	input := &xraySvc.GetSamplingRulesInput{}
 
-	output, err := p.xray.GetSamplingRules(input)
+	output, err := p.xray.GetSamplingRulesRequest(input).Send(context.TODO())
 	if err != nil {
 		return nil, err
 	}

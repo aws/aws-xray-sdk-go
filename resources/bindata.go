@@ -85,7 +85,7 @@ func resourcesAwswhitelistJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "resources/AWSWhitelist.json", size: 11016, mode: os.FileMode(420), modTime: time.Unix(1562887628, 0)}
+	info := bindataFileInfo{name: "resources/AWSWhitelist.json", size: 11016, mode: os.FileMode(420), modTime: time.Unix(1564604994, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -105,7 +105,7 @@ func resourcesDefaultsamplingrulesJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "resources/DefaultSamplingRules.json", size: 97, mode: os.FileMode(420), modTime: time.Unix(1562887430, 0)}
+	info := bindataFileInfo{name: "resources/DefaultSamplingRules.json", size: 97, mode: os.FileMode(420), modTime: time.Unix(1564604994, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -125,7 +125,7 @@ func resourcesExamplesamplingrulesJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "resources/ExampleSamplingRules.json", size: 609, mode: os.FileMode(420), modTime: time.Unix(1562887430, 0)}
+	info := bindataFileInfo{name: "resources/ExampleSamplingRules.json", size: 609, mode: os.FileMode(420), modTime: time.Unix(1564604994, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

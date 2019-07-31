@@ -9,8 +9,8 @@
 package ec2
 
 import (
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws/defaults"
+	"github.com/aws/aws-sdk-go-v2/aws/ec2metadata"
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
 )
@@ -24,12 +24,7 @@ func Init() {
 }
 
 func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
-	session, e := session.NewSession()
-	if e != nil {
-		logger.Errorf("Unable to create a new ec2 session: %v", e)
-		return
-	}
-	client := ec2metadata.New(session)
+	client := ec2metadata.New(defaults.Config())
 	doc, err := client.GetInstanceIdentityDocument()
 	if err != nil {
 		logger.Errorf("Unable to read EC2 instance metadata: %v", err)

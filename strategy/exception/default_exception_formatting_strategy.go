@@ -12,10 +12,10 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws/awserr"
 	"runtime"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/pkg/errors"
 )
 

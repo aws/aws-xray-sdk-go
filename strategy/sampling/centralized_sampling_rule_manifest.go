@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	xraySvc "github.com/aws/aws-sdk-go/service/xray"
+	xraySvc "github.com/aws/aws-sdk-go-v2/service/xray"
 	"github.com/aws/aws-xray-sdk-go/utils"
 )
 

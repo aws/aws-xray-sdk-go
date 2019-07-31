@@ -13,15 +13,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"io/ioutil"
 	"net/http/httptrace"
 	"reflect"
 	"strings"
 	"unicode"
 
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/resources"
 )
@@ -40,12 +38,12 @@ const (
 	responseKeyword
 )
 
-func beginSubsegment(r *request.Request, name string) {
+func beginSubsegment(r *aws.Request, name string) {
 	ctx, _ := BeginSubsegment(r.HTTPRequest.Context(), name)
 	r.HTTPRequest = r.HTTPRequest.WithContext(ctx)
 }
 
-func endSubsegment(r *request.Request) {
+func endSubsegment(r *aws.Request) {
 	seg := GetSegment(r.HTTPRequest.Context())
 	if seg == nil {
 		return
@@ -54,10 +52,10 @@ func endSubsegment(r *request.Request) {
 	r.HTTPRequest = r.HTTPRequest.WithContext(context.WithValue(r.HTTPRequest.Context(), ContextKey, seg.parent))
 }
 
-var xRayBeforeValidateHandler = request.NamedHandler{
+var xRayBeforeValidateHandler = aws.NamedHandler{
 	Name: "XRayBeforeValidateHandler",
-	Fn: func(r *request.Request) {
-		ctx, opseg := BeginSubsegment(r.HTTPRequest.Context(), r.ClientInfo.ServiceName)
+	Fn: func(r *aws.Request) {
+		ctx, opseg := BeginSubsegment(r.HTTPRequest.Context(), r.Metadata.ServiceName)
 		if opseg == nil {
 			return
 		}
@@ -69,16 +67,16 @@ var xRayBeforeValidateHandler = request.NamedHandler{
 	},
 }
 
-var xRayAfterBuildHandler = request.NamedHandler{
+var xRayAfterBuildHandler = aws.NamedHandler{
 	Name: "XRayAfterBuildHandler",
-	Fn: func(r *request.Request) {
+	Fn: func(r *aws.Request) {
 		endSubsegment(r)
 	},
 }
 
-var xRayBeforeSignHandler = request.NamedHandler{
+var xRayBeforeSignHandler = aws.NamedHandler{
 	Name: "XRayBeforeSignHandler",
-	Fn: func(r *request.Request) {
+	Fn: func(r *aws.Request) {
 		ctx, seg := BeginSubsegment(r.HTTPRequest.Context(), "attempt")
 		if seg == nil {
 			return
@@ -88,9 +86,9 @@ var xRayBeforeSignHandler = request.NamedHandler{
 	},
 }
 
-var xRayAfterSendHandler = request.NamedHandler{
+var xRayAfterSendHandler = aws.NamedHandler{
 	Name: "XRayAfterSendHandler",
-	Fn: func(r *request.Request) {
+	Fn: func(r *aws.Request) {
 		curseg := GetSegment(r.HTTPRequest.Context())
 
 		if curseg != nil && curseg.Name == "attempt" {
@@ -106,24 +104,24 @@ var xRayAfterSendHandler = request.NamedHandler{
 	},
 }
 
-var xRayBeforeUnmarshalHandler = request.NamedHandler{
+var xRayBeforeUnmarshalHandler = aws.NamedHandler{
 	Name: "XRayBeforeUnmarshalHandler",
-	Fn: func(r *request.Request) {
+	Fn: func(r *aws.Request) {
 		endSubsegment(r) // end attempt subsegment
 		beginSubsegment(r, "unmarshal")
 	},
 }
 
-var xRayAfterUnmarshalHandler = request.NamedHandler{
+var xRayAfterUnmarshalHandler = aws.NamedHandler{
 	Name: "XRayAfterUnmarshalHandler",
-	Fn: func(r *request.Request) {
+	Fn: func(r *aws.Request) {
 		endSubsegment(r)
 	},
 }
 
-var xRayBeforeRetryHandler = request.NamedHandler{
+var xRayBeforeRetryHandler = aws.NamedHandler{
 	Name: "XRayBeforeRetryHandler",
-	Fn: func(r *request.Request) {
+	Fn: func(r *aws.Request) {
 		endSubsegment(r) // end attempt subsegment
 		ctx, _ := BeginSubsegment(r.HTTPRequest.Context(), "wait")
 
@@ -131,14 +129,14 @@ var xRayBeforeRetryHandler = request.NamedHandler{
 	},
 }
 
-var xRayAfterRetryHandler = request.NamedHandler{
+var xRayAfterRetryHandler = aws.NamedHandler{
 	Name: "XRayAfterRetryHandler",
-	Fn: func(r *request.Request) {
+	Fn: func(r *aws.Request) {
 		endSubsegment(r)
 	},
 }
 
-func pushHandlers(handlers *request.Handlers, completionWhitelistFilename string) {
+func pushHandlers(handlers *aws.Handlers, completionWhitelistFilename string) {
 	handlers.Validate.PushFrontNamed(xRayBeforeValidateHandler)
 	handlers.Build.PushBackNamed(xRayAfterBuildHandler)
 	handlers.Sign.PushFrontNamed(xRayBeforeSignHandler)
@@ -151,7 +149,7 @@ func pushHandlers(handlers *request.Handlers, completionWhitelistFilename string
 }
 
 // AWS adds X-Ray tracing to an AWS client.
-func AWS(c *client.Client) {
+func AWS(c *aws.Client) {
 	if c == nil {
 		panic("Please initialize the provided AWS client before passing to the AWS() method.")
 	}
@@ -159,7 +157,7 @@ func AWS(c *client.Client) {
 }
 
 // AWSWithWhitelist allows a custom parameter whitelist JSON file to be defined.
-func AWSWithWhitelist(c *client.Client, filename string) {
+func AWSWithWhitelist(c *aws.Client, filename string) {
 	if c == nil {
 		panic("Please initialize the provided AWS client before passing to the AWSWithWhitelist() method.")
 	}
@@ -168,19 +166,21 @@ func AWSWithWhitelist(c *client.Client, filename string) {
 
 // AWSSession adds X-Ray tracing to an AWS session. Clients created under this
 // session will inherit X-Ray tracing.
-func AWSSession(s *session.Session) *session.Session {
-	pushHandlers(&s.Handlers, "")
-	return s
+func AWSConfig(s aws.Config) aws.Config {
+	res := s
+	pushHandlers(&res.Handlers, "")
+	return res
 }
 
 // AWSSessionWithWhitelist allows a custom parameter whitelist JSON file to be
 // defined.
-func AWSSessionWithWhitelist(s *session.Session, filename string) *session.Session {
-	pushHandlers(&s.Handlers, filename)
-	return s
+func AWSConfigWithWhitelist(s aws.Config, filename string) aws.Config {
+	res := s
+	pushHandlers(&res.Handlers, filename)
+	return res
 }
 
-func xrayCompleteHandler(filename string) request.NamedHandler {
+func xrayCompleteHandler(filename string) aws.NamedHandler {
 	whitelistJSON := parseWhitelistJSON(filename)
 	whitelist := &jsonMap{}
 	err := json.Unmarshal(whitelistJSON, &whitelist.object)
@@ -188,9 +188,9 @@ func xrayCompleteHandler(filename string) request.NamedHandler {
 		panic(err)
 	}
 
-	return request.NamedHandler{
+	return aws.NamedHandler{
 		Name: "XRayCompleteHandler",
-		Fn: func(r *request.Request) {
+		Fn: func(r *aws.Request) {
 			curseg := GetSegment(r.HTTPRequest.Context())
 
 			for curseg != nil && curseg.Namespace != "aws" {
@@ -211,7 +211,7 @@ func xrayCompleteHandler(filename string) request.NamedHandler {
 				opseg.GetAWS()[strings.ToLower(addUnderScoreBetweenWords(k))] = v
 			}
 
-			opseg.GetAWS()["region"] = r.ClientInfo.SigningRegion
+			opseg.GetAWS()["region"] = r.Metadata.SigningRegion
 			opseg.GetAWS()["operation"] = r.Operation.Name
 			opseg.GetAWS()["retries"] = r.RetryCount
 			opseg.GetAWS()[RequestIDKey] = r.RequestID
@@ -225,7 +225,7 @@ func xrayCompleteHandler(filename string) request.NamedHandler {
 				}
 			}
 
-			if request.IsErrorThrottle(r.Error) {
+			if aws.IsErrorThrottle(r.Error) {
 				opseg.Throttle = true
 			}
 
@@ -317,7 +317,7 @@ func (j *jsonMap) childrenMap() (map[string]interface{}, error) {
 	return nil, errors.New("cannot get corresponding items for given aws whitelisting json file")
 }
 
-func extractRequestParameters(r *request.Request, whitelist *jsonMap) map[string]interface{} {
+func extractRequestParameters(r *aws.Request, whitelist *jsonMap) map[string]interface{} {
 	valueMap := make(map[string]interface{})
 
 	extractParameters("request_parameters", requestKeyword, r, whitelist, valueMap)
@@ -326,7 +326,7 @@ func extractRequestParameters(r *request.Request, whitelist *jsonMap) map[string
 	return valueMap
 }
 
-func extractResponseParameters(r *request.Request, whitelist *jsonMap) map[string]interface{} {
+func extractResponseParameters(r *aws.Request, whitelist *jsonMap) map[string]interface{} {
 	valueMap := make(map[string]interface{})
 
 	extractParameters("response_parameters", responseKeyword, r, whitelist, valueMap)
@@ -335,8 +335,8 @@ func extractResponseParameters(r *request.Request, whitelist *jsonMap) map[strin
 	return valueMap
 }
 
-func extractParameters(whitelistKey string, rType int, r *request.Request, whitelist *jsonMap, valueMap map[string]interface{}) {
-	params := whitelist.search("services", r.ClientInfo.ServiceName, "operations", r.Operation.Name, whitelistKey)
+func extractParameters(whitelistKey string, rType int, r *aws.Request, whitelist *jsonMap, valueMap map[string]interface{}) {
+	params := whitelist.search("services", r.Metadata.ServiceName, "operations", r.Operation.Name, whitelistKey)
 	if params != nil {
 		children, err := params.children()
 		if err != nil {
@@ -359,8 +359,8 @@ func extractParameters(whitelistKey string, rType int, r *request.Request, white
 	}
 }
 
-func extractDescriptors(whitelistKey string, rType int, r *request.Request, whitelist *jsonMap, valueMap map[string]interface{}) {
-	responseDtr := whitelist.search("services", r.ClientInfo.ServiceName, "operations", r.Operation.Name, whitelistKey)
+func extractDescriptors(whitelistKey string, rType int, r *aws.Request, whitelist *jsonMap, valueMap map[string]interface{}) {
+	responseDtr := whitelist.search("services", r.Metadata.ServiceName, "operations", r.Operation.Name, whitelistKey)
 	if responseDtr != nil {
 		items, err := responseDtr.childrenMap()
 		if err != nil {
@@ -368,7 +368,7 @@ func extractDescriptors(whitelistKey string, rType int, r *request.Request, whit
 			return
 		}
 		for k := range items {
-			descriptorMap, _ := whitelist.search("services", r.ClientInfo.ServiceName, "operations", r.Operation.Name, whitelistKey, k).childrenMap()
+			descriptorMap, _ := whitelist.search("services", r.Metadata.ServiceName, "operations", r.Operation.Name, whitelistKey, k).childrenMap()
 			if rType == requestKeyword {
 				insertDescriptorValuesIntoMap(k, r.Params, descriptorMap, valueMap)
 			} else if rType == responseKeyword {
