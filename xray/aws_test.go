@@ -205,7 +205,6 @@ func testAWSDataRace(t *testing.T, svc *lambda.Lambda) {
 				defer wg.Done()
 			}
 			_, seg := BeginSubsegment(ctx, "TestSubsegment1")
-			time.Sleep(1)
 			seg.Close(nil)
 			svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 			if i== 3 || i==2{
