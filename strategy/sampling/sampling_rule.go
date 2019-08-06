@@ -92,8 +92,8 @@ type CentralizedRule struct {
 
 // stale returns true if the quota is due for a refresh. False otherwise.
 func (r *CentralizedRule) stale(now int64) bool {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
 	return r.requests != 0 && now >= r.reservoir.refreshedAt+r.reservoir.interval
 }

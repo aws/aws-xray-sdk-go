@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -27,6 +29,7 @@ func TestAWS(t *testing.T) {
 		{"failed connection", testClientFailedConnection, true},
 		{"successful connection", testClientSuccessfulConnection, false},
 		{"without segment", testClientWithoutSegment, false},
+		{"test data race", testAWSDataRace, false},
 	}
 
 	onClient := func(s *session.Session) *lambda.Lambda {
@@ -180,4 +183,37 @@ func testClientWithoutSegment(t *testing.T, svc *lambda.Lambda) {
 	ctx := context.Background()
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	assert.NoError(t, err)
+}
+
+func testAWSDataRace(t *testing.T, svc *lambda.Lambda) {
+	Configure(Config{ContextMissingStrategy: &TestContextMissingStrategy{},DaemonAddr: "localhost:3000"})
+	defer ResetConfig()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	ctx, seg := BeginSegment(ctx, "TestSegment")
+
+	wg := sync.WaitGroup{}
+
+	for i := 0; i < 5; i++ {
+		if i!=3 && i!=2{
+			wg.Add(1)
+		}
+		go func(i int) {
+			if i!=3 && i!=2{
+				time.Sleep(1)
+				defer wg.Done()
+			}
+			_, seg := BeginSubsegment(ctx, "TestSubsegment1")
+			time.Sleep(1)
+			seg.Close(nil)
+			svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
+			if i== 3 || i==2{
+				cancel() // cancel context
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	seg.Close(nil)
 }

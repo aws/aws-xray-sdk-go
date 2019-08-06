@@ -98,17 +98,22 @@ func packSegments(seg *Segment, outSegments [][]byte) [][]byte {
 			cb := ss.StreamCompletedSubsegments(s)
 			outSegments = append(outSegments, cb...)
 		}
-		b, _ := json.Marshal(s)
+		b, err := json.Marshal(s)
+		if err != nil {
+			logger.Errorf("JSON error while marshalling (Sub)Segment: %v", err)
+		}
 		return b
 	}
 
 	for _, s := range seg.rawSubsegments {
+		s.Lock()
 		outSegments = packSegments(s, outSegments)
 		if b := trimSubsegment(s); b != nil {
 			seg.Subsegments = append(seg.Subsegments, b)
 		}
+		s.Unlock()
 	}
-	if seg.parent == nil {
+	if seg.isOrphan() {
 		if b := trimSubsegment(seg); b != nil {
 			outSegments = append(outSegments, b)
 		}

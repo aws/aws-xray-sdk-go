@@ -12,6 +12,7 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
 )
@@ -45,6 +46,32 @@ func TestSubsegmentDataRace(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func TestSubsegmentDataRaceWithContextCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	ctx, seg := BeginSegment(ctx, "TestSegment")
+
+	wg := sync.WaitGroup{}
+
+	for i := 0; i < 4; i++ {
+		if i!=3{
+			wg.Add(1)
+		}
+		go func(i int) {
+			if i!=3{
+				time.Sleep(1)
+				defer wg.Done()
+			}
+			_, seg := BeginSubsegment(ctx, "TestSubsegment1")
+			seg.Close(nil)
+			if i== 3{
+				cancel() // Context is cancelled abruptly
+			}
+		}(i)
+	}
+	wg.Wait()
+	seg.Close(nil)
 }
 
 func TestSegmentDownstreamHeader(t *testing.T) {

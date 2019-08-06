@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
@@ -186,17 +187,15 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	seg.Lock()
 	defer seg.Unlock()
 
-	parent.Lock()
-	defer parent.Unlock()
-
 	seg.ParentSegment = parent.ParentSegment
 	if seg.ParentSegment != seg && seg.ParentSegment != parent {
-		seg.ParentSegment.Lock()
-		defer seg.ParentSegment.Unlock()
+		atomic.AddUint32(&seg.ParentSegment.totalSubSegments, 1)
 	}
-	seg.ParentSegment.totalSubSegments++
+
+	parent.Lock()
 	parent.rawSubsegments = append(parent.rawSubsegments, seg)
 	parent.openSegments++
+	parent.Unlock()
 
 	seg.ID = NewSegmentID()
 	seg.Name = name
@@ -234,8 +233,7 @@ func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (c
 // Close a segment.
 func (seg *Segment) Close(err error) {
 	seg.Lock()
-	defer seg.Unlock()
-	if seg.parent != nil {
+	if seg.parent != nil || seg.Type == "Subsegment" {
 		logger.Debugf("Closing subsegment named %s", seg.Name)
 	} else {
 		logger.Debugf("Closing segment named %s", seg.Name)
@@ -247,12 +245,26 @@ func (seg *Segment) Close(err error) {
 		seg.addError(err)
 	}
 
-	seg.flush()
+	s := seg
+	for {
+		if s.flush() {
+			s.Unlock()
+			break
+		}
+
+		tmp := s.parent
+		s.Unlock()
+
+		s = tmp
+		s.Lock()
+		s.openSegments--
+	}
 }
 
 // CloseAndStream closes a subsegment and sends it.
 func (subseg *Segment) CloseAndStream(err error) {
 	subseg.Lock()
+	defer subseg.Unlock()
 
 	if subseg.parent != nil {
 		logger.Debugf("Ending subsegment named: %s", subseg.Name)
@@ -269,15 +281,13 @@ func (subseg *Segment) CloseAndStream(err error) {
 	}
 
 	subseg.beforeEmitSubsegment(subseg.parent)
-	subseg.Unlock()
-
 	subseg.emit()
 }
 
 // RemoveSubsegment removes a subsegment child from a segment or subsegment.
 func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 	seg.Lock()
-	defer seg.Unlock()
+	unlock := true
 
 	for i, v := range seg.rawSubsegments {
 		if v == remove {
@@ -286,34 +296,56 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 			seg.rawSubsegments = seg.rawSubsegments[:len(seg.rawSubsegments)-1]
 
 			if seg.ParentSegment != seg {
-				seg.ParentSegment.Lock()
-				defer seg.ParentSegment.Unlock()
+				seg.openSegments--
+				seg.Unlock()
+				unlock = false
+
+				atomic.AddUint32(&seg.ParentSegment.totalSubSegments, ^uint32(0))
 			}
-			seg.ParentSegment.totalSubSegments--
-			seg.openSegments--
+			if unlock {
+				seg.Unlock()
+			}
 			return true
 		}
 	}
+	seg.Unlock()
 	return false
+}
+
+func (seg *Segment) isOrphan() bool {
+	return seg.parent == nil || seg.Type == "subsegment"
 }
 
 func (seg *Segment) emit() {
 	seg.ParentSegment.GetConfiguration().Emitter.Emit(seg)
 }
 
-func (seg *Segment) handleContextDone() {
+func (seg *Segment)    handleContextDone() {
 	seg.Lock()
-	defer seg.Unlock()
-
 	seg.ContextDone = true
 	if !seg.InProgress && !seg.Emitted {
-		seg.flush()
+		s := seg
+		for {
+			if s.flush() {
+				s.Unlock()
+				break
+			}
+
+			tmp := s.parent
+			s.Unlock()
+
+			s = tmp
+			s.Lock()
+			s.openSegments--
+		}
+	} else {
+		seg.Unlock()
 	}
 }
 
-func (seg *Segment) flush() {
+func (seg *Segment) flush() bool {
 	if (seg.openSegments == 0 && seg.EndTime > 0) || seg.ContextDone {
-		if seg.parent == nil {
+		if seg.isOrphan() {
 			seg.Emitted = true
 			seg.emit()
 		} else if seg.parent != nil && seg.parent.Facade {
@@ -322,16 +354,10 @@ func (seg *Segment) flush() {
 			logger.Debugf("emit lambda subsegment named: %v", seg.Name)
 			seg.emit()
 		} else {
-			seg.parent.safeFlush()
+			return false
 		}
 	}
-}
-
-func (seg *Segment) safeFlush() {
-	seg.Lock()
-	defer seg.Unlock()
-	seg.openSegments--
-	seg.flush()
+	return true
 }
 
 func (seg *Segment) safeInProgress() bool {
@@ -384,7 +410,6 @@ func (sub *Segment) beforeEmitSubsegment(seg *Segment) {
 	sub.ParentID = seg.ID
 	sub.Type = "subsegment"
 	sub.RequestWasTraced = seg.RequestWasTraced
-	sub.parent = nil
 }
 
 // AddAnnotation allows adding an annotation to the segment.

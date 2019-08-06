@@ -444,11 +444,12 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 // samplingStatistics takes a snapshot of sampling statistics from all rules, resetting
 // statistics counters in the process.
 func (ss *CentralizedStrategy) snapshots() []*xraySvc.SamplingStatisticsDocument {
-	statistics := make([]*xraySvc.SamplingStatisticsDocument, 0, len(ss.manifest.Rules)+1)
 	now := ss.clock.Now().Unix()
 
 	ss.manifest.mu.RLock()
 	defer ss.manifest.mu.RUnlock()
+
+	statistics := make([]*xraySvc.SamplingStatisticsDocument, 0, len(ss.manifest.Rules)+1)
 
 	// Generate sampling statistics for user-defined rules
 	for _, r := range ss.manifest.Rules {
