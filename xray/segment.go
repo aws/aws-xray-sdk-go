@@ -361,10 +361,18 @@ func (seg *Segment) flush() bool {
 }
 
 func (seg *Segment) safeInProgress() bool {
-	seg.Lock()
+	seg.RLock()
 	b := seg.InProgress
-	seg.Unlock()
+	seg.RUnlock()
 	return b
+}
+
+// getName returns name of the segment. This method is thread safe.
+func (seg *Segment) getName() string {
+	seg.RLock()
+	n := seg.Name
+	seg.RUnlock()
+	return n
 }
 
 func (seg *Segment) root() *Segment {

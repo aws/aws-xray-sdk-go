@@ -56,6 +56,7 @@ func (de *DefaultEmitter) refresh(raddr *net.UDPAddr) (err error) {
 }
 
 // Emit segment or subsegment if root segment is sampled.
+// seg has a write lock acquired by the caller.
 func (de *DefaultEmitter) Emit(seg *Segment) {
 	if seg == nil || !seg.ParentSegment.Sampled {
 		return
@@ -85,6 +86,7 @@ func (de *DefaultEmitter) Emit(seg *Segment) {
 	}
 }
 
+// seg has a write lock acquired by the caller.
 func packSegments(seg *Segment, outSegments [][]byte) [][]byte {
 	trimSubsegment := func(s *Segment) []byte {
 		ss := globalCfg.StreamingStrategy()
