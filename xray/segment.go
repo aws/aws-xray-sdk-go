@@ -67,8 +67,10 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 		seg.GetService().Version = seg.ParentSegment.GetConfiguration().ServiceVersion
 	}
 
+	seg.cancelCleanup = make(chan struct{})
 	go func() {
 		select {
+		case <-seg.cancelCleanup:
 		case <-ctx.Done():
 			seg.handleContextDone()
 		}
@@ -235,6 +237,12 @@ func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (c
 func (seg *Segment) Close(err error) {
 	seg.Lock()
 	defer seg.Unlock()
+	// We might launch a goroutine to watch over this segment in BeginSegment.
+	// Make sure it exits.
+	if seg.cancelCleanup != nil {
+		close(seg.cancelCleanup)
+	}
+
 	if seg.parent != nil {
 		logger.Debugf("Closing subsegment named %s", seg.Name)
 	} else {

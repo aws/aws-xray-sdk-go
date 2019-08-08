@@ -20,6 +20,7 @@ import (
 // Segment provides the resource's name, details about the request, and details about the work done.
 type Segment struct {
 	sync.Mutex
+	cancelCleanup    chan struct{}
 	parent           *Segment
 	openSegments     int
 	totalSubSegments int
