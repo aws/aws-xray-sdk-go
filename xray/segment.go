@@ -320,7 +320,7 @@ func (seg *Segment) emit() {
 	seg.ParentSegment.GetConfiguration().Emitter.Emit(seg)
 }
 
-func (seg *Segment)    handleContextDone() {
+func (seg *Segment) handleContextDone() {
 	seg.Lock()
 	seg.ContextDone = true
 	if !seg.InProgress && !seg.Emitted {
