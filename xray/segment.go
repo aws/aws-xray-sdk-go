@@ -244,22 +244,10 @@ func (seg *Segment) Close(err error) {
 	if err != nil {
 		seg.addError(err)
 	}
-
-	s := seg
-	for {
-		if s.flush() {
-			s.Unlock()
-			break
-		}
-
-		tmp := s.parent
-		s.Unlock()
-
-		s = tmp
-		s.Lock()
-		s.openSegments--
-	}
+	seg.Unlock()
+	seg.send()
 }
+
 
 // CloseAndStream closes a subsegment and sends it.
 func (subseg *Segment) CloseAndStream(err error) {
@@ -324,25 +312,37 @@ func (seg *Segment) handleContextDone() {
 	seg.Lock()
 	seg.ContextDone = true
 	if !seg.InProgress && !seg.Emitted {
-		s := seg
-		for {
-			if s.flush() {
-				s.Unlock()
-				break
-			}
-
-			tmp := s.parent
-			s.Unlock()
-
-			s = tmp
-			s.Lock()
-			s.openSegments--
-		}
+		seg.Unlock()
+		seg.send()
 	} else {
 		seg.Unlock()
 	}
 }
 
+// send tries to emit the current (Sub)Segment. If the (Sub)Segment is ready to send,
+// it emits out. If it is ready but has non-nil parent, it traverses to parent and checks whether parent is
+// ready to send and sends entire subtree from the parent. The locking and traversal of the tree
+// is from child to parent. This method is thread safe.
+func (seg *Segment) send() {
+	s := seg
+	s.Lock()
+	for {
+		if s.flush() {
+			s.Unlock()
+			break
+		}
+
+		tmp := s.parent
+		s.Unlock()
+
+		s = tmp
+		s.Lock()
+		s.openSegments--
+	}
+}
+
+// flush emits (Sub)Segment, if it is ready to send.
+// The caller of flush should have write lock on seg instance.
 func (seg *Segment) flush() bool {
 	if (seg.openSegments == 0 && seg.EndTime > 0) || seg.ContextDone {
 		if seg.isOrphan() {
