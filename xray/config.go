@@ -167,6 +167,10 @@ func configureStrategy(s sampling.Strategy, daemonEndpoints *daemoncfg.DaemonEnd
 	}
 }
 
+func GetGlobalCfgMissingStrategy() ctxmissing.Strategy {
+	return globalCfg.ContextMissingStrategy()
+}
+
 // Configure overrides default configuration options with customer-defined values.
 func Configure(c Config) error {
 	globalCfg.Lock()
