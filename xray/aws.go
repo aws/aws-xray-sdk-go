@@ -94,7 +94,7 @@ var xRayAfterSendHandler = aws.NamedHandler{
 		if curseg != nil && curseg.Name == "attempt" {
 			// An error could have prevented the connect subsegment from closing,
 			// so clean it up here.
-			for _, subsegment := range curseg.rawSubsegments {
+			for _, subsegment := range curseg.RawSubsegments {
 				if subsegment.Name == "connect" && subsegment.safeInProgress() {
 					subsegment.Close(nil)
 					return

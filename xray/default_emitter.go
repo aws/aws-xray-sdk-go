@@ -92,7 +92,7 @@ func packSegments(seg *Segment, outSegments [][]byte) [][]byte {
 			ss = seg.ParentSegment.Configuration.StreamingStrategy
 		}
 		for ss.RequiresStreaming(s) {
-			if len(s.rawSubsegments) == 0 {
+			if len(s.RawSubsegments) == 0 {
 				break
 			}
 			cb := ss.StreamCompletedSubsegments(s)
@@ -102,7 +102,7 @@ func packSegments(seg *Segment, outSegments [][]byte) [][]byte {
 		return b
 	}
 
-	for _, s := range seg.rawSubsegments {
+	for _, s := range seg.RawSubsegments {
 		outSegments = packSegments(s, outSegments)
 		if b := trimSubsegment(s); b != nil {
 			seg.Subsegments = append(seg.Subsegments, b)

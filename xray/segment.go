@@ -197,7 +197,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 		defer seg.ParentSegment.Unlock()
 	}
 	seg.ParentSegment.totalSubSegments++
-	parent.rawSubsegments = append(parent.rawSubsegments, seg)
+	parent.RawSubsegments = append(parent.RawSubsegments, seg)
 	parent.openSegments++
 
 	seg.ID = NewSegmentID()
@@ -287,11 +287,11 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 	seg.Lock()
 	defer seg.Unlock()
 
-	for i, v := range seg.rawSubsegments {
+	for i, v := range seg.RawSubsegments {
 		if v == remove {
-			seg.rawSubsegments[i] = seg.rawSubsegments[len(seg.rawSubsegments)-1]
-			seg.rawSubsegments[len(seg.rawSubsegments)-1] = nil
-			seg.rawSubsegments = seg.rawSubsegments[:len(seg.rawSubsegments)-1]
+			seg.RawSubsegments[i] = seg.RawSubsegments[len(seg.RawSubsegments)-1]
+			seg.RawSubsegments[len(seg.RawSubsegments)-1] = nil
+			seg.RawSubsegments = seg.RawSubsegments[:len(seg.RawSubsegments)-1]
 
 			if seg.ParentSegment != seg {
 				seg.ParentSegment.Lock()
