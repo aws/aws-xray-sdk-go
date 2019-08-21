@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSegmentDataRace(t *testing.T) {
@@ -93,4 +94,33 @@ func TestSegmentDownstreamHeader(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func TestParentSegmentTotalCount(t *testing.T) {
+	ctx := context.Background()
+
+	ctx, seg := BeginSegment(ctx,"test")
+
+
+	wg := sync.WaitGroup{}
+	n := 2
+	wg.Add(2 * n)
+
+	for i := 0; i < n; i++ {
+		go func(ctx context.Context) { // add async nested subsegments
+			c1,_ := BeginSubsegment(ctx, "TestSubsegment1")
+			c2,_ := BeginSubsegment(c1, "TestSubsegment2")
+
+			go func(ctx context.Context) { // add async nested subsegments
+				c1,_ := BeginSubsegment(ctx, "TestSubsegment1")
+				BeginSubsegment(c1, "TestSubsegment2")
+                wg.Done()
+			}(c2) // passing context
+
+			wg.Done()
+		}(ctx)
+	}
+	wg.Wait()
+
+    assert.Equal(t, 4 * uint32(n) , seg.ParentSegment.totalSubSegments, "totalSubSegments count should be correctly registered on the parent segment")
 }

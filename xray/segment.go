@@ -188,9 +188,8 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	defer seg.Unlock()
 
 	seg.ParentSegment = parent.ParentSegment
-	if seg.ParentSegment != seg && seg.ParentSegment != parent {
-		atomic.AddUint32(&seg.ParentSegment.totalSubSegments, 1)
-	}
+
+	atomic.AddUint32(&seg.ParentSegment.totalSubSegments, 1)
 
 	parent.Lock()
 	parent.rawSubsegments = append(parent.rawSubsegments, seg)
@@ -275,24 +274,22 @@ func (subseg *Segment) CloseAndStream(err error) {
 // RemoveSubsegment removes a subsegment child from a segment or subsegment.
 func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 	seg.Lock()
-	unlock := true
 
 	for i, v := range seg.rawSubsegments {
 		if v == remove {
 			seg.rawSubsegments[i] = seg.rawSubsegments[len(seg.rawSubsegments)-1]
 			seg.rawSubsegments[len(seg.rawSubsegments)-1] = nil
 			seg.rawSubsegments = seg.rawSubsegments[:len(seg.rawSubsegments)-1]
+			seg.openSegments--
 
 			if seg.ParentSegment != seg {
-				seg.openSegments--
 				seg.Unlock()
-				unlock = false
 
 				atomic.AddUint32(&seg.ParentSegment.totalSubSegments, ^uint32(0))
-			}
-			if unlock {
+			}else{
 				seg.Unlock()
 			}
+
 			return true
 		}
 	}
