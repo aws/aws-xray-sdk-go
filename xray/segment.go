@@ -232,7 +232,7 @@ func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (c
 // Close a segment.
 func (seg *Segment) Close(err error) {
 	seg.Lock()
-	if seg.parent != nil || seg.Type == "Subsegment" {
+	if seg.parent != nil {
 		logger.Debugf("Closing subsegment named %s", seg.Name)
 	} else {
 		logger.Debugf("Closing segment named %s", seg.Name)
