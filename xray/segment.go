@@ -286,7 +286,7 @@ func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 				seg.Unlock()
 
 				atomic.AddUint32(&seg.ParentSegment.totalSubSegments, ^uint32(0))
-			} else{
+			} else {
 				seg.Unlock()
 			}
 
