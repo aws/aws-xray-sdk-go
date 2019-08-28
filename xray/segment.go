@@ -390,7 +390,7 @@ func (sub *Segment) beforeEmitSubsegment(seg *Segment) {
 // AddAnnotation allows adding an annotation to the segment.
 func (seg *Segment) AddAnnotation(key string, value interface{}) error {
 	switch value.(type) {
-	case bool, int, uint, float32, float64, string:
+	case bool, int, uint, int64, uint64, float32, float64, string:
 	default:
 		return fmt.Errorf("failed to add annotation key: %q value: %q to subsegment %q. value must be of type string, number or boolean", key, value, seg.Name)
 	}
