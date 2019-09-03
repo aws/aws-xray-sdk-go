@@ -11,17 +11,18 @@ package xray
 import (
 	"encoding/json"
 	"errors"
+	"sync/atomic"
 
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 )
 
-var defaultMaxSubsegmentCount = 20
+var defaultMaxSubsegmentCount uint32 = 20
 
 // DefaultStreamingStrategy provides a default value of 20
 // for the maximum number of subsegments that can be emitted
 // in a single UDP packet.
 type DefaultStreamingStrategy struct {
-	MaxSubsegmentCount int
+	MaxSubsegmentCount uint32
 }
 
 // NewDefaultStreamingStrategy initializes and returns a
@@ -37,14 +38,15 @@ func NewDefaultStreamingStrategyWithMaxSubsegmentCount(maxSubsegmentCount int) (
 	if maxSubsegmentCount <= 0 {
 		return nil, errors.New("maxSubsegmentCount must be a non-negative integer")
 	}
-	return &DefaultStreamingStrategy{MaxSubsegmentCount: maxSubsegmentCount}, nil
+	c := uint32(maxSubsegmentCount)
+	return &DefaultStreamingStrategy{MaxSubsegmentCount: c}, nil
 }
 
 // RequiresStreaming returns true when the number of subsegment
 // children for a given segment is larger than MaxSubsegmentCount.
 func (dSS *DefaultStreamingStrategy) RequiresStreaming(seg *Segment) bool {
 	if seg.ParentSegment.Sampled {
-		return seg.ParentSegment.totalSubSegments > dSS.MaxSubsegmentCount
+		return atomic.LoadUint32(&seg.ParentSegment.totalSubSegments) > dSS.MaxSubsegmentCount
 	}
 	return false
 }
@@ -64,12 +66,15 @@ func (dSS *DefaultStreamingStrategy) StreamCompletedSubsegments(seg *Segment) []
 		seg.Subsegments[len(seg.Subsegments)-1] = nil
 		seg.Subsegments = seg.Subsegments[:len(seg.Subsegments)-1]
 
-		seg.ParentSegment.totalSubSegments--
+		atomic.AddUint32(&seg.ParentSegment.totalSubSegments, ^uint32(0))
 
 		// Add extra information into child subsegment
 		child.Lock()
 		child.beforeEmitSubsegment(seg)
-		cb, _ := json.Marshal(child)
+		cb, err:= json.Marshal(child)
+		if err!= nil{
+			logger.Errorf("JSON error while marshalling subsegment: %v",err)
+		}
 		outSegments = append(outSegments, cb)
 		logger.Debugf("Streaming subsegment named '%s' from segment tree.", child.Name)
 		child.Unlock()
