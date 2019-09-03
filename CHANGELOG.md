@@ -1,3 +1,8 @@
+Release v1.0.0-rc.14 (2019-08-03)
+================================
+### SDK Enhancements
+* Fixing bi-directional locking for parent-child segments and modifying lock on Segment struct to RWMutex [PR #140](https://github.com/aws/aws-xray-sdk-go/pull/140)
+
 Release v1.0.0-rc.13 (2019-07-18)
 ================================
 ### SDK New Features
