@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
@@ -186,17 +187,14 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	seg.Lock()
 	defer seg.Unlock()
 
-	parent.Lock()
-	defer parent.Unlock()
-
 	seg.ParentSegment = parent.ParentSegment
-	if seg.ParentSegment != seg && seg.ParentSegment != parent {
-		seg.ParentSegment.Lock()
-		defer seg.ParentSegment.Unlock()
-	}
-	seg.ParentSegment.totalSubSegments++
+
+	atomic.AddUint32(&seg.ParentSegment.totalSubSegments, 1)
+
+	parent.Lock()
 	parent.rawSubsegments = append(parent.rawSubsegments, seg)
 	parent.openSegments++
+	parent.Unlock()
 
 	seg.ID = NewSegmentID()
 	seg.Name = name
@@ -234,7 +232,6 @@ func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (c
 // Close a segment.
 func (seg *Segment) Close(err error) {
 	seg.Lock()
-	defer seg.Unlock()
 	if seg.parent != nil {
 		logger.Debugf("Closing subsegment named %s", seg.Name)
 	} else {
@@ -246,13 +243,15 @@ func (seg *Segment) Close(err error) {
 	if err != nil {
 		seg.addError(err)
 	}
-
-	seg.flush()
+	seg.Unlock()
+	seg.send()
 }
+
 
 // CloseAndStream closes a subsegment and sends it.
 func (subseg *Segment) CloseAndStream(err error) {
 	subseg.Lock()
+	defer subseg.Unlock()
 
 	if subseg.parent != nil {
 		logger.Debugf("Ending subsegment named: %s", subseg.Name)
@@ -269,32 +268,37 @@ func (subseg *Segment) CloseAndStream(err error) {
 	}
 
 	subseg.beforeEmitSubsegment(subseg.parent)
-	subseg.Unlock()
-
 	subseg.emit()
 }
 
 // RemoveSubsegment removes a subsegment child from a segment or subsegment.
 func (seg *Segment) RemoveSubsegment(remove *Segment) bool {
 	seg.Lock()
-	defer seg.Unlock()
 
 	for i, v := range seg.rawSubsegments {
 		if v == remove {
 			seg.rawSubsegments[i] = seg.rawSubsegments[len(seg.rawSubsegments)-1]
 			seg.rawSubsegments[len(seg.rawSubsegments)-1] = nil
 			seg.rawSubsegments = seg.rawSubsegments[:len(seg.rawSubsegments)-1]
+			seg.openSegments--
 
 			if seg.ParentSegment != seg {
-				seg.ParentSegment.Lock()
-				defer seg.ParentSegment.Unlock()
+				seg.Unlock()
+
+				atomic.AddUint32(&seg.ParentSegment.totalSubSegments, ^uint32(0))
+			} else {
+				seg.Unlock()
 			}
-			seg.ParentSegment.totalSubSegments--
-			seg.openSegments--
+
 			return true
 		}
 	}
+	seg.Unlock()
 	return false
+}
+
+func (seg *Segment) isOrphan() bool {
+	return seg.parent == nil || seg.Type == "subsegment"
 }
 
 func (seg *Segment) emit() {
@@ -303,17 +307,42 @@ func (seg *Segment) emit() {
 
 func (seg *Segment) handleContextDone() {
 	seg.Lock()
-	defer seg.Unlock()
-
 	seg.ContextDone = true
 	if !seg.InProgress && !seg.Emitted {
-		seg.flush()
+		seg.Unlock()
+		seg.send()
+	} else {
+		seg.Unlock()
 	}
 }
 
-func (seg *Segment) flush() {
+// send tries to emit the current (Sub)Segment. If the (Sub)Segment is ready to send,
+// it emits out. If it is ready but has non-nil parent, it traverses to parent and checks whether parent is
+// ready to send and sends entire subtree from the parent. The locking and traversal of the tree
+// is from child to parent. This method is thread safe.
+func (seg *Segment) send() {
+	s := seg
+	s.Lock()
+	for {
+		if s.flush() {
+			s.Unlock()
+			break
+		}
+
+		tmp := s.parent
+		s.Unlock()
+
+		s = tmp
+		s.Lock()
+		s.openSegments--
+	}
+}
+
+// flush emits (Sub)Segment, if it is ready to send.
+// The caller of flush should have write lock on seg instance.
+func (seg *Segment) flush() bool {
 	if (seg.openSegments == 0 && seg.EndTime > 0) || seg.ContextDone {
-		if seg.parent == nil {
+		if seg.isOrphan() {
 			seg.Emitted = true
 			seg.emit()
 		} else if seg.parent != nil && seg.parent.Facade {
@@ -322,23 +351,25 @@ func (seg *Segment) flush() {
 			logger.Debugf("emit lambda subsegment named: %v", seg.Name)
 			seg.emit()
 		} else {
-			seg.parent.safeFlush()
+			return false
 		}
 	}
-}
-
-func (seg *Segment) safeFlush() {
-	seg.Lock()
-	defer seg.Unlock()
-	seg.openSegments--
-	seg.flush()
+	return true
 }
 
 func (seg *Segment) safeInProgress() bool {
-	seg.Lock()
+	seg.RLock()
 	b := seg.InProgress
-	seg.Unlock()
+	seg.RUnlock()
 	return b
+}
+
+// getName returns name of the segment. This method is thread safe.
+func (seg *Segment) getName() string {
+	seg.RLock()
+	n := seg.Name
+	seg.RUnlock()
+	return n
 }
 
 func (seg *Segment) root() *Segment {
@@ -384,7 +415,6 @@ func (sub *Segment) beforeEmitSubsegment(seg *Segment) {
 	sub.ParentID = seg.ID
 	sub.Type = "subsegment"
 	sub.RequestWasTraced = seg.RequestWasTraced
-	sub.parent = nil
 }
 
 // AddAnnotation allows adding an annotation to the segment.
