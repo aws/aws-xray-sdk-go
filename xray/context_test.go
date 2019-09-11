@@ -54,6 +54,12 @@ func TestValidAnnotations(t *testing.T) {
 	if e := AddAnnotation(ctx, "float", 1.1); e != nil {
 		err = append(err, e)
 	}
+	if e := AddAnnotation(ctx, "int64", int64(1)); e != nil {
+		err = append(err, e)
+	}
+	if e := AddAnnotation(ctx, "uint64", uint64(1)); e != nil {
+		err = append(err, e)
+	}
 	root.Close(err)
 
 	s, e := TestDaemon.Recv()
@@ -63,6 +69,8 @@ func TestValidAnnotations(t *testing.T) {
 	assert.Equal(t, 1.0, s.Annotations["int"]) //json encoder turns this into a float64
 	assert.Equal(t, 1.1, s.Annotations["float"])
 	assert.Equal(t, true, s.Annotations["bool"])
+	assert.Equal(t, int64(1), s.Annotations["int64"])
+	assert.Equal(t, uint64(1), s.Annotations["uint64"])
 }
 
 func TestInvalidAnnotations(t *testing.T) {
