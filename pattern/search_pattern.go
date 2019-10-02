@@ -66,30 +66,3 @@ func WildcardMatch(pattern string, text string, caseInsensitive bool) bool {
 
 	return p == patternLen && i == textLen
 }
-
-func simpleWildcardMatch(pattern string, text string) bool {
-	j := 0
-	patternLen := len(pattern)
-	textLen := len(text)
-	for i := 0; i < patternLen; i++ {
-		p := pattern[i]
-		if '*' == p {
-			return true
-		} else if '?' == p {
-			if textLen == j {
-				return false
-			}
-			j++
-		} else {
-			if j >= textLen {
-				return false
-			}
-			t := text[j]
-			if p != t {
-				return false
-			}
-			j++
-		}
-	}
-	return j == textLen
-}
