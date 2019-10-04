@@ -26,7 +26,7 @@ func WildcardMatch(pattern string, text string, caseInsensitive bool) bool {
 		return 0 == textLen
 	}
 
-	if isWildcardGlob(pattern) {
+	if pattern == "*" {
 		return true
 	}
 
@@ -35,63 +35,34 @@ func WildcardMatch(pattern string, text string, caseInsensitive bool) bool {
 		text = strings.ToLower(text)
 	}
 
-	indexOfGlob := strings.Index(pattern, "*")
-	if -1 == indexOfGlob || patternLen-1 == indexOfGlob {
-		return simpleWildcardMatch(pattern, text)
-	}
+	i := 0
+	p := 0
+	iStar := textLen
+	pStar := 0
 
-	res := make([]bool, textLen+1)
-	res[0] = true
-	for j := 0; j < patternLen; j++ {
-		p := pattern[j]
-		if '*' != p {
-			for i := textLen - 1; i >= 0; i-- {
-				t := text[i]
-				res[i+1] = res[i] && ('?' == p || t == p)
-			}
+	for i < textLen {
+		if p < patternLen && pattern[p] == text[i] {
+			i++
+			p++
+		} else if p < patternLen && '?' == pattern[p] {
+			i++
+			p++
+		} else if p < patternLen && pattern[p] == '*' {
+			iStar = i
+			pStar = p
+			p++
+		} else if iStar != textLen {
+			iStar++
+			i = iStar
+			p = pStar + 1
 		} else {
-			i := 0
-			for i <= textLen && !res[i] {
-				i++
-			}
-			for i <= textLen {
-				res[i] = true
-				i++
-			}
-		}
-		res[0] = res[0] && '*' == p
-	}
-	return res[textLen]
-
-}
-
-func simpleWildcardMatch(pattern string, text string) bool {
-	j := 0
-	patternLen := len(pattern)
-	textLen := len(text)
-	for i := 0; i < patternLen; i++ {
-		p := pattern[i]
-		if '*' == p {
-			return true
-		} else if '?' == p {
-			if textLen == j {
-				return false
-			}
-			j++
-		} else {
-			if j >= textLen {
-				return false
-			}
-			t := text[j]
-			if p != t {
-				return false
-			}
-			j++
+			return false
 		}
 	}
-	return j == textLen
-}
 
-func isWildcardGlob(pattern string) bool {
-	return pattern == "*"
+	for p < patternLen && pattern[p] == '*' {
+		p++
+	}
+
+	return p == patternLen && i == textLen
 }
