@@ -151,6 +151,11 @@ func (db *DB) SetMaxIdleConns(n int) { db.db.SetMaxIdleConns(n) }
 // SetMaxOpenConns sets the maximum number of open connections to the database.
 func (db *DB) SetMaxOpenConns(n int) { db.db.SetMaxOpenConns(n) }
 
+// SetConnectionString sets the connection string for the database. To be used when the password is not being properly sanitized from the DSN
+func (db *DB) SetConnectionString(sanitizedDSN string) {
+	db.connectionString = sanitizedDSN
+}
+
 func (db *DB) populate(ctx context.Context, query string) {
 	seg := GetSegment(ctx)
 
