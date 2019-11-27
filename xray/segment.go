@@ -68,13 +68,14 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 		seg.GetService().Version = seg.ParentSegment.GetConfiguration().ServiceVersion
 	}
 
-	go func() {
-		select {
-		case <-ctx.Done():
-			seg.handleContextDone()
-		}
-	}()
-
+	if ctx.Done() != nil {
+		go func() {
+			select {
+			case <-ctx.Done():
+				seg.handleContextDone()
+			}
+		}()
+	}
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
@@ -246,7 +247,6 @@ func (seg *Segment) Close(err error) {
 	seg.Unlock()
 	seg.send()
 }
-
 
 // CloseAndStream closes a subsegment and sends it.
 func (subseg *Segment) CloseAndStream(err error) {
