@@ -11,7 +11,7 @@ package sampling
 import (
 	"sync"
 
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
+	"github.com/shayokneogi/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/pattern"
 	"github.com/aws/aws-xray-sdk-go/utils"
 

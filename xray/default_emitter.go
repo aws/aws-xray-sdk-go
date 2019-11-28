@@ -14,7 +14,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
+	"github.com/shayokneogi/aws-xray-sdk-go/internal/logger"
 )
 
 // Header is added before sending segments to daemon.
