@@ -12,8 +12,8 @@ import (
 	"sync"
 
 	"github.com/shayokneogi/aws-xray-sdk-go/internal/logger"
-	"github.com/aws/aws-xray-sdk-go/pattern"
-	"github.com/aws/aws-xray-sdk-go/utils"
+	"github.com/shayokneogi/aws-xray-sdk-go/pattern"
+	"github.com/shayokneogi/aws-xray-sdk-go/utils"
 
 	xraySvc "github.com/aws/aws-sdk-go/service/xray"
 )
