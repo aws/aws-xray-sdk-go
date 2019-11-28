@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
-	"github.com/aws/aws-xray-sdk-go/internal/plugins"
+	"github.com/shayokneogi/aws-xray-sdk-go/internal/logger"
+	"github.com/shayokneogi/aws-xray-sdk-go/internal/plugins"
 )
 
 // NewTraceID generates a string format of random trace ID.

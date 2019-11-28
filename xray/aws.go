@@ -22,8 +22,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/resources"
+	"github.com/shayokneogi/aws-xray-sdk-go/internal/logger"
 )
 
 const RequestIDKey string = "request_id"
