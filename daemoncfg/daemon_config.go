@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/shayokneogi/aws-xray-sdk-go/internal/logger"
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/pkg/errors"
 )
 

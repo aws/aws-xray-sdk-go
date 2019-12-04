@@ -9,7 +9,7 @@
 // Reservoirs allow a specified (`perSecond`) amount of `Take()`s per second.
 package sampling
 
-import "github.com/shayokneogi/aws-xray-sdk-go/utils"
+import "github.com/aws/aws-xray-sdk-go/utils"
 
 // reservoir is a set of properties common to all reservoirs
 type reservoir struct {
