@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-xray-sdk-go/daemoncfg"
+	"github.com/shayokneogi/aws-xray-sdk-go/daemoncfg"
 
 	xraySvc "github.com/aws/aws-sdk-go/service/xray"
-	"github.com/aws/aws-xray-sdk-go/utils"
+	"github.com/shayokneogi/aws-xray-sdk-go/utils"
 	"github.com/stretchr/testify/assert"
 )
 

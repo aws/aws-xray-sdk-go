@@ -8,7 +8,7 @@
 
 package beanstalk
 
-import "github.com/aws/aws-xray-sdk-go/awsplugins/beanstalk"
+import "github.com/shayokneogi/aws-xray-sdk-go/awsplugins/beanstalk"
 
 const Origin = "AWS::ElasticBeanstalk::Environment"
 

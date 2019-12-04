@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	xraySvc "github.com/aws/aws-sdk-go/service/xray"
-	"github.com/aws/aws-xray-sdk-go/utils"
+	"github.com/shayokneogi/aws-xray-sdk-go/utils"
 )
 
 // Assert that putRule() creates a new user-defined rule and adds to manifest

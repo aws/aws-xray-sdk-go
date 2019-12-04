@@ -8,7 +8,7 @@
 
 package ecs
 
-import "github.com/aws/aws-xray-sdk-go/awsplugins/ecs"
+import "github.com/shayokneogi/aws-xray-sdk-go/awsplugins/ecs"
 
 const Origin = "AWS::ECS::Container"
 

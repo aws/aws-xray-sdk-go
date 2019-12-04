@@ -14,13 +14,13 @@ import (
 	"os"
 	"sync"
 
-	"github.com/aws/aws-xray-sdk-go/daemoncfg"
+	"github.com/shayokneogi/aws-xray-sdk-go/daemoncfg"
 	"github.com/shayokneogi/aws-xray-sdk-go/internal/logger"
-	"github.com/aws/aws-xray-sdk-go/xraylog"
+	"github.com/shayokneogi/aws-xray-sdk-go/xraylog"
 
-	"github.com/aws/aws-xray-sdk-go/strategy/ctxmissing"
-	"github.com/aws/aws-xray-sdk-go/strategy/exception"
-	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
+	"github.com/shayokneogi/aws-xray-sdk-go/strategy/ctxmissing"
+	"github.com/shayokneogi/aws-xray-sdk-go/strategy/exception"
+	"github.com/shayokneogi/aws-xray-sdk-go/strategy/sampling"
 )
 
 // SDKVersion records the current X-Ray Go SDK version.
