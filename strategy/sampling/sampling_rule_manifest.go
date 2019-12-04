@@ -15,7 +15,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/shayokneogi/aws-xray-sdk-go/utils"
+	"github.com/aws/aws-xray-sdk-go/utils"
 )
 
 // RuleManifest represents a full sampling ruleset, with a list of

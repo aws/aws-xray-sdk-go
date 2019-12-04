@@ -15,7 +15,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/shayokneogi/aws-xray-sdk-go/header"
+	"github.com/aws/aws-xray-sdk-go/header"
 )
 
 var (

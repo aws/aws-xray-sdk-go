@@ -11,8 +11,8 @@ package ec2
 import (
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/shayokneogi/aws-xray-sdk-go/internal/logger"
-	"github.com/shayokneogi/aws-xray-sdk-go/internal/plugins"
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
+	"github.com/aws/aws-xray-sdk-go/internal/plugins"
 )
 
 const Origin = "AWS::EC2::Instance"

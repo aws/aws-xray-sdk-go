@@ -8,7 +8,7 @@
 
 package ec2
 
-import "github.com/shayokneogi/aws-xray-sdk-go/awsplugins/ec2"
+import "github.com/aws/aws-xray-sdk-go/awsplugins/ec2"
 
 const Origin = "AWS::EC2::Instance"
 

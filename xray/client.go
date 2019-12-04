@@ -14,7 +14,7 @@ import (
 	"net/http/httptrace"
 	"strconv"
 
-	"github.com/shayokneogi/aws-xray-sdk-go/internal/logger"
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
 )
 
 const emptyHostRename = "empty_host_error"
