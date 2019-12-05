@@ -89,6 +89,9 @@ func newGlobalConfig() *globalConfig {
 			cm := ctxmissing.NewDefaultLogErrorStrategy()
 			ret.contextMissingStrategy = cm
 		}
+	} else {
+		cm := ctxmissing.NewDefaultRuntimeErrorStrategy()
+		ret.contextMissingStrategy = cm
 	}
 
 	return ret
