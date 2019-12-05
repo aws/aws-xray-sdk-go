@@ -80,9 +80,16 @@ func newGlobalConfig() *globalConfig {
 	}
 	ret.emitter = emt
 
-	cm := ctxmissing.NewDefaultRuntimeErrorStrategy()
-
-	ret.contextMissingStrategy = cm
+	cms := os.Getenv("AWS_XRAY_CONTEXT_MISSING")
+	if cms != "" {
+		if cms == ctxmissing.RuntimeErrorStrategy {
+			cm := ctxmissing.NewDefaultRuntimeErrorStrategy()
+			ret.contextMissingStrategy = cm
+		} else if cms == ctxmissing.LogErrorStrategy {
+			cm := ctxmissing.NewDefaultLogErrorStrategy()
+			ret.contextMissingStrategy = cm
+		}
+	}
 
 	return ret
 }
