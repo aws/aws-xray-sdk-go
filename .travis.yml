@@ -43,7 +43,7 @@ install:
     fi
   # Only bother running lints on the latest version.  Some of the linters fail to install on older versions of go.
   - if [ $TRAVIS_GO_VERSION == "1.12" ]; then
-      go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0;
+      go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0;
     fi
 
 script:
