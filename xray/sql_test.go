@@ -131,7 +131,7 @@ func (s *sqlTestSuite) TestPasswordURL() {
 }
 
 func (s *sqlTestSuite) TestPasswordURLQuery() {
-	s.mockDB("postgres://user:password@host:5432/database?password=password")
+	s.mockDB("postgres://host:5432/database?password=password")
 	s.mockPSQL(nil)
 	s.connect()
 
