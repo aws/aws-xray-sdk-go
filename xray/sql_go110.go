@@ -13,6 +13,7 @@ package xray
 import (
 	"context"
 	"database/sql/driver"
+	"sync"
 )
 
 func (conn *driverConn) ResetSession(ctx context.Context) error {
@@ -28,7 +29,10 @@ func (conn *driverConn) ResetSession(ctx context.Context) error {
 type driverConnector struct {
 	driver.Connector
 	driver *driverDriver
-	attr   *dbAttribute
+	name   string
+
+	mu   sync.RWMutex
+	attr *dbAttribute
 }
 
 func (c *driverConnector) Connect(ctx context.Context) (driver.Conn, error) {
@@ -42,12 +46,38 @@ func (c *driverConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	conn := &driverConn{
-		Conn: rawConn,
-		attr: c.attr,
+	attr, err := c.getAttr(ctx, rawConn)
+	if err != nil {
+		rawConn.Close()
+		return nil, err
 	}
 
+	conn := &driverConn{
+		Conn: rawConn,
+		attr: attr,
+	}
 	return conn, nil
+}
+
+func (c *driverConnector) getAttr(ctx context.Context, conn driver.Conn) (*dbAttribute, error) {
+	c.mu.RLock()
+	attr := c.attr
+	c.mu.RUnlock()
+	if attr != nil {
+		return attr, nil
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.attr != nil {
+		return c.attr, nil
+	}
+	attr, err := newDBAttribute(context.Background(), c.driver.Driver, conn, c.name)
+	if err != nil {
+		return nil, err
+	}
+	c.attr = attr
+	return attr, nil
 }
 
 func (c *driverConnector) Driver() driver.Driver {
@@ -91,14 +121,11 @@ func (d *driverDriver) OpenConnector(name string) (driver.Connector, error) {
 			name:   name,
 		}
 	}
-	attr, err := newDBAttribute(context.Background(), d.Driver, name)
-	if err != nil {
-		return nil, err
-	}
 	c = &driverConnector{
 		Connector: c,
 		driver:    d,
-		attr:      attr,
+		name:      name,
+		// initialized attr lazy because we have no context here.
 	}
 	return c, nil
 }

@@ -60,7 +60,7 @@ func (driver *driverDriver) Open(dsn string) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	attr, err := newDBAttribute(context.Background(), driver.Driver, dsn)
+	attr, err := newDBAttribute(context.Background(), driver.Driver, rawConn, dsn)
 	if err != nil {
 		rawConn.Close()
 		return nil, err
@@ -242,7 +242,7 @@ type dbAttribute struct {
 	dbname           string
 }
 
-func newDBAttribute(ctx context.Context, driver driver.Driver, dsn string) (*dbAttribute, error) {
+func newDBAttribute(ctx context.Context, driver driver.Driver, conn driver.Conn, dsn string) (*dbAttribute, error) {
 	var attr dbAttribute
 
 	// Detect if DSN is a URL or not, set appropriate attribute
