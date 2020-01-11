@@ -372,7 +372,7 @@ func (stmt *driverStmt) ExecContext(ctx context.Context, args []driver.NamedValu
 	var err error
 	if execerContext, ok := stmt.Stmt.(driver.StmtExecContext); ok {
 		err = Capture(ctx, stmt.attr.dbname, func(ctx context.Context) error {
-			stmt.attr.populate(ctx, stmt.query)
+			stmt.populate(ctx)
 			var err error
 			result, err = execerContext.ExecContext(ctx, args)
 			return err
@@ -388,7 +388,7 @@ func (stmt *driverStmt) ExecContext(ctx context.Context, args []driver.NamedValu
 			return nil, err0
 		}
 		err = Capture(ctx, stmt.attr.dbname, func(ctx context.Context) error {
-			stmt.attr.populate(ctx, stmt.query)
+			stmt.populate(ctx)
 			var err error
 			result, err = stmt.Stmt.Exec(dargs)
 			return err
@@ -409,7 +409,7 @@ func (stmt *driverStmt) QueryContext(ctx context.Context, args []driver.NamedVal
 	var err error
 	if queryCtx, ok := stmt.Stmt.(driver.StmtQueryContext); ok {
 		err = Capture(ctx, stmt.attr.dbname, func(ctx context.Context) error {
-			stmt.attr.populate(ctx, stmt.query)
+			stmt.populate(ctx)
 			var err error
 			result, err = queryCtx.QueryContext(ctx, args)
 			return err
@@ -425,7 +425,7 @@ func (stmt *driverStmt) QueryContext(ctx context.Context, args []driver.NamedVal
 			return nil, err0
 		}
 		err = Capture(ctx, stmt.attr.dbname, func(ctx context.Context) error {
-			stmt.attr.populate(ctx, stmt.query)
+			stmt.populate(ctx)
 			var err error
 			result, err = stmt.Stmt.Query(dargs)
 			return err
@@ -442,6 +442,21 @@ func (stmt *driverStmt) ColumnConverter(idx int) driver.ValueConverter {
 		return conv.ColumnConverter(idx)
 	}
 	return driver.DefaultParameterConverter
+}
+
+func (stmt *driverStmt) populate(ctx context.Context) {
+	stmt.attr.populate(ctx, stmt.query)
+
+	seg := GetSegment(ctx)
+
+	if seg == nil {
+		processNilSegment(ctx)
+		return
+	}
+
+	seg.Lock()
+	seg.GetSQL().Preparation = "statement"
+	seg.Unlock()
 }
 
 func namedValuesToValues(args []driver.NamedValue) ([]driver.Value, error) {
