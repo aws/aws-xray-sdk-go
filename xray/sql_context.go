@@ -28,7 +28,8 @@ func registerDriver() {
 			continue
 		}
 		sql.Register(d+":xray", &driverDriver{
-			Driver: db.Driver(),
+			Driver:   db.Driver(),
+			baseName: d,
 		})
 		db.Close()
 	}
@@ -51,6 +52,7 @@ func SQLContext(driver, dsn string) (*sql.DB, error) {
 
 type driverDriver struct {
 	driver.Driver
+	baseName string // the name of the base driver
 }
 
 func (driver *driverDriver) Open(dsn string) (driver.Conn, error) {
@@ -58,96 +60,27 @@ func (driver *driverDriver) Open(dsn string) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	conn := &driverConn{Conn: rawConn}
-
-	// Detect if DSN is a URL or not, set appropriate attribute
-	urlDsn := dsn
-	if !strings.Contains(dsn, "//") {
-		urlDsn = "//" + urlDsn
-	}
-	// Here we're trying to detect things like `host:port/database` as a URL, which is pretty hard
-	// So we just assume that if it's got a scheme, a user, or a query that it's probably a URL
-	if u, err := url.Parse(urlDsn); err == nil && (u.Scheme != "" || u.User != nil || u.RawQuery != "" || strings.Contains(u.Path, "@")) {
-		// Check that this isn't in the form of user/pass@host:port/db, as that will shove the host into the path
-		if strings.Contains(u.Path, "@") {
-			u, err = url.Parse(fmt.Sprintf("%s//%s%%2F%s", u.Scheme, u.Host, u.Path[1:]))
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// Strip password from user:password pair in address
-		if u.User != nil {
-			uname := u.User.Username()
-
-			// Some drivers use "user/pass@host:port" instead of "user:pass@host:port"
-			// So we must manually attempt to chop off a potential password.
-			// But we can skip this if we already found the password.
-			if _, ok := u.User.Password(); !ok {
-				uname = strings.Split(uname, "/")[0]
-			}
-
-			u.User = url.User(uname)
-		}
-
-		// Strip password from query parameters
-		q := u.Query()
-		q.Del("password")
-		u.RawQuery = q.Encode()
-
-		conn.url = u.String()
-		if !strings.Contains(dsn, "//") {
-			conn.url = conn.url[2:]
-		}
-	} else {
-		// We don't *think* it's a URL, so now we have to try our best to strip passwords from
-		// some unknown DSL. We attempt to detect whether it's space-delimited or semicolon-delimited
-		// then remove any keys with the name "password" or "pwd". This won't catch everything, but
-		// from surveying the current (Jan 2017) landscape of drivers it should catch most.
-		conn.connectionString = stripPasswords(dsn)
+	attr, err := newDBAttribute(context.Background(), driver.Driver, dsn)
+	if err != nil {
+		rawConn.Close()
+		return nil, err
 	}
 
-	// TODO: Detect database type and use that to populate attributes
-	conn.databaseType = "Unknown"
-	conn.databaseVersion = "Unknown"
-	conn.user = "Unknown"
-	conn.dbname = "Unknown"
-
-	// There's no standard to get SQL driver version information
-	// So we invent an interface by which drivers can provide us this data
-	type versionedDriver interface {
-		Version() string
+	conn := &driverConn{
+		Conn: rawConn,
+		attr: attr,
 	}
-
-	if vd, ok := driver.Driver.(versionedDriver); ok {
-		conn.driverVersion = vd.Version()
-	} else {
-		t := reflect.TypeOf(driver.Driver)
-		for t.Kind() == reflect.Ptr {
-			t = t.Elem()
-		}
-		conn.driverVersion = t.PkgPath()
-	}
-
 	return conn, nil
 }
 
 type driverConn struct {
 	driver.Conn
-
-	connectionString string
-	url              string
-	databaseType     string
-	databaseVersion  string
-	driverVersion    string
-	user             string
-	dbname           string
+	attr *dbAttribute
 }
 
 func (conn *driverConn) Ping(ctx context.Context) error {
-	return Capture(ctx, conn.dbname, func(ctx context.Context) error {
-		conn.populate(ctx, "PING")
+	return Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
+		conn.attr.populate(ctx, "PING")
 		if p, ok := conn.Conn.(driver.Pinger); ok {
 			return p.Ping(ctx)
 		}
@@ -180,7 +113,7 @@ func (conn *driverConn) PrepareContext(ctx context.Context, query string) (drive
 	}
 	return &driverStmt{
 		Stmt:  stmt,
-		conn:  conn,
+		attr:  conn.attr,
 		query: query,
 	}, nil
 }
@@ -230,8 +163,8 @@ func (conn *driverConn) ExecContext(ctx context.Context, query string, args []dr
 	var err error
 	var result driver.Result
 	if execerCtx, ok := conn.Conn.(driver.ExecerContext); ok {
-		err = Capture(ctx, conn.dbname, func(ctx context.Context) error {
-			conn.populate(ctx, query)
+		err = Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
+			conn.attr.populate(ctx, query)
 			var err error
 			result, err = execerCtx.ExecContext(ctx, query, args)
 			return err
@@ -246,8 +179,8 @@ func (conn *driverConn) ExecContext(ctx context.Context, query string, args []dr
 		if err0 != nil {
 			return nil, err0
 		}
-		err = Capture(ctx, conn.dbname, func(ctx context.Context) error {
-			conn.populate(ctx, query)
+		err = Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
+			conn.attr.populate(ctx, query)
 			var err error
 			result, err = execer.Exec(query, dargs)
 			return err
@@ -269,8 +202,8 @@ func (conn *driverConn) QueryContext(ctx context.Context, query string, args []d
 	var err error
 	var rows driver.Rows
 	if queryerCtx, ok := conn.Conn.(driver.QueryerContext); ok {
-		err = Capture(ctx, conn.dbname, func(ctx context.Context) error {
-			conn.populate(ctx, query)
+		err = Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
+			conn.attr.populate(ctx, query)
 			var err error
 			rows, err = queryerCtx.QueryContext(ctx, query, args)
 			return err
@@ -285,8 +218,8 @@ func (conn *driverConn) QueryContext(ctx context.Context, query string, args []d
 		if err0 != nil {
 			return nil, err0
 		}
-		err = Capture(ctx, conn.dbname, func(ctx context.Context) error {
-			conn.populate(ctx, query)
+		err = Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
+			conn.attr.populate(ctx, query)
 			var err error
 			rows, err = queryer.Query(query, dargs)
 			return err
@@ -299,7 +232,92 @@ func (conn *driverConn) Close() error {
 	return conn.Conn.Close()
 }
 
-func (conn *driverConn) populate(ctx context.Context, query string) {
+type dbAttribute struct {
+	connectionString string
+	url              string
+	databaseType     string
+	databaseVersion  string
+	driverVersion    string
+	user             string
+	dbname           string
+}
+
+func newDBAttribute(ctx context.Context, driver driver.Driver, dsn string) (*dbAttribute, error) {
+	var attr dbAttribute
+
+	// Detect if DSN is a URL or not, set appropriate attribute
+	urlDsn := dsn
+	if !strings.Contains(dsn, "//") {
+		urlDsn = "//" + urlDsn
+	}
+	// Here we're trying to detect things like `host:port/database` as a URL, which is pretty hard
+	// So we just assume that if it's got a scheme, a user, or a query that it's probably a URL
+	if u, err := url.Parse(urlDsn); err == nil && (u.Scheme != "" || u.User != nil || u.RawQuery != "" || strings.Contains(u.Path, "@")) {
+		// Check that this isn't in the form of user/pass@host:port/db, as that will shove the host into the path
+		if strings.Contains(u.Path, "@") {
+			u, err = url.Parse(fmt.Sprintf("%s//%s%%2F%s", u.Scheme, u.Host, u.Path[1:]))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Strip password from user:password pair in address
+		if u.User != nil {
+			uname := u.User.Username()
+
+			// Some drivers use "user/pass@host:port" instead of "user:pass@host:port"
+			// So we must manually attempt to chop off a potential password.
+			// But we can skip this if we already found the password.
+			if _, ok := u.User.Password(); !ok {
+				uname = strings.Split(uname, "/")[0]
+			}
+
+			u.User = url.User(uname)
+		}
+
+		// Strip password from query parameters
+		q := u.Query()
+		q.Del("password")
+		u.RawQuery = q.Encode()
+
+		attr.url = u.String()
+		if !strings.Contains(dsn, "//") {
+			attr.url = attr.url[2:]
+		}
+	} else {
+		// We don't *think* it's a URL, so now we have to try our best to strip passwords from
+		// some unknown DSL. We attempt to detect whether it's space-delimited or semicolon-delimited
+		// then remove any keys with the name "password" or "pwd". This won't catch everything, but
+		// from surveying the current (Jan 2017) landscape of drivers it should catch most.
+		attr.connectionString = stripPasswords(dsn)
+	}
+
+	// TODO: Detect database type and use that to populate attributes
+	attr.databaseType = "Unknown"
+	attr.databaseVersion = "Unknown"
+	attr.user = "Unknown"
+	attr.dbname = "Unknown"
+
+	// There's no standard to get SQL driver version information
+	// So we invent an interface by which drivers can provide us this data
+	type versionedDriver interface {
+		Version() string
+	}
+
+	if vd, ok := driver.(versionedDriver); ok {
+		attr.driverVersion = vd.Version()
+	} else {
+		t := reflect.TypeOf(driver)
+		for t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
+		attr.driverVersion = t.PkgPath()
+	}
+
+	return &attr, nil
+}
+
+func (attr *dbAttribute) populate(ctx context.Context, query string) {
 	seg := GetSegment(ctx)
 
 	if seg == nil {
@@ -309,12 +327,12 @@ func (conn *driverConn) populate(ctx context.Context, query string) {
 
 	seg.Lock()
 	seg.Namespace = "remote"
-	seg.GetSQL().ConnectionString = conn.connectionString
-	seg.GetSQL().URL = conn.url
-	seg.GetSQL().DatabaseType = conn.databaseType
-	seg.GetSQL().DatabaseVersion = conn.databaseVersion
-	seg.GetSQL().DriverVersion = conn.driverVersion
-	seg.GetSQL().User = conn.user
+	seg.GetSQL().ConnectionString = attr.connectionString
+	seg.GetSQL().URL = attr.url
+	seg.GetSQL().DatabaseType = attr.databaseType
+	seg.GetSQL().DatabaseVersion = attr.databaseVersion
+	seg.GetSQL().DriverVersion = attr.driverVersion
+	seg.GetSQL().User = attr.user
 	seg.GetSQL().SanitizedQuery = query
 	seg.Unlock()
 }
@@ -333,7 +351,7 @@ func (tx *driverTx) Rollback() error {
 
 type driverStmt struct {
 	driver.Stmt
-	conn  *driverConn
+	attr  *dbAttribute
 	query string
 }
 
@@ -353,8 +371,8 @@ func (stmt *driverStmt) ExecContext(ctx context.Context, args []driver.NamedValu
 	var result driver.Result
 	var err error
 	if execerContext, ok := stmt.Stmt.(driver.StmtExecContext); ok {
-		err = Capture(ctx, stmt.conn.dbname, func(ctx context.Context) error {
-			stmt.conn.populate(ctx, stmt.query)
+		err = Capture(ctx, stmt.attr.dbname, func(ctx context.Context) error {
+			stmt.attr.populate(ctx, stmt.query)
 			var err error
 			result, err = execerContext.ExecContext(ctx, args)
 			return err
@@ -369,8 +387,8 @@ func (stmt *driverStmt) ExecContext(ctx context.Context, args []driver.NamedValu
 		if err0 != nil {
 			return nil, err0
 		}
-		err = Capture(ctx, stmt.conn.dbname, func(ctx context.Context) error {
-			stmt.conn.populate(ctx, stmt.query)
+		err = Capture(ctx, stmt.attr.dbname, func(ctx context.Context) error {
+			stmt.attr.populate(ctx, stmt.query)
 			var err error
 			result, err = stmt.Stmt.Exec(dargs)
 			return err
@@ -390,8 +408,8 @@ func (stmt *driverStmt) QueryContext(ctx context.Context, args []driver.NamedVal
 	var result driver.Rows
 	var err error
 	if queryCtx, ok := stmt.Stmt.(driver.StmtQueryContext); ok {
-		err = Capture(ctx, stmt.conn.dbname, func(ctx context.Context) error {
-			stmt.conn.populate(ctx, stmt.query)
+		err = Capture(ctx, stmt.attr.dbname, func(ctx context.Context) error {
+			stmt.attr.populate(ctx, stmt.query)
 			var err error
 			result, err = queryCtx.QueryContext(ctx, args)
 			return err
@@ -406,8 +424,8 @@ func (stmt *driverStmt) QueryContext(ctx context.Context, args []driver.NamedVal
 		if err0 != nil {
 			return nil, err0
 		}
-		err = Capture(ctx, stmt.conn.dbname, func(ctx context.Context) error {
-			stmt.conn.populate(ctx, stmt.query)
+		err = Capture(ctx, stmt.attr.dbname, func(ctx context.Context) error {
+			stmt.attr.populate(ctx, stmt.query)
 			var err error
 			result, err = stmt.Stmt.Query(dargs)
 			return err

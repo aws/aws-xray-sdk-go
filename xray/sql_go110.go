@@ -17,8 +17,8 @@ import (
 
 func (conn *driverConn) ResetSession(ctx context.Context) error {
 	if sr, ok := conn.Conn.(driver.SessionResetter); ok {
-		return Capture(ctx, conn.dbname, func(ctx context.Context) error {
-			conn.populate(ctx, "RESET SESSION")
+		return Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
+			conn.attr.populate(ctx, "RESET SESSION")
 			return sr.ResetSession(ctx)
 		})
 	}
@@ -28,11 +28,13 @@ func (conn *driverConn) ResetSession(ctx context.Context) error {
 type driverConnector struct {
 	driver.Connector
 	driver *driverDriver
+	attr   *dbAttribute
 }
 
 func (c *driverConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	var rawConn driver.Conn
-	err := Capture(ctx, "TODO", func(ctx context.Context) error {
+	err := Capture(ctx, c.attr.dbname, func(ctx context.Context) error {
+		c.attr.populate(ctx, "CONNECT")
 		var err error
 		rawConn, err = c.Connector.Connect(ctx)
 		return err
@@ -40,7 +42,10 @@ func (c *driverConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	conn := &driverConn{Conn: rawConn}
+	conn := &driverConn{
+		Conn: rawConn,
+		attr: c.attr,
+	}
 
 	return conn, nil
 }
@@ -73,21 +78,27 @@ func (c *fallbackConnector) Driver() driver.Driver {
 }
 
 func (d *driverDriver) OpenConnector(name string) (driver.Connector, error) {
+	var c driver.Connector
 	if dctx, ok := d.Driver.(driver.DriverContext); ok {
-		c, err := dctx.OpenConnector(name)
+		var err error
+		c, err = dctx.OpenConnector(name)
 		if err != nil {
 			return nil, err
 		}
-		return &driverConnector{
-			driver:    d,
-			Connector: c,
-		}, nil
-	}
-	return &driverConnector{
-		driver: d,
-		Connector: &fallbackConnector{
+	} else {
+		c = &fallbackConnector{
 			driver: d.Driver,
 			name:   name,
-		},
-	}, nil
+		}
+	}
+	attr, err := newDBAttribute(context.Background(), d.Driver, name)
+	if err != nil {
+		return nil, err
+	}
+	c = &driverConnector{
+		Connector: c,
+		driver:    d,
+		attr:      attr,
+	}
+	return c, nil
 }
