@@ -17,8 +17,10 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -71,7 +73,7 @@ func (driver *driverDriver) Open(dsn string) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	attr, err := newDBAttribute(context.Background(), driver.Driver, rawConn, dsn)
+	attr, err := newDBAttribute(context.Background(), driver.baseName, driver.Driver, rawConn, dsn)
 	if err != nil {
 		rawConn.Close()
 		return nil, err
@@ -253,7 +255,7 @@ type dbAttribute struct {
 	dbname           string
 }
 
-func newDBAttribute(ctx context.Context, driver driver.Driver, conn driver.Conn, dsn string) (*dbAttribute, error) {
+func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, conn driver.Conn, dsn string) (*dbAttribute, error) {
 	var attr dbAttribute
 
 	// Detect if DSN is a URL or not, set appropriate attribute
@@ -303,11 +305,25 @@ func newDBAttribute(ctx context.Context, driver driver.Driver, conn driver.Conn,
 		attr.connectionString = stripPasswords(dsn)
 	}
 
-	// TODO: Detect database type and use that to populate attributes
-	attr.databaseType = "Unknown"
-	attr.databaseVersion = "Unknown"
-	attr.user = "Unknown"
-	attr.dbname = "Unknown"
+	// Detect database type and use that to populate attributes
+	var detectors []func(ctx context.Context, conn driver.Conn, attr *dbAttribute) error
+	switch driverName {
+	case "postgres":
+		detectors = append(detectors, postgresDetector)
+	case "mysql":
+		detectors = append(detectors, mysqlDetector)
+	default:
+		detectors = append(detectors, postgresDetector, mysqlDetector, mssqlDetector, oracleDetector)
+	}
+	for _, detector := range detectors {
+		if detector(ctx, conn, &attr) == nil {
+			break
+		}
+		attr.databaseType = "Unknown"
+		attr.databaseVersion = "Unknown"
+		attr.user = "Unknown"
+		attr.dbname = "Unknown"
+	}
 
 	// There's no standard to get SQL driver version information
 	// So we invent an interface by which drivers can provide us this data
@@ -315,10 +331,10 @@ func newDBAttribute(ctx context.Context, driver driver.Driver, conn driver.Conn,
 		Version() string
 	}
 
-	if vd, ok := driver.(versionedDriver); ok {
+	if vd, ok := d.(versionedDriver); ok {
 		attr.driverVersion = vd.Version()
 	} else {
-		t := reflect.TypeOf(driver)
+		t := reflect.TypeOf(d)
 		for t.Kind() == reflect.Ptr {
 			t = t.Elem()
 		}
@@ -326,6 +342,114 @@ func newDBAttribute(ctx context.Context, driver driver.Driver, conn driver.Conn,
 	}
 
 	return &attr, nil
+}
+
+func postgresDetector(ctx context.Context, conn driver.Conn, attr *dbAttribute) error {
+	attr.databaseType = "Postgres"
+	return queryRow(
+		ctx, conn,
+		"SELECT version(), current_user, current_database()",
+		&attr.databaseVersion, &attr.user, &attr.dbname,
+	)
+}
+
+func mysqlDetector(ctx context.Context, conn driver.Conn, attr *dbAttribute) error {
+	attr.databaseType = "MySQL"
+	return queryRow(
+		ctx, conn,
+		"SELECT version(), current_user(), database()",
+		&attr.databaseVersion, &attr.user, &attr.dbname,
+	)
+}
+
+func mssqlDetector(ctx context.Context, conn driver.Conn, attr *dbAttribute) error {
+	attr.databaseType = "MS SQL"
+	return queryRow(
+		ctx, conn,
+		"SELECT @@version, current_user, db_name()",
+		&attr.databaseVersion, &attr.user, &attr.dbname,
+	)
+}
+
+func oracleDetector(ctx context.Context, conn driver.Conn, attr *dbAttribute) error {
+	attr.databaseType = "Oracle"
+	return queryRow(
+		ctx, conn,
+		"SELECT version FROM v$instance UNION SELECT user, ora_database_name FROM dual",
+		&attr.databaseVersion, &attr.user, &attr.dbname,
+	)
+}
+
+// minimum implementation of (*sql.DB).QueryRow
+func queryRow(ctx context.Context, conn driver.Conn, query string, dest ...*string) error {
+	var err error
+
+	// prepare
+	var stmt driver.Stmt
+	if connCtx, ok := conn.(driver.ConnPrepareContext); ok {
+		stmt, err = connCtx.PrepareContext(ctx, query)
+	} else {
+		stmt, err = conn.Prepare(query)
+		if err == nil {
+			select {
+			default:
+			case <-ctx.Done():
+				stmt.Close()
+				return ctx.Err()
+			}
+		}
+	}
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	// execute query
+	var rows driver.Rows
+	if queryCtx, ok := stmt.(driver.StmtQueryContext); ok {
+		rows, err = queryCtx.QueryContext(ctx, []driver.NamedValue{})
+	} else {
+		select {
+		default:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		rows, err = stmt.Query([]driver.Value{})
+	}
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	// scan
+	if len(dest) != len(rows.Columns()) {
+		return fmt.Errorf("xray: expected %d destination arguments in Scan, not %d", len(rows.Columns()), len(dest))
+	}
+	cols := make([]driver.Value, len(rows.Columns()))
+	if err := rows.Next(cols); err != nil {
+		return err
+	}
+	for i, src := range cols {
+		d := dest[i]
+		switch s := src.(type) {
+		case string:
+			*d = s
+		case []byte:
+			*d = string(s)
+		case time.Time:
+			*d = s.Format(time.RFC3339Nano)
+		case int64:
+			*d = strconv.FormatInt(s, 10)
+		case float64:
+			*d = strconv.FormatFloat(s, 'g', -1, 64)
+		case bool:
+			*d = strconv.FormatBool(s)
+		default:
+			return fmt.Errorf("sql: Scan error on column index %d, name %q: type missmatch", i, rows.Columns()[i])
+		}
+	}
+
+	return nil
 }
 
 func (attr *dbAttribute) populate(ctx context.Context, query string) {

@@ -72,7 +72,7 @@ func (c *driverConnector) getAttr(ctx context.Context, conn driver.Conn) (*dbAtt
 	if c.attr != nil {
 		return c.attr, nil
 	}
-	attr, err := newDBAttribute(context.Background(), c.driver.Driver, conn, c.name)
+	attr, err := newDBAttribute(context.Background(), c.driver.baseName, c.driver.Driver, conn, c.name)
 	if err != nil {
 		return nil, err
 	}
