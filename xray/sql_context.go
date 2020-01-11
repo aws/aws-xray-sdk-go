@@ -21,24 +21,33 @@ import (
 	"sync"
 )
 
-func registerDriver() {
-	for _, d := range sql.Drivers() {
-		db, err := sql.Open(d, "")
-		if err != nil {
-			continue
-		}
-		sql.Register(d+":xray", &driverDriver{
-			Driver:   db.Driver(),
-			baseName: d,
-		})
-		db.Close()
+var (
+	muInitializedDrivers sync.Mutex
+	initializedDrivers   map[string]struct{}
+)
+
+func initXRayDriver(driver, dsn string) error {
+	muInitializedDrivers.Lock()
+	defer muInitializedDrivers.Unlock()
+
+	if initializedDrivers == nil {
+		initializedDrivers = map[string]struct{}{}
 	}
-}
+	if _, ok := initializedDrivers[driver]; ok {
+		return nil
+	}
 
-var registerOnce sync.Once
-
-func initXRayDriver() {
-	registerOnce.Do(registerDriver)
+	db, err := sql.Open(driver, dsn)
+	if err != nil {
+		return err
+	}
+	sql.Register(driver+":xray", &driverDriver{
+		Driver:   db.Driver(),
+		baseName: driver,
+	})
+	initializedDrivers[driver] = struct{}{}
+	db.Close()
+	return nil
 }
 
 // SQLContext opens a normalized and traced wrapper around an *sql.DB connection.
@@ -46,7 +55,9 @@ func initXRayDriver() {
 // To ensure passwords are filtered, it is HIGHLY RECOMMENDED that your DSN
 // follows the format: `<schema>://<user>:<password>@<host>:<port>/<database>`
 func SQLContext(driver, dsn string) (*sql.DB, error) {
-	initXRayDriver()
+	if err := initXRayDriver(driver, dsn); err != nil {
+		return nil, err
+	}
 	return sql.Open(driver+":xray", dsn)
 }
 
