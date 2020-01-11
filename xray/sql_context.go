@@ -18,15 +18,35 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+	"sync"
 )
+
+func registerDriver() {
+	for _, d := range sql.Drivers() {
+		db, err := sql.Open(d, "")
+		if err != nil {
+			continue
+		}
+		sql.Register(d+":xray", &driverDriver{
+			Driver: db.Driver(),
+		})
+		db.Close()
+	}
+}
+
+var registerOnce sync.Once
+
+func initXRayDriver() {
+	registerOnce.Do(registerDriver)
+}
 
 // SQLContext opens a normalized and traced wrapper around an *sql.DB connection.
 // It uses `sql.Open` internally and shares the same function signature.
 // To ensure passwords are filtered, it is HIGHLY RECOMMENDED that your DSN
 // follows the format: `<schema>://<user>:<password>@<host>:<port>/<database>`
 func SQLContext(driver, dsn string) (*sql.DB, error) {
-	// TODO: @shogo82148
-	return nil, nil
+	initXRayDriver()
+	return sql.Open(driver+":xray", dsn)
 }
 
 type driverDriver struct {
