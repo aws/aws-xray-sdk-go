@@ -69,7 +69,7 @@ type driverDriver struct {
 }
 
 func (driver *driverDriver) Open(dsn string) (driver.Conn, error) {
-	rawConn, err := driver.Open(dsn)
+	rawConn, err := driver.Driver.Open(dsn)
 	if err != nil {
 		return nil, err
 	}
