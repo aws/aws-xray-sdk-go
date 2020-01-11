@@ -37,18 +37,17 @@ type driverConnector struct {
 
 func (c *driverConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	var rawConn driver.Conn
-	err := Capture(ctx, c.attr.dbname, func(ctx context.Context) error {
-		c.attr.populate(ctx, "CONNECT")
+	attr, err := c.getAttr(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = Capture(ctx, attr.dbname, func(ctx context.Context) error {
+		attr.populate(ctx, "CONNECT")
 		var err error
 		rawConn, err = c.Connector.Connect(ctx)
 		return err
 	})
 	if err != nil {
-		return nil, err
-	}
-	attr, err := c.getAttr(ctx, rawConn)
-	if err != nil {
-		rawConn.Close()
 		return nil, err
 	}
 
@@ -59,7 +58,7 @@ func (c *driverConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	return conn, nil
 }
 
-func (c *driverConnector) getAttr(ctx context.Context, conn driver.Conn) (*dbAttribute, error) {
+func (c *driverConnector) getAttr(ctx context.Context) (*dbAttribute, error) {
 	c.mu.RLock()
 	attr := c.attr
 	c.mu.RUnlock()
@@ -72,7 +71,13 @@ func (c *driverConnector) getAttr(ctx context.Context, conn driver.Conn) (*dbAtt
 	if c.attr != nil {
 		return c.attr, nil
 	}
-	attr, err := newDBAttribute(context.Background(), c.driver.baseName, c.driver.Driver, conn, c.name)
+	conn, err := c.Connector.Connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	attr, err = newDBAttribute(context.Background(), c.driver.baseName, c.driver.Driver, conn, c.name)
 	if err != nil {
 		return nil, err
 	}
