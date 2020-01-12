@@ -1,5 +1,7 @@
 module github.com/aws/aws-xray-sdk-go
 
+go 1.11
+
 require (
 	github.com/DATA-DOG/go-sqlmock v1.2.0
 	github.com/aws/aws-sdk-go v1.17.12
@@ -9,5 +11,3 @@ require (
 	github.com/stretchr/testify v1.1.4
 	golang.org/x/net v0.0.0-20190311183353-d8887717615a
 )
-
-go 1.13
