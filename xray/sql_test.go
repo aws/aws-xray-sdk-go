@@ -85,6 +85,13 @@ func (s *sqlTestSuite) mockOracle(err error) {
 }
 
 func (s *sqlTestSuite) TestPasswordlessURL() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("", attr.connectionString)
+		s.Equal("postgres://user@host:5432/database", attr.url)
+		checked = true
+	}
+
 	s.mockDB("postgres://user@host:5432/database")
 	s.mockPSQL(nil)
 	s.connect()
@@ -95,19 +102,17 @@ func (s *sqlTestSuite) TestPasswordlessURL() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("", conn.attr.connectionString)
-		s.Equal("postgres://user@host:5432/database", conn.attr.url)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestPasswordURL() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("", attr.connectionString)
+		s.Equal("postgres://user@host:5432/database", attr.url)
+		checked = true
+	}
+
 	s.mockDB("postgres://user:password@host:5432/database")
 	s.mockPSQL(nil)
 	s.connect()
@@ -118,19 +123,17 @@ func (s *sqlTestSuite) TestPasswordURL() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("", conn.attr.connectionString)
-		s.Equal("postgres://user@host:5432/database", conn.attr.url)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestPasswordURLQuery() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("", attr.connectionString)
+		s.Equal("postgres://host:5432/database", attr.url)
+		checked = true
+	}
+
 	s.mockDB("postgres://host:5432/database?password=password")
 	s.mockPSQL(nil)
 	s.connect()
@@ -141,19 +144,17 @@ func (s *sqlTestSuite) TestPasswordURLQuery() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("", conn.attr.connectionString)
-		s.Equal("postgres://user@host:5432/database", conn.attr.url)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestPasswordURLSchemaless() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("", attr.connectionString)
+		s.Equal("user@host:5432/database", attr.url)
+		checked = true
+	}
+
 	s.mockDB("user:password@host:5432/database")
 	s.mockPSQL(nil)
 	s.connect()
@@ -164,19 +165,17 @@ func (s *sqlTestSuite) TestPasswordURLSchemaless() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("", conn.attr.connectionString)
-		s.Equal("user@host:5432/database", conn.attr.url)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestPasswordURLSchemalessUserlessQuery() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("", attr.connectionString)
+		s.Equal("host:5432/database", attr.url)
+		checked = true
+	}
+
 	s.mockDB("host:5432/database?password=password")
 	s.mockPSQL(nil)
 	s.connect()
@@ -187,19 +186,17 @@ func (s *sqlTestSuite) TestPasswordURLSchemalessUserlessQuery() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("", conn.attr.connectionString)
-		s.Equal("host:5432/database", conn.attr.url)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestWeirdPasswordURL() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("", attr.connectionString)
+		s.Equal("user@host:5432/database", attr.url)
+		checked = true
+	}
+
 	s.mockDB("user%2Fpassword@host:5432/database")
 	s.mockPSQL(nil)
 	s.connect()
@@ -210,19 +207,17 @@ func (s *sqlTestSuite) TestWeirdPasswordURL() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("", conn.attr.connectionString)
-		s.Equal("user@host:5432/database", conn.attr.url)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestWeirderPasswordURL() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("", attr.connectionString)
+		s.Equal("user@host:5432/database", attr.url)
+		checked = true
+	}
+
 	s.mockDB("user/password@host:5432/database")
 	s.mockPSQL(nil)
 	s.connect()
@@ -233,19 +228,17 @@ func (s *sqlTestSuite) TestWeirderPasswordURL() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("", conn.attr.connectionString)
-		s.Equal("user@host:5432/database", conn.attr.url)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestPasswordlessConnectionString() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("user=user database=database", attr.connectionString)
+		s.Equal("", attr.url)
+		checked = true
+	}
+
 	s.mockDB("user=user database=database")
 	s.mockPSQL(nil)
 	s.connect()
@@ -256,19 +249,17 @@ func (s *sqlTestSuite) TestPasswordlessConnectionString() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("user=user database=database", conn.attr.connectionString)
-		s.Equal("", conn.attr.url)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestPasswordConnectionString() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("user=user database=database", attr.connectionString)
+		s.Equal("", attr.url)
+		checked = true
+	}
+
 	s.mockDB("user=user password=password database=database")
 	s.mockPSQL(nil)
 	s.connect()
@@ -279,23 +270,17 @@ func (s *sqlTestSuite) TestPasswordConnectionString() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("user=user database=database", conn.attr.connectionString)
-		s.Equal("", conn.attr.url)
-		return nil
-	})
-	s.Require().NoError(err)
-
-	s.mockDB("")
-	s.mockPSQL(nil)
-	s.connect()
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestSemicolonPasswordConnectionString() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("odbc:server=localhost;user id=sa;otherthing=thing", attr.connectionString)
+		s.Equal("", attr.url)
+		checked = true
+	}
+
 	s.mockDB("odbc:server=localhost;user id=sa;password={foo}};bar};otherthing=thing")
 	s.mockPSQL(nil)
 	s.connect()
@@ -306,19 +291,19 @@ func (s *sqlTestSuite) TestSemicolonPasswordConnectionString() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("odbc:server=localhost;user id=sa;otherthing=thing", conn.attr.connectionString)
-		s.Equal("", conn.attr.url)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestPSQL() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("Postgres", attr.databaseType)
+		s.Equal("test version", attr.databaseVersion)
+		s.Equal("test user", attr.user)
+		s.Equal("test database", attr.dbname)
+		checked = true
+	}
+
 	s.mockDB("")
 	s.mockPSQL(nil)
 	s.connect()
@@ -329,21 +314,19 @@ func (s *sqlTestSuite) TestPSQL() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("Postgres", conn.attr.databaseType)
-		s.Equal("test version", conn.attr.databaseVersion)
-		s.Equal("test user", conn.attr.user)
-		s.Equal("test database", conn.attr.dbname)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestMySQL() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("MySQL", attr.databaseType)
+		s.Equal("test version", attr.databaseVersion)
+		s.Equal("test user", attr.user)
+		s.Equal("test database", attr.dbname)
+		checked = true
+	}
+
 	s.mockDB("")
 	s.mockPSQL(errors.New(""))
 	s.mockMySQL(nil)
@@ -355,21 +338,19 @@ func (s *sqlTestSuite) TestMySQL() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("MySQL", conn.attr.databaseType)
-		s.Equal("test version", conn.attr.databaseVersion)
-		s.Equal("test user", conn.attr.user)
-		s.Equal("test database", conn.attr.dbname)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestMSSQL() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("MS SQL", attr.databaseType)
+		s.Equal("test version", attr.databaseVersion)
+		s.Equal("test user", attr.user)
+		s.Equal("test database", attr.dbname)
+		checked = true
+	}
+
 	s.mockDB("")
 	s.mockPSQL(errors.New(""))
 	s.mockMySQL(errors.New(""))
@@ -382,21 +363,19 @@ func (s *sqlTestSuite) TestMSSQL() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("MS SQL", conn.attr.databaseType)
-		s.Equal("test version", conn.attr.databaseVersion)
-		s.Equal("test user", conn.attr.user)
-		s.Equal("test database", conn.attr.dbname)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestOracle() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("Oracle", attr.databaseType)
+		s.Equal("test version", attr.databaseVersion)
+		s.Equal("test user", attr.user)
+		s.Equal("test database", attr.dbname)
+		checked = true
+	}
+
 	s.mockDB("")
 	s.mockPSQL(errors.New(""))
 	s.mockMySQL(errors.New(""))
@@ -410,21 +389,19 @@ func (s *sqlTestSuite) TestOracle() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("Oracle", conn.attr.databaseType)
-		s.Equal("test version", conn.attr.databaseVersion)
-		s.Equal("test user", conn.attr.user)
-		s.Equal("test database", conn.attr.dbname)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestUnknownDatabase() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Equal("Unknown", attr.databaseType)
+		s.Equal("Unknown", attr.databaseVersion)
+		s.Equal("Unknown", attr.user)
+		s.Equal("Unknown", attr.dbname)
+		checked = true
+	}
+
 	s.mockDB("")
 	s.mockPSQL(errors.New(""))
 	s.mockMySQL(errors.New(""))
@@ -438,21 +415,16 @@ func (s *sqlTestSuite) TestUnknownDatabase() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Equal("Unknown", conn.attr.databaseType)
-		s.Equal("Unknown", conn.attr.databaseVersion)
-		s.Equal("Unknown", conn.attr.user)
-		s.Equal("Unknown", conn.attr.dbname)
-		return nil
-	})
-	s.Require().NoError(err)
+	s.Require().True(checked)
 }
 
 func (s *sqlTestSuite) TestDriverVersionPackage() {
+	var checked bool
+	attrHook = func(attr *dbAttribute) {
+		s.Contains(attr.driverVersion, "DATA-DOG/go-sqlmock")
+		checked = true
+	}
+
 	s.mockDB("")
 	s.mockPSQL(nil)
 	s.connect()
@@ -463,12 +435,5 @@ func (s *sqlTestSuite) TestDriverVersionPackage() {
 	s.Require().NoError(err)
 	defer conn.Close()
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	err = conn.Raw(func(rawConn interface{}) error {
-		conn, ok := rawConn.(*driverConn)
-		if !ok {
-			return errors.New("unexpected connection type")
-		}
-		s.Contains(conn.attr.driverVersion, "DATA-DOG/go-sqlmock")
-		return nil
-	})
+	s.Require().True(checked)
 }

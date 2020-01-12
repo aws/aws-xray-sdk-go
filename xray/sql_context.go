@@ -26,6 +26,7 @@ import (
 var (
 	muInitializedDrivers sync.Mutex
 	initializedDrivers   map[string]struct{}
+	attrHook             func(attr *dbAttribute) // for testing
 )
 
 func initXRayDriver(driver, dsn string) error {
@@ -341,6 +342,9 @@ func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, con
 		attr.driverVersion = t.PkgPath()
 	}
 
+	if attrHook != nil {
+		attrHook(&attr)
+	}
 	return &attr, nil
 }
 
