@@ -84,7 +84,7 @@ func TestShouldTracePositive1(t *testing.T) {
 
 	sr := &Request{
 		Host:        host1,
-		Url:         url1,
+		URL:         url1,
 		Method:      method1,
 		ServiceName: serviceName1,
 		ServiceType: servType1,
@@ -180,7 +180,7 @@ func TestShouldTracePositive2(t *testing.T) {
 	// serviceType missing
 	sr := &Request{
 		Host:        host1,
-		Url:         url1,
+		URL:         url1,
 		Method:      method1,
 		ServiceName: serviceName1,
 	}
@@ -321,7 +321,7 @@ func TestShouldTraceDefaultPositive(t *testing.T) {
 
 	sr := &Request{
 		Host:   "www.foo.bar.com",
-		Url:    "/resource/bat",
+		URL:    "/resource/bat",
 		Method: "GET",
 	}
 
@@ -415,7 +415,7 @@ func TestShouldTraceExpiredManifest(t *testing.T) {
 
 	sr := &Request{
 		Host:   "www.foo.bar.com",
-		Url:    "/resource/bar",
+		URL:    "/resource/bar",
 		Method: "POST",
 	}
 
@@ -2597,7 +2597,7 @@ func TestLoadDaemonEndpoints1(t *testing.T) {
 
 	sr := &Request{
 		Host:        host1,
-		Url:         url1,
+		URL:         url1,
 		Method:      method1,
 		ServiceName: serviceName1,
 		ServiceType: servType1,
@@ -2622,7 +2622,7 @@ func TestLoadDaemonEndpoints2(t *testing.T) {
 
 	sr := &Request{
 		Host:        host1,
-		Url:         url1,
+		URL:         url1,
 		Method:      method1,
 		ServiceName: serviceName1,
 		ServiceType: servType1,

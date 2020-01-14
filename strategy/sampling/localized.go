@@ -60,10 +60,10 @@ func NewLocalizedStrategyFromJSONBytes(b []byte) (*LocalizedStrategy, error) {
 // ShouldTrace consults the LocalizedStrategy's rule set to determine
 // if the given request should be traced or not.
 func (lss *LocalizedStrategy) ShouldTrace(rq *Request) *Decision {
-	logger.Debugf("Determining ShouldTrace decision for:\n\thost: %s\n\tpath: %s\n\tmethod: %s", rq.Host, rq.Url, rq.Method)
+	logger.Debugf("Determining ShouldTrace decision for:\n\thost: %s\n\tpath: %s\n\tmethod: %s", rq.Host, rq.URL, rq.Method)
 	if nil != lss.manifest.Rules {
 		for _, r := range lss.manifest.Rules {
-			if r.AppliesTo(rq.Host, rq.Url, rq.Method) {
+			if r.AppliesTo(rq.Host, rq.URL, rq.Method) {
 				logger.Debugf("Applicable rule:\n\tfixed_target: %d\n\trate: %f\n\thost: %s\n\turl_path: %s\n\thttp_method: %s", r.FixedTarget, r.Rate, r.Host, r.URLPath, r.HTTPMethod)
 				return r.Sample()
 			}

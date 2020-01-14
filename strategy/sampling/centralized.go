@@ -138,7 +138,7 @@ func (ss *CentralizedStrategy) ShouldTrace(request *Request) *Decision {
 	logger.Debugf(
 		"Determining ShouldTrace decision for:\n\thost: %s\n\tpath: %s\n\tmethod: %s\n\tservicename: %s\n\tservicetype: %s",
 		request.Host,
-		request.Url,
+		request.URL,
 		request.Method,
 		request.ServiceName,
 		request.ServiceType,
