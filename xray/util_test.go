@@ -9,6 +9,7 @@
 package xray
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net"
@@ -60,7 +61,8 @@ func (td *Testdaemon) Run() {
 			continue
 		}
 
-		buffered := buffer[len(Header):n]
+		idx := bytes.IndexByte(buffer, 'n')
+		buffered := buffer[idx+1 : n]
 
 		seg := &Segment{}
 		err = json.Unmarshal(buffered, &seg)

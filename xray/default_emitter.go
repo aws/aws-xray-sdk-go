@@ -25,13 +25,17 @@ type DefaultEmitter struct {
 	sync.Mutex
 	conn *net.UDPConn
 	addr *net.UDPAddr
+	buf  []byte
 }
 
 // NewDefaultEmitter initializes and returns a
 // pointer to an instance of DefaultEmitter.
 func NewDefaultEmitter(raddr *net.UDPAddr) (*DefaultEmitter, error) {
 	initLambda()
-	d := &DefaultEmitter{addr: raddr}
+	d := &DefaultEmitter{
+		addr: raddr,
+		buf:  make([]byte, 64*1024),
+	}
 	return d, nil
 }
 
@@ -77,11 +81,15 @@ func (de *DefaultEmitter) Emit(seg *Segment) {
 				return
 			}
 		}
+		buf := de.buf[:0]
+		buf = append(buf, Header...)
+		buf = append(buf, p...)
 
-		_, err := de.conn.Write(append(Header, p...))
+		_, err := de.conn.Write(buf)
 		if err != nil {
 			logger.Error(err)
 		}
+		de.buf = buf[:0]
 		de.Unlock()
 	}
 }
