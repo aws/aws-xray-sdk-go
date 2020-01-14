@@ -186,21 +186,22 @@ func testClientWithoutSegment(t *testing.T, svc *lambda.Lambda) {
 }
 
 func testAWSDataRace(t *testing.T, svc *lambda.Lambda) {
-	Configure(Config{ContextMissingStrategy: &TestContextMissingStrategy{},DaemonAddr: "localhost:3000"})
+	Configure(Config{ContextMissingStrategy: &TestContextMissingStrategy{}, DaemonAddr: "localhost:3000"})
 	defer ResetConfig()
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	ctx, seg := BeginSegment(ctx, "TestSegment")
 
 	wg := sync.WaitGroup{}
 
 	for i := 0; i < 5; i++ {
-		if i!=3 && i!=2{
+		if i != 3 && i != 2 {
 			wg.Add(1)
 		}
 		go func(i int) {
-			if i!=3 && i!=2{
+			if i != 3 && i != 2 {
 				time.Sleep(1)
 				defer wg.Done()
 			}
@@ -208,7 +209,7 @@ func testAWSDataRace(t *testing.T, svc *lambda.Lambda) {
 			time.Sleep(1)
 			seg.Close(nil)
 			svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
-			if i== 3 || i==2{
+			if i == 3 || i == 2 {
 				cancel() // cancel context
 			}
 		}(i)

@@ -86,19 +86,19 @@ func initSamplingRules(srm *RuleManifest) {
 // processManifest returns the provided manifest if valid, or an error if the provided manifest is invalid.
 func processManifest(srm *RuleManifest) error {
 	if nil == srm {
-		return errors.New("Sampling rule manifest must not be nil.")
+		return errors.New("Sampling rule manifest must not be nil")
 	}
 	if 1 != srm.Version && 2 != srm.Version {
-		return errors.New(fmt.Sprintf("Sampling rule manifest version %d not supported.", srm.Version))
+		return fmt.Errorf("Sampling rule manifest version %d not supported", srm.Version)
 	}
 	if nil == srm.Default {
-		return errors.New("Sampling rule manifest must include a default rule.")
+		return errors.New("Sampling rule manifest must include a default rule")
 	}
 	if "" != srm.Default.URLPath || "" != srm.Default.ServiceName || "" != srm.Default.HTTPMethod {
-		return errors.New("The default rule must not specify values for url_path, service_name, or http_method.")
+		return errors.New("The default rule must not specify values for url_path, service_name, or http_method")
 	}
 	if srm.Default.FixedTarget < 0 || srm.Default.Rate < 0 {
-		return errors.New("The default rule must specify non-negative values for fixed_target and rate.")
+		return errors.New("The default rule must specify non-negative values for fixed_target and rate")
 	}
 
 	c := &utils.DefaultClock{}

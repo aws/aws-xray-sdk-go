@@ -15,8 +15,10 @@ import (
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
 )
 
+// Origin is the type of AWS resource that runs your application.
 const Origin = "AWS::ECS::Container"
 
+// Init activates ECSPlugin at runtime.
 func Init() {
 	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.ECSMetadata == nil {
 		addPluginMetadata(plugins.InstancePluginMetadata)

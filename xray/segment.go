@@ -249,26 +249,26 @@ func (seg *Segment) Close(err error) {
 }
 
 // CloseAndStream closes a subsegment and sends it.
-func (subseg *Segment) CloseAndStream(err error) {
-	subseg.Lock()
-	defer subseg.Unlock()
+func (seg *Segment) CloseAndStream(err error) {
+	seg.Lock()
+	defer seg.Unlock()
 
-	if subseg.parent != nil {
-		logger.Debugf("Ending subsegment named: %s", subseg.Name)
-		subseg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
-		subseg.InProgress = false
-		subseg.Emitted = true
-		if subseg.parent.RemoveSubsegment(subseg) {
-			logger.Debugf("Removing subsegment named: %s", subseg.Name)
+	if seg.parent != nil {
+		logger.Debugf("Ending subsegment named: %s", seg.Name)
+		seg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
+		seg.InProgress = false
+		seg.Emitted = true
+		if seg.parent.RemoveSubsegment(seg) {
+			logger.Debugf("Removing subsegment named: %s", seg.Name)
 		}
 	}
 
 	if err != nil {
-		subseg.addError(err)
+		seg.addError(err)
 	}
 
-	subseg.beforeEmitSubsegment(subseg.parent)
-	subseg.emit()
+	seg.beforeEmitSubsegment(seg.parent)
+	seg.emit()
 }
 
 // RemoveSubsegment removes a subsegment child from a segment or subsegment.
@@ -409,12 +409,12 @@ func (seg *Segment) addSDKAndServiceInformation() {
 	seg.GetService().CompilerVersion = runtime.Version()
 }
 
-func (sub *Segment) beforeEmitSubsegment(seg *Segment) {
+func (seg *Segment) beforeEmitSubsegment(s *Segment) {
 	// Only called within a subsegment locked code block
-	sub.TraceID = seg.root().TraceID
-	sub.ParentID = seg.ID
-	sub.Type = "subsegment"
-	sub.RequestWasTraced = seg.RequestWasTraced
+	seg.TraceID = s.root().TraceID
+	seg.ParentID = s.ID
+	seg.Type = "subsegment"
+	seg.RequestWasTraced = s.RequestWasTraced
 }
 
 // AddAnnotation allows adding an annotation to the segment.
