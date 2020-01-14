@@ -120,6 +120,7 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 }
 
 func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Request, traceHeader *header.Header) {
+	defer seg.Close(nil)
 	seg.Lock()
 
 	scheme := "https://"
@@ -176,7 +177,6 @@ func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Requ
 		seg.Fault = true
 	}
 	seg.Unlock()
-	seg.Close(nil)
 }
 
 func clientIP(r *http.Request) (string, bool) {
