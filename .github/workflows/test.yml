@@ -26,9 +26,13 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
         id: go
-      - run: |
+      - name: Set up GOPATH
+        run: |
           go version
           echo "::set-env name=GOPATH::$GITHUB_WORKSPACE"
+          mkdir -p "$GITHUB_WORKSPACE/bin"
+          mkdir -p "$GITHUB_WORKSPACE/pkg"
+          mkdir -p "$GITHUB_WORKSPACE/src"
         shell: bash
       - name: Check out code
         uses: actions/checkout@v2
