@@ -63,7 +63,7 @@ func TestSubsegmentDataRaceWithContextCancel(t *testing.T) {
 		}
 		go func(i int) {
 			if i != 3 {
-				time.Sleep(1)
+				time.Sleep(time.Nanosecond)
 				defer wg.Done()
 			}
 			_, seg := BeginSubsegment(ctx, "TestSubsegment1")
