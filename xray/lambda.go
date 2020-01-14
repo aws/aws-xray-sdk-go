@@ -19,7 +19,7 @@ import (
 )
 
 // LambdaTraceHeaderKey is key to get trace header from context.
-var LambdaTraceHeaderKey = &contextKey{"x-amzn-trace-id"}
+const LambdaTraceHeaderKey string = "x-amzn-trace-id"
 
 // LambdaTaskRootKey is the key to get Lambda Task Root from environment variable.
 const LambdaTaskRootKey string = "LAMBDA_TASK_ROOT"
