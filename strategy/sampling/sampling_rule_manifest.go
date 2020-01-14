@@ -85,16 +85,16 @@ func initSamplingRules(srm *RuleManifest) {
 
 // processManifest returns the provided manifest if valid, or an error if the provided manifest is invalid.
 func processManifest(srm *RuleManifest) error {
-	if nil == srm {
+	if srm == nil {
 		return errors.New("sampling rule manifest must not be nil")
 	}
-	if 1 != srm.Version && 2 != srm.Version {
+	if srm.Version != 1 && srm.Version != 2 {
 		return fmt.Errorf("sampling rule manifest version %d not supported", srm.Version)
 	}
-	if nil == srm.Default {
+	if srm.Default == nil {
 		return errors.New("sampling rule manifest must include a default rule")
 	}
-	if "" != srm.Default.URLPath || "" != srm.Default.ServiceName || "" != srm.Default.HTTPMethod {
+	if srm.Default.URLPath != "" || srm.Default.ServiceName != "" || srm.Default.HTTPMethod != "" {
 		return errors.New("the default rule must not specify values for url_path, service_name, or http_method")
 	}
 	if srm.Default.FixedTarget < 0 || srm.Default.Rate < 0 {
@@ -114,8 +114,7 @@ func processManifest(srm *RuleManifest) error {
 		for _, r := range srm.Rules {
 
 			if srm.Version == 1 {
-				err := validateVersion1(r)
-				if nil != err {
+				if err := validateVersion1(r); err != nil {
 					return err
 				}
 				r.Host = r.ServiceName // V1 sampling rule contains service name and not host
@@ -123,8 +122,7 @@ func processManifest(srm *RuleManifest) error {
 			}
 
 			if srm.Version == 2 {
-				err := validateVersion2(r)
-				if nil != err {
+				if err := validateVersion2(r); err != nil {
 					return err
 				}
 			}
