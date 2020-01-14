@@ -67,6 +67,7 @@ func TestAWS(t *testing.T) {
 
 	// Run all combinations of constructors + tests.
 	for _, cons := range constructors {
+		cons := cons
 		t.Run(cons.name, func(t *testing.T) {
 			for _, test := range tests {
 				test := test
