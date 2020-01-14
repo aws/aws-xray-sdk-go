@@ -30,6 +30,7 @@ jobs:
         run: |
           go version
           echo "::set-env name=GOPATH::$GITHUB_WORKSPACE"
+          echo "::add-path::${{ github.workspace }}/bin"
           mkdir -p "$GITHUB_WORKSPACE/bin"
           mkdir -p "$GITHUB_WORKSPACE/pkg"
           mkdir -p "$GITHUB_WORKSPACE/src"
