@@ -70,10 +70,8 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 
 	if ctx.Done() != nil {
 		go func() {
-			select {
-			case <-ctx.Done():
-				seg.handleContextDone()
-			}
+			<-ctx.Done()
+			seg.handleContextDone()
 		}()
 	}
 	return context.WithValue(ctx, ContextKey, seg), seg
