@@ -37,7 +37,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          if go help mod 2>&1 > /dev/null; then
+          if go help mod > /dev/null 2>&1 ; then
             go mod download
           else
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
