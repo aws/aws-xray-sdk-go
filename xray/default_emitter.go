@@ -63,6 +63,7 @@ func (de *DefaultEmitter) Emit(seg *Segment) {
 	}
 
 	for _, p := range packSegments(seg, nil) {
+		p := p
 		// defer expensive marshal until log message is actually logged
 		logger.DebugDeferred(func() string {
 			var b bytes.Buffer
