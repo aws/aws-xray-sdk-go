@@ -1,0 +1,18 @@
+{
+    "version": 2,
+    "default": {
+        "fixed_target": 1,
+        "rate": 0.05
+    },
+    "rules": [
+        {
+            "description": "Example path-based rule below. Rules are evaluated in id-order, the default rule will be used if none match the incoming request. This is a rule for the checkout page.",
+            "id": "1",
+            "service_name": "*",
+            "http_method": "*",
+            "url_path": "/checkout",
+            "fixed_target": 10,
+            "rate": 0.05
+        }
+    ]
+}

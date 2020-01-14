@@ -9,7 +9,7 @@
 package sampling
 
 import (
-	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,33 +22,10 @@ func TestNewLocalizedStrategy(t *testing.T) {
 }
 
 func TestNewLocalizedStrategyFromFilePath1(t *testing.T) { // V1 sampling
-	ruleString :=
-		`{
-	  "version": 1,
-	  "default": {
-	    "fixed_target": 1,
-	    "rate": 0.05
-	  },
-	  "rules": [
-       {
-        "description": "Example path-based rule below. Rules are evaluated in id-order, the default rule will be used if none match the incoming request. This is a rule for the checkout page.",
-        "id": "1",
-        "service_name": "*",
-        "http_method": "*",
-        "url_path": "/checkout",
-        "fixed_target": 10,
-        "rate": 0.05
-       }
-	  ]
-	}`
-	goPath := os.Getenv("PWD")
-	testFile := goPath + "/test_rule.json"
-	f, err := os.Create(testFile)
+	testFile, err := filepath.Abs(filepath.Join("testdata", "rule-v1-sampling.json"))
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	f.WriteString(ruleString)
-	f.Close()
 	ss, err := NewLocalizedStrategyFromFilePath(testFile)
 	assert.NotNil(t, ss)
 	assert.Equal(t, 1, ss.manifest.Version)
@@ -61,37 +38,13 @@ func TestNewLocalizedStrategyFromFilePath1(t *testing.T) { // V1 sampling
 	assert.Equal(t, 0.05, ss.manifest.Rules[0].Rate)
 
 	assert.Nil(t, err)
-	os.Remove(testFile)
 }
 
 func TestNewLocalizedStrategyFromFilePath2(t *testing.T) { // V2 sampling
-	ruleString :=
-		`{
-	  "version": 2,
-	  "default": {
-	    "fixed_target": 1,
-	    "rate": 0.05
-	  },
-	  "rules": [
-       {
-        "description": "Example path-based rule below. Rules are evaluated in id-order, the default rule will be used if none match the incoming request. This is a rule for the checkout page.",
-        "id": "1",
-        "host": "*",
-        "http_method": "*",
-        "url_path": "/checkout",
-        "fixed_target": 10,
-        "rate": 0.05
-       }
-	  ]
-	}`
-	goPath := os.Getenv("PWD")
-	testFile := goPath + "/test_rule.json"
-	f, err := os.Create(testFile)
+	testFile, err := filepath.Abs(filepath.Join("testdata", "rule-v2-sampling.json"))
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	f.WriteString(ruleString)
-	f.Close()
 	ss, err := NewLocalizedStrategyFromFilePath(testFile)
 	assert.NotNil(t, ss)
 	assert.Equal(t, 2, ss.manifest.Version)
@@ -104,100 +57,36 @@ func TestNewLocalizedStrategyFromFilePath2(t *testing.T) { // V2 sampling
 	assert.Equal(t, 0.05, ss.manifest.Rules[0].Rate)
 
 	assert.Nil(t, err)
-	os.Remove(testFile)
 }
 
 func TestNewLocalizedStrategyFromFilePathInvalidRulesV1(t *testing.T) { // V1 contains host
-	ruleString :=
-		`{
-	  "version": 1,
-	  "default": {
-	    "fixed_target": 1,
-	    "rate": 0.05
-	  },
-	  "rules": [
-       {
-        "description": "Example path-based rule below. Rules are evaluated in id-order, the default rule will be used if none match the incoming request. This is a rule for the checkout page.",
-        "id": "1",
-        "host": "*",
-        "http_method": "*",
-        "url_path": "/checkout",
-        "fixed_target": 10,
-        "rate": 0.05
-       }
-	  ]
-	}`
-	goPath := os.Getenv("PWD")
-	testFile := goPath + "/test_rule.json"
-	f, err := os.Create(testFile)
+	testFile, err := filepath.Abs(filepath.Join("testdata", "rule-v1-contains-host.json"))
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	f.WriteString(ruleString)
-	f.Close()
 	ss, err := NewLocalizedStrategyFromFilePath(testFile)
 	assert.Nil(t, ss)
 	assert.NotNil(t, err)
-	os.Remove(testFile)
 }
 
 func TestNewLocalizedStrategyFromFilePathInvalidRulesV2(t *testing.T) { // V2 contains service_name
-	ruleString :=
-		`{
-	  "version": 2,
-	  "default": {
-	    "fixed_target": 1,
-	    "rate": 0.05
-	  },
-	  "rules": [
-       {
-        "description": "Example path-based rule below. Rules are evaluated in id-order, the default rule will be used if none match the incoming request. This is a rule for the checkout page.",
-        "id": "1",
-        "service_name": "*",
-        "http_method": "*",
-        "url_path": "/checkout",
-        "fixed_target": 10,
-        "rate": 0.05
-       }
-	  ]
-	}`
-	goPath := os.Getenv("PWD")
-	testFile := goPath + "/test_rule.json"
-	f, err := os.Create(testFile)
+	testFile, err := filepath.Abs(filepath.Join("testdata", "rule-v2-contains-service-name.json"))
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	f.WriteString(ruleString)
-	f.Close()
 	ss, err := NewLocalizedStrategyFromFilePath(testFile)
 	assert.Nil(t, ss)
 	assert.NotNil(t, err)
-	os.Remove(testFile)
 }
 
 func TestNewLocalizedStrategyFromFilePathWithInvalidJSON(t *testing.T) { // Test V1 sampling rule
-	ruleString :=
-		`{
-	  "version": 1,
-	  "default": {
-	    "fixed_target": 1,
-	    "rate":
-	  },
-	  "rules": [
-	  ]
-	}`
-	goPath := os.Getenv("PWD")
-	testFile := goPath + "/test_rule.json"
-	f, err := os.Create(testFile)
+	testFile, err := filepath.Abs(filepath.Join("testdata", "rule-v1-invalid.json"))
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	f.WriteString(ruleString)
-	f.Close()
 	ss, err := NewLocalizedStrategyFromFilePath(testFile)
 	assert.Nil(t, ss)
 	assert.NotNil(t, err)
-	os.Remove(testFile)
 }
 
 func TestNewLocalizedStrategyFromJSONBytes(t *testing.T) {
