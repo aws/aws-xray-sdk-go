@@ -94,13 +94,13 @@ func GetDaemonEndpointsFromString(dAddr string) (*DaemonEndpoints, error) {
 
 func resolveAddress(dAddr string) (*DaemonEndpoints, error) {
 	addr := strings.Split(dAddr, addressDelimiter)
-	if len(addr) == 1 {
+	switch len(addr) {
+	case 1:
 		return parseSingleForm(addr[0])
-	} else if len(addr) == 2 {
+	case 2:
 		return parseDoubleForm(addr)
-	} else {
-		return nil, errors.New("invalid daemon address: " + dAddr)
 	}
+	return nil, errors.New("invalid daemon address: " + dAddr)
 }
 
 func parseDoubleForm(addr []string) (*DaemonEndpoints, error) {
