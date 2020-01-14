@@ -238,12 +238,12 @@ func TestShouldTracePositive2(t *testing.T) {
 		clock:       clock,
 	}
 
-	startegy, _ := NewLocalizedStrategy()
+	strategy, _ := NewLocalizedStrategy()
 	s := &CentralizedStrategy{
 		manifest: m,
 		clock:    clock,
 		rand:     rand,
-		fallback: startegy,
+		fallback: strategy,
 	}
 
 	// Make positive sampling decision against 'r1'
