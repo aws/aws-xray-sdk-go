@@ -96,6 +96,7 @@ func fakeSession(t *testing.T, failConn bool) *session.Session {
 }
 
 func testClientSuccessfulConnection(t *testing.T, svc *lambda.Lambda) {
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	root.Close(nil)
@@ -144,6 +145,7 @@ func testClientSuccessfulConnection(t *testing.T, svc *lambda.Lambda) {
 }
 
 func testClientFailedConnection(t *testing.T, svc *lambda.Lambda) {
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	root.Close(nil)

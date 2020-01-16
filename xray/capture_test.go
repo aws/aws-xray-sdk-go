@@ -20,6 +20,7 @@ import (
 )
 
 func TestSimpleCapture(t *testing.T) {
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	err := Capture(ctx, "TestService", func(ctx1 context.Context) error {
 		ctx = ctx1
@@ -42,6 +43,7 @@ func TestSimpleCapture(t *testing.T) {
 }
 
 func TestCaptureAysnc(t *testing.T) {
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	CaptureAsync(ctx, "TestService", func(ctx1 context.Context) error {
 		ctx = ctx1
@@ -63,6 +65,7 @@ func TestCaptureAysnc(t *testing.T) {
 }
 
 func TestErrorCapture(t *testing.T) {
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	defaultStrategy, _ := exception.NewDefaultFormattingStrategy()
 	err := Capture(ctx, "ErrorService", func(ctx1 context.Context) error {
@@ -82,6 +85,7 @@ func TestErrorCapture(t *testing.T) {
 }
 
 func TestPanicCapture(t *testing.T) {
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	var err error
 	func() {
@@ -127,6 +131,7 @@ func TestNoSegmentCapture(t *testing.T) {
 
 func TestCaptureAsync(t *testing.T) {
 	var mu sync.Mutex
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	CaptureAsync(ctx, "TestService", func(ctx1 context.Context) error {
 		mu.Lock()

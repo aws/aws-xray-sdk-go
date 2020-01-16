@@ -40,6 +40,7 @@ func TestDetachContext(t *testing.T) {
 }
 
 func TestValidAnnotations(t *testing.T) {
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	var err exception.MultiError
 	if e := AddAnnotation(ctx, "string", "str"); e != nil {
@@ -66,6 +67,7 @@ func TestValidAnnotations(t *testing.T) {
 }
 
 func TestInvalidAnnotations(t *testing.T) {
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	type MyObject struct{}
 
@@ -78,6 +80,7 @@ func TestInvalidAnnotations(t *testing.T) {
 }
 
 func TestSimpleMetadata(t *testing.T) {
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	var err exception.MultiError
 	if e := AddMetadata(ctx, "string", "str"); e != nil {
@@ -104,6 +107,7 @@ func TestSimpleMetadata(t *testing.T) {
 }
 
 func TestAddError(t *testing.T) {
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	err := AddError(ctx, errors.New("New Error"))
 	assert.Nil(t, err)

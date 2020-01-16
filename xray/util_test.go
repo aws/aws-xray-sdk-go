@@ -85,6 +85,17 @@ func (td *Testdaemon) Recv() (*Segment, error) {
 	}
 }
 
+// Resets the daemon
+func (td *Testdaemon) Reset ()  {
+	for {
+		_, err := td.Recv()
+
+		if err != nil {
+			break
+		}
+	}
+}
+
 type XRayHeaders struct {
 	RootTraceID string
 	ParentID    string

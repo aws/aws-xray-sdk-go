@@ -8,6 +8,7 @@ import (
 )
 
 func TestLambdaSegmentEmit(t *testing.T) {
+	TestDaemon.Reset()
 	ctx := context.WithValue(context.Background(), LambdaTraceHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
 	_, subseg := BeginSubsegment(ctx, "test-lambda")
 	subseg.Close(nil)
