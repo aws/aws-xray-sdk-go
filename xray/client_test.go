@@ -253,7 +253,6 @@ func TestBadRoundTripDial(t *testing.T) {
 }
 
 func TestRoundTripReuseDatarace(t *testing.T) {
-	TestDaemon.Reset()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b := []byte(`200 - Nothing to see`)
 		w.WriteHeader(http.StatusOK)
@@ -331,7 +330,6 @@ func TestRoundTripReuseTLSDatarace(t *testing.T) {
 }
 
 func TestRoundTripHttp2Datarace(t *testing.T) {
-	TestDaemon.Reset()
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b := []byte(`200 - Nothing to see`)
 		w.WriteHeader(http.StatusOK)
