@@ -61,7 +61,7 @@ func (td *Testdaemon) Run() {
 			continue
 		}
 
-		idx := bytes.IndexByte(buffer, 'n')
+		idx := bytes.IndexByte(buffer, '\n')
 		buffered := buffer[idx+1 : n]
 
 		seg := &Segment{}
