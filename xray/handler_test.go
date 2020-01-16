@@ -49,6 +49,7 @@ func TestNewDynamicSegmentNameFromEnv(t *testing.T) {
 }
 
 func TestHandlerWithContextForRootHandler(t *testing.T) {
+	TestDaemon.Reset()
 	ctx, _ := ContextWithConfig(context.Background(), Config{
 		ServiceVersion: "1.0.0",
 	})
@@ -81,6 +82,7 @@ func TestHandlerWithContextForRootHandler(t *testing.T) {
 }
 
 func TestHandlerWithContextForNonRootHandler(t *testing.T) {
+	TestDaemon.Reset()
 	ctx, _ := ContextWithConfig(context.Background(), Config{
 		ServiceVersion: "1.0.0",
 	})
@@ -108,6 +110,7 @@ func TestHandlerWithContextForNonRootHandler(t *testing.T) {
 }
 
 func TestRootHandler(t *testing.T) {
+	TestDaemon.Reset()
 	// keep a sleep here because Reservoir allows a specified amount of `Take()`s per second.
 	time.Sleep(1 * time.Second)
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -137,6 +140,7 @@ func TestRootHandler(t *testing.T) {
 }
 
 func TestNonRootHandler(t *testing.T) {
+	TestDaemon.Reset()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})

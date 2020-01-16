@@ -49,6 +49,7 @@ func TestRoundTripper(t *testing.T) {
 func TestRoundTrip(t *testing.T) {
 	var responseContentLength int
 	var headers XRayHeaders
+	TestDaemon.Reset()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		headers = ParseHeadersForTest(r.Header)
 		b := []byte(`200 - Nothing to see`)
@@ -106,6 +107,7 @@ func TestRoundTrip(t *testing.T) {
 func TestRoundTripWithError(t *testing.T) {
 	var responseContentLength int
 	var headers XRayHeaders
+	TestDaemon.Reset()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		headers = ParseHeadersForTest(r.Header)
 		b := []byte(`403 - Nothing to see`)
@@ -139,6 +141,7 @@ func TestRoundTripWithError(t *testing.T) {
 func TestRoundTripWithThrottle(t *testing.T) {
 	var responseContentLength int
 	var headers XRayHeaders
+	TestDaemon.Reset()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		headers = ParseHeadersForTest(r.Header)
 
@@ -173,6 +176,7 @@ func TestRoundTripWithThrottle(t *testing.T) {
 func TestRoundTripFault(t *testing.T) {
 	var responseContentLength int
 	var headers XRayHeaders
+	TestDaemon.Reset()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		headers = ParseHeadersForTest(r.Header)
 
@@ -205,6 +209,7 @@ func TestRoundTripFault(t *testing.T) {
 }
 
 func TestBadRoundTrip(t *testing.T) {
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	reader := strings.NewReader("")
 	req := httptest.NewRequest("GET", "httpz://localhost:8000", reader)
@@ -221,6 +226,7 @@ func TestBadRoundTrip(t *testing.T) {
 }
 
 func TestBadRoundTripDial(t *testing.T) {
+	TestDaemon.Reset()
 	ctx, root := BeginSegment(context.Background(), "Test")
 	reader := strings.NewReader("")
 	// Make a request against an unreachable endpoint.
@@ -247,6 +253,7 @@ func TestBadRoundTripDial(t *testing.T) {
 }
 
 func TestRoundTripReuseDatarace(t *testing.T) {
+	TestDaemon.Reset()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b := []byte(`200 - Nothing to see`)
 		w.WriteHeader(http.StatusOK)
@@ -280,6 +287,7 @@ func TestRoundTripReuseDatarace(t *testing.T) {
 }
 
 func TestRoundTripReuseTLSDatarace(t *testing.T) {
+	TestDaemon.Reset()
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b := []byte(`200 - Nothing to see`)
 		w.WriteHeader(http.StatusOK)
@@ -323,6 +331,7 @@ func TestRoundTripReuseTLSDatarace(t *testing.T) {
 }
 
 func TestRoundTripHttp2Datarace(t *testing.T) {
+	TestDaemon.Reset()
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b := []byte(`200 - Nothing to see`)
 		w.WriteHeader(http.StatusOK)

@@ -83,73 +83,73 @@ func (s *sqlTestSuite) mockOracle(err error) {
 }
 
 func (s *sqlTestSuite) TestPasswordlessURL() {
-	s.mockDB("postgres://user@host:port/database")
+	s.mockDB("postgres://user@host:1234/database")
 	s.mockPSQL(nil)
 	s.connect()
 
 	s.Require().NoError(s.mock.ExpectationsWereMet())
 	s.Equal("", s.db.connectionString)
-	s.Equal("postgres://user@host:port/database", s.db.url)
+	s.Equal("postgres://user@host:1234/database", s.db.url)
 }
 
 func (s *sqlTestSuite) TestPasswordURL() {
-	s.mockDB("postgres://user:password@host:port/database")
+	s.mockDB("postgres://user:password@host:1234/database")
 	s.mockPSQL(nil)
 	s.connect()
 
 	s.Require().NoError(s.mock.ExpectationsWereMet())
 	s.Equal("", s.db.connectionString)
-	s.Equal("postgres://user@host:port/database", s.db.url)
+	s.Equal("postgres://user@host:1234/database", s.db.url)
 }
 
 func (s *sqlTestSuite) TestPasswordURLQuery() {
-	s.mockDB("postgres://host:port/database?password=password")
+	s.mockDB("postgres://host:1234/database?password=password")
 	s.mockPSQL(nil)
 	s.connect()
 
 	s.Require().NoError(s.mock.ExpectationsWereMet())
 	s.Equal("", s.db.connectionString)
-	s.Equal("postgres://host:port/database", s.db.url)
+	s.Equal("postgres://host:1234/database", s.db.url)
 }
 
 func (s *sqlTestSuite) TestPasswordURLSchemaless() {
-	s.mockDB("user:password@host:port/database")
+	s.mockDB("user:password@host:1234/database")
 	s.mockPSQL(nil)
 	s.connect()
 
 	s.Require().NoError(s.mock.ExpectationsWereMet())
 	s.Equal("", s.db.connectionString)
-	s.Equal("user@host:port/database", s.db.url)
+	s.Equal("user@host:1234/database", s.db.url)
 }
 
 func (s *sqlTestSuite) TestPasswordURLSchemalessUserlessQuery() {
-	s.mockDB("host:port/database?password=password")
+	s.mockDB("host:1234/database?password=password")
 	s.mockPSQL(nil)
 	s.connect()
 
 	s.Require().NoError(s.mock.ExpectationsWereMet())
 	s.Equal("", s.db.connectionString)
-	s.Equal("host:port/database", s.db.url)
+	s.Equal("host:1234/database", s.db.url)
 }
 
 func (s *sqlTestSuite) TestWeirdPasswordURL() {
-	s.mockDB("user%2Fpassword@host:port/database")
+	s.mockDB("user%2Fpassword@host:1234/database")
 	s.mockPSQL(nil)
 	s.connect()
 
 	s.Require().NoError(s.mock.ExpectationsWereMet())
 	s.Equal("", s.db.connectionString)
-	s.Equal("user@host:port/database", s.db.url)
+	s.Equal("user@host:1234/database", s.db.url)
 }
 
 func (s *sqlTestSuite) TestWeirderPasswordURL() {
-	s.mockDB("user/password@host:port/database")
+	s.mockDB("user/password@host:1234/database")
 	s.mockPSQL(nil)
 	s.connect()
 
 	s.Require().NoError(s.mock.ExpectationsWereMet())
 	s.Equal("", s.db.connectionString)
-	s.Equal("user@host:port/database", s.db.url)
+	s.Equal("user@host:1234/database", s.db.url)
 }
 
 func (s *sqlTestSuite) TestPasswordlessConnectionString() {
