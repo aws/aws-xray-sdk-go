@@ -12,12 +12,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
-
-	"context"
-	"os"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -49,43 +46,51 @@ func TestNewDynamicSegmentNameFromEnv(t *testing.T) {
 }
 
 func TestHandlerWithContextForRootHandler(t *testing.T) {
-	TestDaemon.Reset()
-	ctx, _ := ContextWithConfig(context.Background(), Config{
-		ServiceVersion: "1.0.0",
-	})
+	ctx, td := NewTestDaemon()
+	defer td.Close()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		b := []byte(`200 - OK`)
-		w.Write(b)
+		if _, err := w.Write([]byte(`200 - OK`)); err != nil {
+			panic(err)
+		}
 	})
 
 	ts := httptest.NewServer(HandlerWithContext(ctx, NewFixedSegmentNamer("test"), handler))
 	defer ts.Close()
 
-	req := httptest.NewRequest("POST", ts.URL, strings.NewReader(""))
+	req, err := http.NewRequest(http.MethodPost, ts.URL, strings.NewReader(""))
+	if !assert.NoError(t, err) {
+		return
+	}
 	req.Header.Set("User-Agent", "UnitTest")
-	req.Header.Set("X-Forwarded-For", "127.0.0.1")
 
-	_, err := http.DefaultTransport.RoundTrip(req)
-	assert.NoError(t, err)
+	resp, err := http.DefaultClient.Do(req)
+	if !assert.NoError(t, err) {
+		return
+	}
+	resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	// make sure all connections are closed.
+	ts.Close()
 
-	assert.Equal(t, http.StatusOK, s.HTTP.Response.Status)
-	assert.Equal(t, "POST", s.HTTP.Request.Method)
-	assert.Equal(t, ts.URL+"/", s.HTTP.Request.URL)
-	assert.Equal(t, "127.0.0.1", s.HTTP.Request.ClientIP)
-	assert.Equal(t, "UnitTest", s.HTTP.Request.UserAgent)
-	assert.Equal(t, "1.0.0", s.Service.Version)
+	seg, err := td.Recv()
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	assert.Equal(t, http.StatusOK, seg.HTTP.Response.Status)
+	assert.Equal(t, "POST", seg.HTTP.Request.Method)
+	assert.Equal(t, ts.URL+"/", seg.HTTP.Request.URL)
+	assert.Equal(t, "127.0.0.1", seg.HTTP.Request.ClientIP)
+	assert.Equal(t, "UnitTest", seg.HTTP.Request.UserAgent)
+	assert.Equal(t, "TestVersion", seg.Service.Version)
 }
 
 func TestHandlerWithContextForNonRootHandler(t *testing.T) {
-	TestDaemon.Reset()
-	ctx, _ := ContextWithConfig(context.Background(), Config{
-		ServiceVersion: "1.0.0",
-	})
+	ctx, td := NewTestDaemon()
+	defer td.Close()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -94,75 +99,37 @@ func TestHandlerWithContextForNonRootHandler(t *testing.T) {
 	ts := httptest.NewServer(HandlerWithContext(ctx, NewFixedSegmentNamer("test"), handler))
 	defer ts.Close()
 
-	req := httptest.NewRequest("DELETE", ts.URL, strings.NewReader(""))
+	req, err := http.NewRequest(http.MethodDelete, ts.URL, strings.NewReader(""))
+	if !assert.NoError(t, err) {
+		return
+	}
 	req.Header.Set(TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
 
-	_, err := http.DefaultTransport.RoundTrip(req)
-	assert.NoError(t, err)
+	resp, err := http.DefaultClient.Do(req)
+	if !assert.NoError(t, err) {
+		return
+	}
+	resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	// make sure all connections are closed.
+	ts.Close()
 
-	assert.Equal(t, "fakeid", s.TraceID)
-	assert.Equal(t, "reqid", s.ParentID)
-	assert.Equal(t, true, s.Sampled)
-	assert.Equal(t, "1.0.0", s.Service.Version)
-}
+	seg, err := td.Recv()
+	if !assert.NoError(t, err) {
+		return
+	}
 
-func TestRootHandler(t *testing.T) {
-	TestDaemon.Reset()
-	// keep a sleep here because Reservoir allows a specified amount of `Take()`s per second.
-	time.Sleep(1 * time.Second)
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		b := []byte(`200 - OK`)
-		w.Write(b)
-	})
-
-	ts := httptest.NewServer(Handler(NewFixedSegmentNamer("test"), handler))
-	defer ts.Close()
-
-	req := httptest.NewRequest("POST", ts.URL, strings.NewReader(""))
-	req.Header.Set("User-Agent", "UnitTest")
-	req.Header.Set("X-Forwarded-For", "127.0.0.1")
-
-	_, err := http.DefaultTransport.RoundTrip(req)
-	assert.NoError(t, err)
-
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
-
-	assert.Equal(t, http.StatusOK, s.HTTP.Response.Status)
-	assert.Equal(t, "POST", s.HTTP.Request.Method)
-	assert.Equal(t, ts.URL+"/", s.HTTP.Request.URL)
-	assert.Equal(t, "127.0.0.1", s.HTTP.Request.ClientIP)
-	assert.Equal(t, "UnitTest", s.HTTP.Request.UserAgent)
-}
-
-func TestNonRootHandler(t *testing.T) {
-	TestDaemon.Reset()
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	ts := httptest.NewServer(Handler(NewFixedSegmentNamer("test"), handler))
-	defer ts.Close()
-
-	req := httptest.NewRequest("DELETE", ts.URL, strings.NewReader(""))
-	req.Header.Set(TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
-
-	_, err := http.DefaultTransport.RoundTrip(req)
-	assert.NoError(t, err)
-
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
-
-	assert.Equal(t, "fakeid", s.TraceID)
-	assert.Equal(t, "reqid", s.ParentID)
-	assert.Equal(t, true, s.Sampled)
+	assert.Equal(t, "fakeid", seg.TraceID)
+	assert.Equal(t, "reqid", seg.ParentID)
+	assert.Equal(t, true, seg.Sampled)
+	assert.Equal(t, "TestVersion", seg.Service.Version)
 }
 
 func TestXRayHandlerPreservesOptionalInterfaces(t *testing.T) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, isCloseNotifier := w.(http.CloseNotifier)
 		_, isFlusher := w.(http.Flusher)
@@ -180,10 +147,10 @@ func TestXRayHandlerPreservesOptionalInterfaces(t *testing.T) {
 		w.WriteHeader(202)
 	})
 
-	ts := httptest.NewServer(Handler(NewFixedSegmentNamer("test"), handler))
+	ts := httptest.NewServer(HandlerWithContext(ctx, NewFixedSegmentNamer("test"), handler))
 	defer ts.Close()
 
-	req := httptest.NewRequest("GET", ts.URL, strings.NewReader(""))
+	req := httptest.NewRequest(http.MethodGet, ts.URL, strings.NewReader(""))
 
 	_, err := http.DefaultTransport.RoundTrip(req)
 	assert.NoError(t, err)
