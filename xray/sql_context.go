@@ -23,6 +23,15 @@ import (
 	"time"
 )
 
+// namedValueChecker is the same as driver.NamedValueChecker.
+// Copied from database/sql/driver/driver.go for supporting Go 1.8.
+type namedValueChecker interface {
+	// CheckNamedValue is called before passing arguments to the driver
+	// and is called in place of any ColumnConverter. CheckNamedValue must do type
+	// validation and conversion as appropriate for the driver.
+	CheckNamedValue(*driver.NamedValue) error
+}
+
 var (
 	muInitializedDrivers sync.Mutex
 	initializedDrivers   map[string]struct{}
@@ -129,6 +138,7 @@ func (conn *driverConn) PrepareContext(ctx context.Context, query string) (drive
 		Stmt:  stmt,
 		attr:  conn.attr,
 		query: query,
+		conn:  conn,
 	}, nil
 }
 
@@ -244,6 +254,26 @@ func (conn *driverConn) QueryContext(ctx context.Context, query string, args []d
 
 func (conn *driverConn) Close() error {
 	return conn.Conn.Close()
+}
+
+// copied from sql/driver/convert.go
+// defaultCheckNamedValue wraps the default ColumnConverter to have the same
+// function signature as the CheckNamedValue in the driver.NamedValueChecker
+// interface.
+func defaultCheckNamedValue(nv *driver.NamedValue) (err error) {
+	nv.Value, err = driver.DefaultParameterConverter.ConvertValue(nv.Value)
+	return err
+}
+
+// CheckNamedValue for implementing driver.NamedValueChecker
+// This function may be unnecessary because `proxy.Stmt` already implements `NamedValueChecker`,
+// but it is implemented just in case.
+func (conn *driverConn) CheckNamedValue(nv *driver.NamedValue) (err error) {
+	if nvc, ok := conn.Conn.(namedValueChecker); ok {
+		return nvc.CheckNamedValue(nv)
+	}
+	// fallback to default
+	return defaultCheckNamedValue(nv)
 }
 
 type dbAttribute struct {
@@ -490,6 +520,7 @@ func (tx *driverTx) Rollback() error {
 
 type driverStmt struct {
 	driver.Stmt
+	conn  *driverConn
 	attr  *dbAttribute
 	query string
 }
@@ -596,6 +627,22 @@ func (stmt *driverStmt) populate(ctx context.Context) {
 	seg.Lock()
 	seg.GetSQL().Preparation = "statement"
 	seg.Unlock()
+}
+
+// CheckNamedValue for implementing NamedValueChecker
+func (stmt *driverStmt) CheckNamedValue(nv *driver.NamedValue) (err error) {
+	if nvc, ok := stmt.Stmt.(namedValueChecker); ok {
+		return nvc.CheckNamedValue(nv)
+	}
+	// When converting data in sql/driver/convert.go, it is checked first whether the `stmt`
+	// implements `NamedValueChecker`, and then checks if `conn` implements NamedValueChecker.
+	// In the case of "go-sql-proxy", the `proxy.Stmt` "implements" `CheckNamedValue` here,
+	// so we also check both `stmt` and `conn` inside here.
+	if nvc, ok := stmt.conn.Conn.(namedValueChecker); ok {
+		return nvc.CheckNamedValue(nv)
+	}
+	// fallback to default
+	return defaultCheckNamedValue(nv)
 }
 
 func namedValuesToValues(args []driver.NamedValue) ([]driver.Value, error) {
