@@ -286,7 +286,6 @@ func TestRoundTripReuseDatarace(t *testing.T) {
 }
 
 func TestRoundTripReuseTLSDatarace(t *testing.T) {
-	TestDaemon.Reset()
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b := []byte(`200 - Nothing to see`)
 		w.WriteHeader(http.StatusOK)
