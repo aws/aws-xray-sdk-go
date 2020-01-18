@@ -9,11 +9,8 @@
 package xray
 
 import (
-	"context"
 	"fmt"
 	"net"
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/aws/aws-xray-sdk-go/strategy/ctxmissing"
@@ -75,60 +72,30 @@ func (cms *TestContextMissingStrategy) ContextMissing(v interface{}) {
 	fmt.Printf("Test ContextMissing Strategy %v\n", v)
 }
 
-func stashEnv() []string {
-	env := os.Environ()
-	os.Clearenv()
-	return env
-}
+// TODO: @shogo82148 think how do we write tests for the environment values.
+// TestEnvironmentDaemonAddress is commented out because it touches the environment values.
+// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
 
-func popEnv(env []string) {
-	os.Clearenv()
-	for _, e := range env {
-		p := strings.SplitN(e, "=", 2)
-		os.Setenv(p[0], p[1])
-	}
-}
+// func TestEnvironmentDaemonAddress(t *testing.T) {
+// 	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "192.168.2.100:2000")
+// 	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
 
-func ResetConfig() {
-	ss, _ := sampling.NewCentralizedStrategy()
-	efs, _ := exception.NewDefaultFormattingStrategy()
-	sms, _ := NewDefaultStreamingStrategy()
-	cms := ctxmissing.NewDefaultRuntimeErrorStrategy()
+// 	cfg := newGlobalConfig()
 
-	udpAddr := &net.UDPAddr{
-		IP:   net.IPv4(127, 0, 0, 1),
-		Port: 2000,
-	}
-	e, _ := NewDefaultEmitter(udpAddr)
+// 	daemonAddr := &net.UDPAddr{IP: net.IPv4(192, 168, 2, 100), Port: 2000}
+// 	assert.Equal(t, daemonAddr, cfg.daemonAddr)
+// }
 
-	Configure(Config{
-		DaemonAddr:                  "127.0.0.1:2000",
-		LogLevel:                    "info",
-		LogFormat:                   "%Date(2006-01-02T15:04:05Z07:00) [%Level] %Msg%n",
-		SamplingStrategy:            ss,
-		StreamingStrategy:           sms,
-		Emitter:                     e,
-		ExceptionFormattingStrategy: efs,
-		ContextMissingStrategy:      cms,
-	})
-}
+// TODO: @shogo82148 think how do we write tests for the environment values.
+// TestInvalidEnvironmentDaemonAddress is commented out because it touches the environment values.
+// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
 
-func TestEnvironmentDaemonAddress(t *testing.T) {
-	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "192.168.2.100:2000")
-	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
+// func TestInvalidEnvironmentDaemonAddress(t *testing.T) {
+// 	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "This is not a valid address")
+// 	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
 
-	cfg := newGlobalConfig()
-
-	daemonAddr := &net.UDPAddr{IP: net.IPv4(192, 168, 2, 100), Port: 2000}
-	assert.Equal(t, daemonAddr, cfg.daemonAddr)
-}
-
-func TestInvalidEnvironmentDaemonAddress(t *testing.T) {
-	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "This is not a valid address")
-	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
-
-	assert.Panics(t, func() { _ = newGlobalConfig() })
-}
+// 	assert.Panics(t, func() { _ = newGlobalConfig() })
+// }
 
 func TestDefaultConfigureParameters(t *testing.T) {
 	daemonAddr := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 2000}
@@ -143,118 +110,138 @@ func TestDefaultConfigureParameters(t *testing.T) {
 	assert.Equal(t, cms, globalCfg.contextMissingStrategy)
 }
 
-func TestSetConfigureParameters(t *testing.T) {
-	daemonAddr := "127.0.0.1:3000"
-	logLevel := "error"
-	logFormat := "[%Level] %Msg%n"
-	serviceVersion := "TestVersion"
+// TODO: @shogo82148 think how do we write tests for the environment values.
+// TestSetConfigureParameters is commented out because it touches the environment values.
+// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
 
-	ss := &TestSamplingStrategy{}
-	efs := &TestExceptionFormattingStrategy{}
-	sms := &TestStreamingStrategy{}
-	cms := &TestContextMissingStrategy{}
+// func TestSetConfigureParameters(t *testing.T) {
+// 	daemonAddr := "127.0.0.1:3000"
+// 	logLevel := "error"
+// 	logFormat := "[%Level] %Msg%n"
+// 	serviceVersion := "TestVersion"
 
-	Configure(Config{
-		DaemonAddr:                  daemonAddr,
-		ServiceVersion:              serviceVersion,
-		SamplingStrategy:            ss,
-		ExceptionFormattingStrategy: efs,
-		StreamingStrategy:           sms,
-		ContextMissingStrategy:      cms,
-		LogLevel:                    logLevel,
-		LogFormat:                   logFormat,
-	})
+// 	ss := &TestSamplingStrategy{}
+// 	efs := &TestExceptionFormattingStrategy{}
+// 	sms := &TestStreamingStrategy{}
+// 	cms := &TestContextMissingStrategy{}
 
-	assert.Equal(t, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 3000}, globalCfg.daemonAddr)
-	assert.Equal(t, ss, globalCfg.samplingStrategy)
-	assert.Equal(t, efs, globalCfg.exceptionFormattingStrategy)
-	assert.Equal(t, sms, globalCfg.streamingStrategy)
-	assert.Equal(t, cms, globalCfg.contextMissingStrategy)
-	assert.Equal(t, serviceVersion, globalCfg.serviceVersion)
+// 	Configure(Config{
+// 		DaemonAddr:                  daemonAddr,
+// 		ServiceVersion:              serviceVersion,
+// 		SamplingStrategy:            ss,
+// 		ExceptionFormattingStrategy: efs,
+// 		StreamingStrategy:           sms,
+// 		ContextMissingStrategy:      cms,
+// 		LogLevel:                    logLevel,
+// 		LogFormat:                   logFormat,
+// 	})
 
-	ResetConfig()
-}
+// 	assert.Equal(t, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 3000}, globalCfg.daemonAddr)
+// 	assert.Equal(t, ss, globalCfg.samplingStrategy)
+// 	assert.Equal(t, efs, globalCfg.exceptionFormattingStrategy)
+// 	assert.Equal(t, sms, globalCfg.streamingStrategy)
+// 	assert.Equal(t, cms, globalCfg.contextMissingStrategy)
+// 	assert.Equal(t, serviceVersion, globalCfg.serviceVersion)
 
-func TestSetDaemonAddressEnvironmentVariable(t *testing.T) {
-	env := stashEnv()
-	defer popEnv(env)
-	daemonAddr := "127.0.0.1:3000"
-	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "127.0.0.1:4000")
-	Configure(Config{DaemonAddr: daemonAddr})
-	assert.Equal(t, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 4000}, globalCfg.daemonAddr)
-	os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
+// 	ResetConfig()
+// }
 
-	ResetConfig()
-}
+// TODO: @shogo82148 think how do we write tests for the environment values.
+// TestSetDaemonAddressEnvironmentVariable is commented out because it touches the environment values.
+// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
 
-func TestSetContextMissingEnvironmentVariable(t *testing.T) {
-	env := stashEnv()
-	defer popEnv(env)
-	cms := ctxmissing.NewDefaultLogErrorStrategy()
-	r := ctxmissing.NewDefaultRuntimeErrorStrategy()
-	os.Setenv("AWS_XRAY_CONTEXT_MISSING", "RUNTIME_ERROR")
-	Configure(Config{ContextMissingStrategy: cms})
-	assert.Equal(t, r, globalCfg.contextMissingStrategy)
-	os.Unsetenv("AWS_XRAY_CONTEXT_MISSING")
+// func TestSetDaemonAddressEnvironmentVariable(t *testing.T) {
+// 	env := stashEnv()
+// 	defer popEnv(env)
+// 	daemonAddr := "127.0.0.1:3000"
+// 	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "127.0.0.1:4000")
+// 	Configure(Config{DaemonAddr: daemonAddr})
+// 	assert.Equal(t, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 4000}, globalCfg.daemonAddr)
+// 	os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
 
-	ResetConfig()
-}
+// 	ResetConfig()
+// }
 
-func TestConfigureWithContext(t *testing.T) {
-	daemonAddr := "127.0.0.1:3000"
-	logLevel := "error"
-	logFormat := "[%Level] %Msg%n"
-	serviceVersion := "TestVersion"
+// TODO: @shogo82148 think how do we write tests for the environment values.
+// TestSetContextMissingEnvironmentVariable is commented out because it touches the environment values.
+// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
 
-	ss := &TestSamplingStrategy{}
-	efs := &TestExceptionFormattingStrategy{}
-	sms := &TestStreamingStrategy{}
-	cms := &TestContextMissingStrategy{}
-	de := &TestEmitter{}
+// func TestSetContextMissingEnvironmentVariable(t *testing.T) {
+// 	env := stashEnv()
+// 	defer popEnv(env)
+// 	cms := ctxmissing.NewDefaultLogErrorStrategy()
+// 	r := ctxmissing.NewDefaultRuntimeErrorStrategy()
+// 	os.Setenv("AWS_XRAY_CONTEXT_MISSING", "RUNTIME_ERROR")
+// 	Configure(Config{ContextMissingStrategy: cms})
+// 	assert.Equal(t, r, globalCfg.contextMissingStrategy)
+// 	os.Unsetenv("AWS_XRAY_CONTEXT_MISSING")
 
-	ctx, err := ContextWithConfig(context.Background(), Config{
-		DaemonAddr:                  daemonAddr,
-		ServiceVersion:              serviceVersion,
-		SamplingStrategy:            ss,
-		ExceptionFormattingStrategy: efs,
-		StreamingStrategy:           sms,
-		Emitter:                     de,
-		ContextMissingStrategy:      cms,
-		LogLevel:                    logLevel,
-		LogFormat:                   logFormat,
-	})
+// 	ResetConfig()
+// }
 
-	cfg := GetRecorder(ctx)
-	assert.Nil(t, err)
-	assert.Equal(t, daemonAddr, cfg.DaemonAddr)
-	assert.Equal(t, logLevel, cfg.LogLevel)
-	assert.Equal(t, logFormat, cfg.LogFormat)
-	assert.Equal(t, ss, cfg.SamplingStrategy)
-	assert.Equal(t, efs, cfg.ExceptionFormattingStrategy)
-	assert.Equal(t, sms, cfg.StreamingStrategy)
-	assert.Equal(t, de, cfg.Emitter)
-	assert.Equal(t, cms, cfg.ContextMissingStrategy)
-	assert.Equal(t, serviceVersion, cfg.ServiceVersion)
+// TODO: @shogo82148 think how do we write tests for the environment values.
+// TestConfigureWithContext is commented out because it touches the environment values.
+// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
 
-	ResetConfig()
-}
+// func TestConfigureWithContext(t *testing.T) {
+// 	daemonAddr := "127.0.0.1:3000"
+// 	logLevel := "error"
+// 	logFormat := "[%Level] %Msg%n"
+// 	serviceVersion := "TestVersion"
 
-func TestSelectiveConfigWithContext(t *testing.T) {
-	daemonAddr := "127.0.0.1:3000"
-	serviceVersion := "TestVersion"
-	cms := &TestContextMissingStrategy{}
+// 	ss := &TestSamplingStrategy{}
+// 	efs := &TestExceptionFormattingStrategy{}
+// 	sms := &TestStreamingStrategy{}
+// 	cms := &TestContextMissingStrategy{}
+// 	de := &TestEmitter{}
 
-	ctx, err := ContextWithConfig(context.Background(), Config{
-		DaemonAddr:             daemonAddr,
-		ServiceVersion:         serviceVersion,
-		ContextMissingStrategy: cms,
-	})
+// 	ctx, err := ContextWithConfig(context.Background(), Config{
+// 		DaemonAddr:                  daemonAddr,
+// 		ServiceVersion:              serviceVersion,
+// 		SamplingStrategy:            ss,
+// 		ExceptionFormattingStrategy: efs,
+// 		StreamingStrategy:           sms,
+// 		Emitter:                     de,
+// 		ContextMissingStrategy:      cms,
+// 		LogLevel:                    logLevel,
+// 		LogFormat:                   logFormat,
+// 	})
 
-	cfg := GetRecorder(ctx)
-	assert.Nil(t, err)
-	assert.Equal(t, daemonAddr, cfg.DaemonAddr)
-	assert.Equal(t, cms, cfg.ContextMissingStrategy)
-	assert.Equal(t, serviceVersion, cfg.ServiceVersion)
+// 	cfg := GetRecorder(ctx)
+// 	assert.Nil(t, err)
+// 	assert.Equal(t, daemonAddr, cfg.DaemonAddr)
+// 	assert.Equal(t, logLevel, cfg.LogLevel)
+// 	assert.Equal(t, logFormat, cfg.LogFormat)
+// 	assert.Equal(t, ss, cfg.SamplingStrategy)
+// 	assert.Equal(t, efs, cfg.ExceptionFormattingStrategy)
+// 	assert.Equal(t, sms, cfg.StreamingStrategy)
+// 	assert.Equal(t, de, cfg.Emitter)
+// 	assert.Equal(t, cms, cfg.ContextMissingStrategy)
+// 	assert.Equal(t, serviceVersion, cfg.ServiceVersion)
 
-	ResetConfig()
-}
+// 	ResetConfig()
+// }
+
+// TODO: @shogo82148 think how do we write tests for the environment values.
+// TestSelectiveConfigWithContext is commented out because it touches the environment values.
+// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
+
+// func TestSelectiveConfigWithContext(t *testing.T) {
+// 	daemonAddr := "127.0.0.1:3000"
+// 	serviceVersion := "TestVersion"
+// 	cms := &TestContextMissingStrategy{}
+
+// 	ctx, err := ContextWithConfig(context.Background(), Config{
+// 		DaemonAddr:             daemonAddr,
+// 		ServiceVersion:         serviceVersion,
+// 		ContextMissingStrategy: cms,
+// 	})
+
+// 	cfg := GetRecorder(ctx)
+// 	assert.Nil(t, err)
+// 	assert.Equal(t, daemonAddr, cfg.DaemonAddr)
+// 	assert.Equal(t, cms, cfg.ContextMissingStrategy)
+// 	assert.Equal(t, serviceVersion, cfg.ServiceVersion)
+
+// 	ResetConfig()
+// }

@@ -89,35 +89,35 @@ func TestStreamingSegmentsOnGrandchildNode(t *testing.T) {
 	assert.Equal(t, 23, len(packSegments(root, nil)))
 }
 
-func TestStreamingSegmentsTreeHasOnlyOneBranch(t *testing.T) {
-	dss, _ := NewDefaultStreamingStrategyWithMaxSubsegmentCount(1)
-	Configure(Config{StreamingStrategy: dss})
-	segOne := &Segment{}
-	segTwo := &Segment{}
-	segThree := &Segment{}
-	segFour := &Segment{}
-	assert.NoError(t, json.Unmarshal([]byte(getTestSegment()), &segOne))
-	assert.NoError(t, json.Unmarshal([]byte(getTestSegment()), &segTwo))
-	assert.NoError(t, json.Unmarshal([]byte(getTestSegment()), &segThree))
-	assert.NoError(t, json.Unmarshal([]byte(getTestSegment()), &segFour))
+// func TestStreamingSegmentsTreeHasOnlyOneBranch(t *testing.T) {
+// 	dss, _ := NewDefaultStreamingStrategyWithMaxSubsegmentCount(1)
+// 	Configure(Config{StreamingStrategy: dss})
+// 	segOne := &Segment{}
+// 	segTwo := &Segment{}
+// 	segThree := &Segment{}
+// 	segFour := &Segment{}
+// 	assert.NoError(t, json.Unmarshal([]byte(getTestSegment()), &segOne))
+// 	assert.NoError(t, json.Unmarshal([]byte(getTestSegment()), &segTwo))
+// 	assert.NoError(t, json.Unmarshal([]byte(getTestSegment()), &segThree))
+// 	assert.NoError(t, json.Unmarshal([]byte(getTestSegment()), &segFour))
 
-	segOne.ParentSegment = segOne
-	segOne.Sampled = true
-	segTwo.ParentSegment = segOne
-	segTwo.parent = segOne
-	segThree.ParentSegment = segOne
-	segThree.parent = segTwo
-	segFour.ParentSegment = segOne
-	segFour.parent = segThree
+// 	segOne.ParentSegment = segOne
+// 	segOne.Sampled = true
+// 	segTwo.ParentSegment = segOne
+// 	segTwo.parent = segOne
+// 	segThree.ParentSegment = segOne
+// 	segThree.parent = segTwo
+// 	segFour.ParentSegment = segOne
+// 	segFour.parent = segThree
 
-	segOne.totalSubSegments = 3
-	segOne.rawSubsegments = append(segOne.rawSubsegments, segTwo)
-	segTwo.rawSubsegments = append(segTwo.rawSubsegments, segThree)
-	segThree.rawSubsegments = append(segThree.rawSubsegments, segFour)
+// 	segOne.totalSubSegments = 3
+// 	segOne.rawSubsegments = append(segOne.rawSubsegments, segTwo)
+// 	segTwo.rawSubsegments = append(segTwo.rawSubsegments, segThree)
+// 	segThree.rawSubsegments = append(segThree.rawSubsegments, segFour)
 
-	assert.Equal(t, 3, len(packSegments(segOne, nil)))
-	ResetConfig()
-}
+// 	assert.Equal(t, 3, len(packSegments(segOne, nil)))
+// 	ResetConfig()
+// }
 
 func randomString(strlen int) string {
 	rand.Seed(time.Now().UTC().UnixNano())
