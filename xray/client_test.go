@@ -12,11 +12,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/net/http2"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-//	"sync"
+	"sync"
+
+	//	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -377,52 +380,52 @@ func TestBadRoundTripDial(t *testing.T) {
 //	}
 //}
 //
-//func TestRoundTripReuseHTTP2Datarace(t *testing.T) {
-//	ctx, td := NewTestDaemon()
-//	defer td.Close()
-//
-//	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		if !r.ProtoAtLeast(2, 0) {
-//			panic("want http/2, got " + r.Proto)
-//		}
-//		w.WriteHeader(http.StatusOK)
-//		if _, err := w.Write([]byte(`200 - Nothing to see`)); err != nil {
-//			panic(err)
-//		}
-//	}))
-//
-//	// configure http/2
-//	if err := http2.ConfigureServer(ts.Config, nil); !assert.NoError(t, err) {
-//		return
-//	}
-//	ts.TLS = ts.Config.TLSConfig
-//	ts.StartTLS()
-//	defer ts.Close()
-//	client := ts.Client()
-//	if err := http2.ConfigureTransport(client.Transport.(*http.Transport)); !assert.NoError(t, err) {
-//		return
-//	}
-//	client = Client(client)
-//
-//	var wg sync.WaitGroup
-//	n := 100
-//	wg.Add(n)
-//	for i := 0; i < n; i++ {
-//		go func() {
-//			defer wg.Done()
-//			ctx, cancel := context.WithCancel(ctx)
-//			defer cancel()
-//			err := httpDoTest(ctx, client, http.MethodGet, ts.URL, nil)
-//			assert.NoError(t, err)
-//		}()
-//	}
-//	wg.Wait()
-//
-//	for i := 0; i < n; i++ {
-//		_, err := td.Recv()
-//		assert.NoError(t, err)
-//	}
-//}
+func TestRoundTripReuseHTTP2Datarace(t *testing.T) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !r.ProtoAtLeast(2, 0) {
+			panic("want http/2, got " + r.Proto)
+		}
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write([]byte(`200 - Nothing to see`)); err != nil {
+			panic(err)
+		}
+	}))
+
+	// configure http/2
+	if err := http2.ConfigureServer(ts.Config, nil); !assert.NoError(t, err) {
+		return
+	}
+	ts.TLS = ts.Config.TLSConfig
+	ts.StartTLS()
+	defer ts.Close()
+	client := ts.Client()
+	if err := http2.ConfigureTransport(client.Transport.(*http.Transport)); !assert.NoError(t, err) {
+		return
+	}
+	client = Client(client)
+
+	var wg sync.WaitGroup
+	n := 100
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			err := httpDoTest(ctx, client, http.MethodGet, ts.URL, nil)
+			assert.NoError(t, err)
+		}()
+	}
+	wg.Wait()
+
+	for i := 0; i < n; i++ {
+		_, err := td.Recv()
+		assert.NoError(t, err)
+	}
+}
 
 // Test check 1
 //Test check 2
