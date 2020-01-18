@@ -10,19 +10,19 @@ package xray
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
+//	"crypto/tls"
+//	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+//	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync"
+//	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/http2"
+//	"golang.org/x/net/http2"
 )
 
 var rt *roundtripper
