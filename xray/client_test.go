@@ -252,117 +252,117 @@ func TestBadRoundTripDial(t *testing.T) {
 	assert.NotEmpty(t, connectSeg.Subsegments)
 }
 
-func TestRoundTripReuseDatarace(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b := []byte(`200 - Nothing to see`)
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-	}))
+// func TestRoundTripReuseDatarace(t *testing.T) {
+// 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		b := []byte(`200 - Nothing to see`)
+// 		w.WriteHeader(http.StatusOK)
+// 		w.Write(b)
+// 	}))
 
-	defer ts.Close()
+// 	defer ts.Close()
 
-	wg := sync.WaitGroup{}
-	n := 30
-	wg.Add(n)
-	for i := 0; i < n; i++ {
-		go func() {
-			defer wg.Done()
-			reader := strings.NewReader("")
-			ctx, root := BeginSegment(context.Background(), "Test")
-			req, _ := http.NewRequest("GET", strings.Replace(ts.URL, "127.0.0.1", "localhost", -1), reader)
-			req = req.WithContext(ctx)
-			res, err := rt.RoundTrip(req)
-			ioutil.ReadAll(res.Body)
-			res.Body.Close() // make net/http/transport.go connection reuse
-			root.Close(nil)
-			assert.NoError(t, err)
-		}()
-	}
-	for i := 0; i < n; i++ {
-		_, e := TestDaemon.Recv()
-		assert.NoError(t, e)
-	}
-	wg.Wait()
-}
+// 	wg := sync.WaitGroup{}
+// 	n := 30
+// 	wg.Add(n)
+// 	for i := 0; i < n; i++ {
+// 		go func() {
+// 			defer wg.Done()
+// 			reader := strings.NewReader("")
+// 			ctx, root := BeginSegment(context.Background(), "Test")
+// 			req, _ := http.NewRequest("GET", strings.Replace(ts.URL, "127.0.0.1", "localhost", -1), reader)
+// 			req = req.WithContext(ctx)
+// 			res, err := rt.RoundTrip(req)
+// 			ioutil.ReadAll(res.Body)
+// 			res.Body.Close() // make net/http/transport.go connection reuse
+// 			root.Close(nil)
+// 			assert.NoError(t, err)
+// 		}()
+// 	}
+// 	for i := 0; i < n; i++ {
+// 		_, e := TestDaemon.Recv()
+// 		assert.NoError(t, e)
+// 	}
+// 	wg.Wait()
+// }
 
-func TestRoundTripReuseTLSDatarace(t *testing.T) {
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b := []byte(`200 - Nothing to see`)
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-	}))
-	defer ts.Close()
+// func TestRoundTripReuseTLSDatarace(t *testing.T) {
+// 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		b := []byte(`200 - Nothing to see`)
+// 		w.WriteHeader(http.StatusOK)
+// 		w.Write(b)
+// 	}))
+// 	defer ts.Close()
 
-	certpool := x509.NewCertPool()
-	certpool.AddCert(ts.Certificate())
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			RootCAs: certpool,
-		},
-	}
-	rt := &roundtripper{
-		Base: tr,
-	}
+// 	certpool := x509.NewCertPool()
+// 	certpool.AddCert(ts.Certificate())
+// 	tr := &http.Transport{
+// 		TLSClientConfig: &tls.Config{
+// 			RootCAs: certpool,
+// 		},
+// 	}
+// 	rt := &roundtripper{
+// 		Base: tr,
+// 	}
 
-	wg := sync.WaitGroup{}
-	n := 30
-	wg.Add(n)
-	for i := 0; i < n; i++ {
-		go func() {
-			defer wg.Done()
-			reader := strings.NewReader("")
-			ctx, root := BeginSegment(context.Background(), "Test")
-			req, _ := http.NewRequest("GET", ts.URL, reader)
-			req = req.WithContext(ctx)
-			res, err := rt.RoundTrip(req)
-			assert.NoError(t, err)
-			ioutil.ReadAll(res.Body)
-			res.Body.Close() // make net/http/transport.go connection reuse
-			root.Close(nil)
-		}()
-	}
-	for i := 0; i < n; i++ {
-		_, e := TestDaemon.Recv()
-		assert.NoError(t, e)
-	}
-	wg.Wait()
-}
+// 	wg := sync.WaitGroup{}
+// 	n := 30
+// 	wg.Add(n)
+// 	for i := 0; i < n; i++ {
+// 		go func() {
+// 			defer wg.Done()
+// 			reader := strings.NewReader("")
+// 			ctx, root := BeginSegment(context.Background(), "Test")
+// 			req, _ := http.NewRequest("GET", ts.URL, reader)
+// 			req = req.WithContext(ctx)
+// 			res, err := rt.RoundTrip(req)
+// 			assert.NoError(t, err)
+// 			ioutil.ReadAll(res.Body)
+// 			res.Body.Close() // make net/http/transport.go connection reuse
+// 			root.Close(nil)
+// 		}()
+// 	}
+// 	for i := 0; i < n; i++ {
+// 		_, e := TestDaemon.Recv()
+// 		assert.NoError(t, e)
+// 	}
+// 	wg.Wait()
+// }
 
-func TestRoundTripHttp2Datarace(t *testing.T) {
-	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b := []byte(`200 - Nothing to see`)
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-	}))
-	err := http2.ConfigureServer(ts.Config, nil)
-	assert.NoError(t, err)
-	ts.TLS = ts.Config.TLSConfig
-	ts.StartTLS()
+// func TestRoundTripHttp2Datarace(t *testing.T) {
+// 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		b := []byte(`200 - Nothing to see`)
+// 		w.WriteHeader(http.StatusOK)
+// 		w.Write(b)
+// 	}))
+// 	err := http2.ConfigureServer(ts.Config, nil)
+// 	assert.NoError(t, err)
+// 	ts.TLS = ts.Config.TLSConfig
+// 	ts.StartTLS()
 
-	defer ts.Close()
+// 	defer ts.Close()
 
-	certpool := x509.NewCertPool()
-	certpool.AddCert(ts.Certificate())
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			RootCAs: certpool,
-		},
-	}
-	http2.ConfigureTransport(tr)
-	rt := &roundtripper{
-		Base: tr,
-	}
+// 	certpool := x509.NewCertPool()
+// 	certpool.AddCert(ts.Certificate())
+// 	tr := &http.Transport{
+// 		TLSClientConfig: &tls.Config{
+// 			RootCAs: certpool,
+// 		},
+// 	}
+// 	http2.ConfigureTransport(tr)
+// 	rt := &roundtripper{
+// 		Base: tr,
+// 	}
 
-	reader := strings.NewReader("")
-	ctx, root := BeginSegment(context.Background(), "Test")
-	req, _ := http.NewRequest("GET", ts.URL, reader)
-	req = req.WithContext(ctx)
-	res, err := rt.RoundTrip(req)
-	assert.NoError(t, err)
-	ioutil.ReadAll(res.Body)
-	res.Body.Close()
-	root.Close(nil)
+// 	reader := strings.NewReader("")
+// 	ctx, root := BeginSegment(context.Background(), "Test")
+// 	req, _ := http.NewRequest("GET", ts.URL, reader)
+// 	req = req.WithContext(ctx)
+// 	res, err := rt.RoundTrip(req)
+// 	assert.NoError(t, err)
+// 	ioutil.ReadAll(res.Body)
+// 	res.Body.Close()
+// 	root.Close(nil)
 
-	_, e := TestDaemon.Recv()
-	assert.NoError(t, e)
-}
+// 	_, e := TestDaemon.Recv()
+// 	assert.NoError(t, e)
+// }
