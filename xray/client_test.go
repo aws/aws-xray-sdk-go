@@ -16,8 +16,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"sync"
-
 	//	"sync"
 	"testing"
 
@@ -310,40 +308,40 @@ func TestBadRoundTripDial(t *testing.T) {
 		}
 	}
 }
-
-func TestRoundTripReuseDatarace(t *testing.T) {
-	ctx, td := NewTestDaemon()
-	defer td.Close()
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write([]byte(`200 - Nothing to see`)); err != nil {
-			panic(err)
-		}
-	}))
-	defer ts.Close()
-
-	client := Client(nil)
-
-	var wg sync.WaitGroup
-	n := 100
-	wg.Add(n)
-	for i := 0; i < n; i++ {
-		go func() {
-			defer wg.Done()
-			ctx, cancel := context.WithCancel(ctx)
-			defer cancel()
-			err := httpDoTest(ctx, client, http.MethodGet, ts.URL, nil)
-			assert.NoError(t, err)
-		}()
-	}
-	wg.Wait()
-
-	for i := 0; i < n; i++ {
-		_, err := td.Recv()
-		assert.NoError(t, err)
-	}
-}
+//
+//func TestRoundTripReuseDatarace(t *testing.T) {
+//	ctx, td := NewTestDaemon()
+//	defer td.Close()
+//
+//	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//		w.WriteHeader(http.StatusOK)
+//		if _, err := w.Write([]byte(`200 - Nothing to see`)); err != nil {
+//			panic(err)
+//		}
+//	}))
+//	defer ts.Close()
+//
+//	client := Client(nil)
+//
+//	var wg sync.WaitGroup
+//	n := 100
+//	wg.Add(n)
+//	for i := 0; i < n; i++ {
+//		go func() {
+//			defer wg.Done()
+//			ctx, cancel := context.WithCancel(ctx)
+//			defer cancel()
+//			err := httpDoTest(ctx, client, http.MethodGet, ts.URL, nil)
+//			assert.NoError(t, err)
+//		}()
+//	}
+//	wg.Wait()
+//
+//	for i := 0; i < n; i++ {
+//		_, err := td.Recv()
+//		assert.NoError(t, err)
+//	}
+//}
 
 //func TestRoundTripReuseTLSDatarace(t *testing.T) {
 //	ctx, td := NewTestDaemon()
