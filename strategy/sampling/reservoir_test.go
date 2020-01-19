@@ -32,19 +32,19 @@ func takeOverTime(r *Reservoir, millis int) int {
 
 const TestDuration = 1500
 
-func TestOnePerSecond(t *testing.T) {
-	clock := &utils.DefaultClock{}
-	cap := 1
-	res := &Reservoir{
-		clock: clock,
-		reservoir: &reservoir{
-			capacity: int64(cap),
-		},
-	}
-	taken := takeOverTime(res, TestDuration)
-	assert.True(t, int(math.Ceil(TestDuration/1000.0)) <= taken)
-	assert.True(t, int(math.Ceil(TestDuration/1000.0))+cap >= taken)
-}
+//func TestOnePerSecond(t *testing.T) {
+//	clock := &utils.DefaultClock{}
+//	cap := 1
+//	res := &Reservoir{
+//		clock: clock,
+//		reservoir: &reservoir{
+//			capacity: int64(cap),
+//		},
+//	}
+//	taken := takeOverTime(res, TestDuration)
+//	assert.True(t, int(math.Ceil(TestDuration/1000.0)) <= taken)
+//	assert.True(t, int(math.Ceil(TestDuration/1000.0))+cap >= taken)
+//}
 
 func TestTenPerSecond(t *testing.T) {
 	clock := &utils.DefaultClock{}
