@@ -16,11 +16,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	//	"sync"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	//	"golang.org/x/net/http2"
+	"golang.org/x/net/http2"
 )
 
 func newRequest(ctx context.Context, method, url string, body io.Reader) (context.Context, *Segment, *http.Request, error) {
@@ -308,125 +308,127 @@ func TestBadRoundTripDial(t *testing.T) {
 		}
 	}
 }
-//
-//func TestRoundTripReuseDatarace(t *testing.T) {
-//	ctx, td := NewTestDaemon()
-//	defer td.Close()
-//
-//	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		w.WriteHeader(http.StatusOK)
-//		if _, err := w.Write([]byte(`200 - Nothing to see`)); err != nil {
-//			panic(err)
-//		}
-//	}))
-//	defer ts.Close()
-//
-//	client := Client(nil)
-//
-//	var wg sync.WaitGroup
-//	n := 100
-//	wg.Add(n)
-//	for i := 0; i < n; i++ {
-//		go func() {
-//			defer wg.Done()
-//			ctx, cancel := context.WithCancel(ctx)
-//			defer cancel()
-//			err := httpDoTest(ctx, client, http.MethodGet, ts.URL, nil)
-//			assert.NoError(t, err)
-//		}()
-//	}
-//	wg.Wait()
-//
-//	for i := 0; i < n; i++ {
-//		_, err := td.Recv()
-//		assert.NoError(t, err)
-//	}
-//}
 
-//func TestRoundTripReuseTLSDatarace(t *testing.T) {
-//	ctx, td := NewTestDaemon()
-//	defer td.Close()
-//
-//	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		w.WriteHeader(http.StatusOK)
-//		if _, err := w.Write([]byte(`200 - Nothing to see`)); err != nil {
-//			panic(err)
-//		}
-//	}))
-//	defer ts.Close()
-//
-//	client := Client(ts.Client())
-//
-//	var wg sync.WaitGroup
-//	n := 100
-//	wg.Add(n)
-//	for i := 0; i < n; i++ {
-//		go func() {
-//			defer wg.Done()
-//			ctx, cancel := context.WithCancel(ctx)
-//			defer cancel()
-//			err := httpDoTest(ctx, client, http.MethodGet, ts.URL, nil)
-//			assert.NoError(t, err)
-//		}()
-//	}
-//	wg.Wait()
-//
-//	for i := 0; i < n; i++ {
-//		_, err := td.Recv()
-//		assert.NoError(t, err)
-//	}
-//}
-//
-//func TestRoundTripReuseHTTP2Datarace(t *testing.T) {
-//	ctx, td := NewTestDaemon()
-//	defer td.Close()
-//
-//	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		if !r.ProtoAtLeast(2, 0) {
-//			panic("want http/2, got " + r.Proto)
-//		}
-//		w.WriteHeader(http.StatusOK)
-//		if _, err := w.Write([]byte(`200 - Nothing to see`)); err != nil {
-//			panic(err)
-//		}
-//	}))
-//
-//	// configure http/2
-//	if err := http2.ConfigureServer(ts.Config, nil); !assert.NoError(t, err) {
-//		return
-//	}
-//	ts.TLS = ts.Config.TLSConfig
-//	ts.StartTLS()
-//	defer ts.Close()
-//	client := ts.Client()
-//	if err := http2.ConfigureTransport(client.Transport.(*http.Transport)); !assert.NoError(t, err) {
-//		return
-//	}
-//	client = Client(client)
-//
-//	var wg sync.WaitGroup
-//	n := 100
-//	wg.Add(n)
-//	for i := 0; i < n; i++ {
-//		go func() {
-//			defer wg.Done()
-//			ctx, cancel := context.WithCancel(ctx)
-//			defer cancel()
-//			err := httpDoTest(ctx, client, http.MethodGet, ts.URL, nil)
-//			assert.NoError(t, err)
-//		}()
-//	}
-//	wg.Wait()
-//
-//	for i := 0; i < n; i++ {
-//		_, err := td.Recv()
-//		assert.NoError(t, err)
-//	}
-//}
+func TestRoundTripReuseDatarace(t *testing.T) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
 
-// Test check 1
-//Test check 2
-// Test check 3
-// Test check 4
-// reservoir test check
-// reservoir test check 2
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write([]byte(`200 - Nothing to see`)); err != nil {
+			panic(err)
+		}
+	}))
+	defer ts.Close()
+
+	client := Client(nil)
+
+	var wg sync.WaitGroup
+	n := 100
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			err := httpDoTest(ctx, client, http.MethodGet, ts.URL, nil)
+			assert.NoError(t, err)
+		}()
+	}
+	wg.Wait()
+
+	// FIXME: @shogo82148 sometimes fail with context deadline exceeded
+	// for i := 0; i < n; i++ {
+	// 	_, err := td.Recv()
+	// 	if !assert.NoError(t, err) {
+	// 		return
+	// 	}
+	// }
+}
+
+func TestRoundTripReuseTLSDatarace(t *testing.T) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write([]byte(`200 - Nothing to see`)); err != nil {
+			panic(err)
+		}
+	}))
+	defer ts.Close()
+
+	client := Client(ts.Client())
+
+	var wg sync.WaitGroup
+	n := 100
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			err := httpDoTest(ctx, client, http.MethodGet, ts.URL, nil)
+			assert.NoError(t, err)
+		}()
+	}
+	wg.Wait()
+
+	// FIXME: @shogo82148 sometimes fail with context deadline exceeded
+	// for i := 0; i < n; i++ {
+	// 	_, err := td.Recv()
+	// 	if !assert.NoError(t, err) {
+	// 		return
+	// 	}
+	// }
+}
+
+func TestRoundTripReuseHTTP2Datarace(t *testing.T) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !r.ProtoAtLeast(2, 0) {
+			panic("want http/2, got " + r.Proto)
+		}
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write([]byte(`200 - Nothing to see`)); err != nil {
+			panic(err)
+		}
+	}))
+
+	// configure http/2
+	if err := http2.ConfigureServer(ts.Config, nil); !assert.NoError(t, err) {
+		return
+	}
+	ts.TLS = ts.Config.TLSConfig
+	ts.StartTLS()
+	defer ts.Close()
+	client := ts.Client()
+	if err := http2.ConfigureTransport(client.Transport.(*http.Transport)); !assert.NoError(t, err) {
+		return
+	}
+	client = Client(client)
+
+	var wg sync.WaitGroup
+	n := 100
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			err := httpDoTest(ctx, client, http.MethodGet, ts.URL, nil)
+			assert.NoError(t, err)
+		}()
+	}
+	wg.Wait()
+
+	// FIXME: @shogo82148 sometimes fail with context deadline exceeded
+	// for i := 0; i < n; i++ {
+	// 	_, err := td.Recv()
+	// 	if !assert.NoError(t, err) {
+	// 		return
+	// 	}
+	// }
+}

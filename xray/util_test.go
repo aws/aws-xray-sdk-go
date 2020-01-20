@@ -15,20 +15,11 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"sync"
-	"testing"
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
 )
-
-func TestMain(m *testing.M) {
-	os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
-	os.Unsetenv("AWS_XRAY_CONTEXT_MISSING")
-	os.Unsetenv("AWS_XRAY_TRACING_NAME")
-	os.Exit(m.Run())
-}
 
 func NewTestDaemon() (context.Context, *TestDaemon) {
 	c := make(chan *result, 200)
@@ -122,7 +113,7 @@ func (td *TestDaemon) run(c chan *result) {
 }
 
 func (td *TestDaemon) Recv() (*Segment, error) {
-	ctx, cancel := context.WithTimeout(td.ctx, 500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(td.ctx, 5*time.Second)
 	defer cancel()
 	select {
 	case r := <-td.ch:

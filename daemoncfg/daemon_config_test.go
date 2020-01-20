@@ -9,6 +9,7 @@ package daemoncfg
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -29,61 +30,49 @@ func TestGetDaemonEndpoints1(t *testing.T) { // default address set to udp and t
 	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
 }
 
-// TODO: @shogo82148 think how do we write tests for the environment values.
-// TestGetDaemonEndpoints2 is commented out because it touches the environment values.
-// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
+func TestGetDaemonEndpoints2(t *testing.T) { // default address set to udp and tcp
+	udpAddr := "127.0.0.1:4000"
+	tcpAddr := "127.0.0.1:5000"
+	udpEndpt, _ := resolveUDPAddr(udpAddr)
+	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
 
-// func TestGetDaemonEndpoints2(t *testing.T) { // default address set to udp and tcp
-// 	udpAddr := "127.0.0.1:4000"
-// 	tcpAddr := "127.0.0.1:5000"
-// 	udpEndpt, _ := resolveUDPAddr(udpAddr)
-// 	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
+	dAddr := "tcp:" + tcpAddr + " udp:" + udpAddr
 
-// 	dAddr := "tcp:" + tcpAddr + " udp:" + udpAddr
+	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", dAddr) // env variable gets precedence over provided daemon addr
+	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
 
-// 	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", dAddr) // env variable gets precedence over provided daemon addr
-// 	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
+	dEndpt := GetDaemonEndpoints()
 
-// 	dEndpt := GetDaemonEndpoints()
+	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
+	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
+}
 
-// 	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
-// 	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
-// }
+func TestGetDaemonEndpointsFromEnv1(t *testing.T) {
+	udpAddr := "127.0.0.1:4000"
+	tcpAddr := "127.0.0.1:5000"
+	udpEndpt, _ := resolveUDPAddr(udpAddr)
+	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
 
-// TODO: @shogo82148 think how do we write tests for the environment values.
-// TestGetDaemonEndpointsFromEnv1 is commented out because it touches the environment values.
-// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
+	dAddr := "tcp:" + tcpAddr + " udp:" + udpAddr
 
-// func TestGetDaemonEndpointsFromEnv1(t *testing.T) {
-// 	udpAddr := "127.0.0.1:4000"
-// 	tcpAddr := "127.0.0.1:5000"
-// 	udpEndpt, _ := resolveUDPAddr(udpAddr)
-// 	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
+	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", dAddr)
+	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
 
-// 	dAddr := "tcp:" + tcpAddr + " udp:" + udpAddr
+	dEndpt, _ := GetDaemonEndpointsFromEnv()
 
-// 	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", dAddr)
-// 	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
+	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
+	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
+}
 
-// 	dEndpt, _ := GetDaemonEndpointsFromEnv()
+func TestGetDaemonEndpointsFromEnv2(t *testing.T) {
+	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "")
+	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
 
-// 	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
-// 	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
-// }
+	dEndpt, err := GetDaemonEndpointsFromEnv()
 
-// TODO: @shogo82148 think how do we write tests for the environment values.
-// TestGetDaemonEndpointsFromEnv2 is commented out because it touches the environment values.
-// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
-
-// func TestGetDaemonEndpointsFromEnv2(t *testing.T) {
-// 	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "")
-// 	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
-
-// 	dEndpt, err := GetDaemonEndpointsFromEnv()
-
-// 	assert.Nil(t, dEndpt)
-// 	assert.Nil(t, err)
-// }
+	assert.Nil(t, dEndpt)
+	assert.Nil(t, err)
+}
 
 func TestGetDefaultDaemonEndpoints(t *testing.T) {
 	udpAddr := "127.0.0.1:2000"
@@ -110,29 +99,25 @@ func TestGetDaemonEndpointsFromString1(t *testing.T) {
 	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
 }
 
-// TODO: @shogo82148 think how do we write tests for the environment values.
-// TestGetDaemonEndpointsFromString2 is commented out because it touches the environment values.
-// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
+func TestGetDaemonEndpointsFromString2(t *testing.T) {
 
-// func TestGetDaemonEndpointsFromString2(t *testing.T) {
+	udpAddr := "127.0.0.1:2000"
+	tcpAddr := "127.0.0.1:2000"
 
-// 	udpAddr := "127.0.0.1:2000"
-// 	tcpAddr := "127.0.0.1:2000"
+	dAddr := "127.0.0.1:2001"
 
-// 	dAddr := "127.0.0.1:2001"
+	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", udpAddr) // env variable gets precedence over provided daemon addr
+	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
 
-// 	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", udpAddr) // env variable gets precedence over provided daemon addr
-// 	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
+	udpEndpt, _ := resolveUDPAddr(udpAddr)
+	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
 
-// 	udpEndpt, _ := resolveUDPAddr(udpAddr)
-// 	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
+	dEndpt, err := GetDaemonEndpointsFromString(dAddr)
 
-// 	dEndpt, err := GetDaemonEndpointsFromString(dAddr)
-
-// 	assert.Nil(t, err)
-// 	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
-// 	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
-// }
+	assert.Nil(t, err)
+	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
+	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
+}
 
 func TestGetDaemonEndpointsFromString3(t *testing.T) {
 	udpAddr := "127.0.0.2:2001"
@@ -160,24 +145,20 @@ func TestGetDaemonEndpointsFromString4(t *testing.T) {
 	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
 }
 
-// TODO: @shogo82148 think how do we write tests for the environment values.
-// TestGetDaemonEndpointsFromString5 is commented out because it touches the environment values.
-// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
+func TestGetDaemonEndpointsFromString5(t *testing.T) {
+	udpAddr := "127.0.0.2:2001"
+	tcpAddr := "127.0.0.1:2000"
+	udpEndpt, _ := resolveUDPAddr(udpAddr)
+	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
+	dAddr := "udp:" + udpAddr + " tcp:" + tcpAddr
+	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", dAddr) // env variable gets precedence over provided daemon addr
+	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
+	dEndpt, err := GetDaemonEndpointsFromString("tcp:127.0.0.5:2001 udp:127.0.0.5:2001")
 
-// func TestGetDaemonEndpointsFromString5(t *testing.T) {
-// 	udpAddr := "127.0.0.2:2001"
-// 	tcpAddr := "127.0.0.1:2000"
-// 	udpEndpt, _ := resolveUDPAddr(udpAddr)
-// 	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
-// 	dAddr := "udp:" + udpAddr + " tcp:" + tcpAddr
-// 	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", dAddr) // env variable gets precedence over provided daemon addr
-// 	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
-// 	dEndpt, err := GetDaemonEndpointsFromString("tcp:127.0.0.5:2001 udp:127.0.0.5:2001")
-
-// 	assert.Nil(t, err)
-// 	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
-// 	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
-// }
+	assert.Nil(t, err)
+	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
+	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
+}
 
 func TestGetDaemonEndpointsFromStringInvalid1(t *testing.T) { // "udp:127.0.0.5:2001 udp:127.0.0.5:2001"
 	udpAddr := "127.0.0.2:2001"
@@ -201,22 +182,18 @@ func TestGetDaemonEndpointsFromStringInvalid2(t *testing.T) { // "tcp:127.0.0.5:
 	assert.Nil(t, dEndpt)
 }
 
-// TODO: @shogo82148 think how do we write tests for the environment values.
-// TestGetDaemonEndpointsFromStringInvalid3 is commented out because it touches the environment values.
-// https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-575416696
+func TestGetDaemonEndpointsFromStringInvalid3(t *testing.T) { // env variable set is invalid, string passed is valid
+	udpAddr := "127.0.0.2:2001"
+	tcpAddr := "127.0.0.1:2000"
+	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "tcp:127.0.0.5:2001 tcp:127.0.0.5:2001") // invalid
+	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
+	dAddr := "udp:" + udpAddr + " tcp:" + tcpAddr
+	dEndpt, err := GetDaemonEndpointsFromString(dAddr)
 
-// func TestGetDaemonEndpointsFromStringInvalid3(t *testing.T) { // env variable set is invalid, string passed is valid
-// 	udpAddr := "127.0.0.2:2001"
-// 	tcpAddr := "127.0.0.1:2000"
-// 	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "tcp:127.0.0.5:2001 tcp:127.0.0.5:2001") // invalid
-// 	defer os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
-// 	dAddr := "udp:" + udpAddr + " tcp:" + tcpAddr
-// 	dEndpt, err := GetDaemonEndpointsFromString(dAddr)
-
-// 	assert.NotNil(t, err)
-// 	assert.True(t, strings.Contains(fmt.Sprint(err), addrErr))
-// 	assert.Nil(t, dEndpt)
-// }
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(fmt.Sprint(err), addrErr))
+	assert.Nil(t, dEndpt)
+}
 
 func TestGetDaemonEndpointsFromStringInvalid4(t *testing.T) {
 	udpAddr := "1.2.1:2a" // error in resolving address port
