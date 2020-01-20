@@ -9,90 +9,117 @@
 package xray
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
 )
 
-var (
-	listenerAddr = &net.UDPAddr{
-		IP:   net.IPv4(127, 0, 0, 1),
-		Port: 2000,
-	}
-
-	TestDaemon = &Testdaemon{
-		Channel: make(chan *result, 200),
-	}
-)
-
-func init() {
-	if TestDaemon.Connection == nil {
-		conn, err := net.ListenUDP("udp", listenerAddr)
-		if err != nil {
-			panic(err)
+func NewTestDaemon() (context.Context, *TestDaemon) {
+	c := make(chan *result, 200)
+	conn, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		if conn, err = net.ListenPacket("udp6", "[::1]:0"); err != nil {
+			panic(fmt.Sprintf("xray: failed to listen: %v", err))
 		}
-
-		TestDaemon.Connection = conn
-		go TestDaemon.Run()
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	d := &TestDaemon{
+		ch:     c,
+		conn:   conn,
+		ctx:    ctx,
+		cancel: cancel,
+	}
+	emitter, err := NewDefaultEmitter(conn.LocalAddr().(*net.UDPAddr))
+	if err != nil {
+		panic(fmt.Sprintf("xray: failed to created emitter: %v", err))
+	}
+
+	ctx, err = ContextWithConfig(ctx, Config{
+		Emitter:                emitter,
+		DaemonAddr:             conn.LocalAddr().String(),
+		ServiceVersion:         "TestVersion",
+		SamplingStrategy:       &TestSamplingStrategy{},
+		ContextMissingStrategy: &TestContextMissingStrategy{},
+		StreamingStrategy:      &TestStreamingStrategy{},
+	})
+	if err != nil {
+		panic(fmt.Sprintf("xray: failed to configure: %v", err))
+	}
+	go d.run(c)
+	return ctx, d
 }
 
-type Testdaemon struct {
-	Connection *net.UDPConn
-	Channel    chan *result
-	Done       bool
+type TestDaemon struct {
+	ch        <-chan *result
+	conn      net.PacketConn
+	ctx       context.Context
+	cancel    context.CancelFunc
+	closeOnce sync.Once
 }
+
 type result struct {
 	Segment *Segment
 	Error   error
 }
 
-func (td *Testdaemon) Run() {
-	buffer := make([]byte, 64000)
-	for !td.Done {
-		n, _, err := td.Connection.ReadFromUDP(buffer)
+func (td *TestDaemon) Close() {
+	td.closeOnce.Do(func() {
+		td.cancel()
+		td.conn.Close()
+	})
+}
+
+func (td *TestDaemon) run(c chan *result) {
+	buffer := make([]byte, 64*1024)
+	for {
+		n, _, err := td.conn.ReadFrom(buffer)
 		if err != nil {
-			td.Channel <- &result{nil, err}
+			select {
+			case c <- &result{nil, err}:
+			case <-td.ctx.Done():
+				return
+			}
 			continue
 		}
 
-		buffered := buffer[len(Header):n]
+		idx := bytes.IndexByte(buffer, '\n')
+		buffered := buffer[idx+1 : n]
 
 		seg := &Segment{}
 		err = json.Unmarshal(buffered, &seg)
 		if err != nil {
-			td.Channel <- &result{nil, err}
+			select {
+			case c <- &result{nil, err}:
+			case <-td.ctx.Done():
+				return
+			}
 			continue
 		}
 
 		seg.Sampled = true
-		td.Channel <- &result{seg, err}
+		select {
+		case c <- &result{seg, nil}:
+		case <-td.ctx.Done():
+			return
+		}
 	}
 }
 
-func (td *Testdaemon) Recv() (*Segment, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+func (td *TestDaemon) Recv() (*Segment, error) {
+	ctx, cancel := context.WithTimeout(td.ctx, 5*time.Second)
 	defer cancel()
 	select {
-	case r := <-td.Channel:
+	case r := <-td.ch:
 		return r.Segment, r.Error
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	}
-}
-
-// Resets the daemon
-func (td *Testdaemon) Reset ()  {
-	for {
-		_, err := td.Recv()
-
-		if err != nil {
-			break
-		}
 	}
 }
 
