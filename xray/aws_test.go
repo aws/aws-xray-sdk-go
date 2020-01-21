@@ -237,5 +237,5 @@ func testAWSDataRace(ctx context.Context, td *TestDaemon, t *testing.T, svc *lam
 	seg.Close(nil)
 }
 
-// Test check 9
+// Test check 11
 
