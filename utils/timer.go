@@ -9,13 +9,8 @@
 package utils
 
 import (
-	"math/rand"
 	"time"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 type timer struct {
 	t      *time.Timer
@@ -24,7 +19,7 @@ type timer struct {
 }
 
 func NewTimer(d, jitter time.Duration) *timer {
-	t := time.NewTimer(d - time.Duration(rand.Int63n(int64(jitter))))
+	t := time.NewTimer(d - time.Duration(globalRand.Int63n(int64(jitter))))
 
 	jitteredTimer := timer{
 		t:      t,
@@ -40,5 +35,5 @@ func (j *timer) C() <-chan time.Time {
 }
 
 func (j *timer) Reset() {
-	j.t.Reset(j.d - time.Duration(rand.Int63n(int64(j.jitter))))
+	j.t.Reset(j.d - time.Duration(globalRand.Int63n(int64(j.jitter))))
 }
