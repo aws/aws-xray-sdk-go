@@ -2,15 +2,15 @@
 
 
 [[projects]]
-  digest = "1:d486b410ac9c00474a4f8c2f5d0fdf2a52ccc8fc8add0bd02883c47dbce53acd"
+  digest = "1:5e525de85b5793f1eea106a0ea829690f2675e251e5694ed6d759c63c7631c3e"
   name = "github.com/DATA-DOG/go-sqlmock"
   packages = ["."]
   pruneopts = "UT"
-  revision = "b983233bc0bbea4dc6e8ec8c8c923d935765ffec"
-  version = "v1.2.0"
+  revision = "012d92843b006e16d4c4d699b94b5148e76020e7"
+  version = "v1.4.0"
 
 [[projects]]
-  digest = "1:a544c8169fb7ea4bf7c54f54ee170a66bb0ea983a4d9932a208319f6a6a1ef31"
+  digest = "1:5a6a0c3df754ff343764e511d9227cd4b3625363476403096d87c844ce5d3885"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -44,12 +44,36 @@
     "private/protocol/rest",
     "private/protocol/restjson",
     "private/protocol/xml/xmlutil",
+    "service/lambda",
     "service/sts",
     "service/xray",
   ]
   pruneopts = "UT"
   revision = "6ff66bb2b8ac90ac25b1dbbf9806f09651630789"
   version = "v1.17.12"
+
+[[projects]]
+  digest = "1:9176a7debd5ac2bdc31ae5e7d0346a38e356390d8301a1567a2a1bc48ddd99ff"
+  name = "github.com/aws/aws-xray-sdk-go"
+  packages = [
+    "awsplugins/beanstalk",
+    "awsplugins/ec2",
+    "awsplugins/ecs",
+    "daemoncfg",
+    "header",
+    "internal/logger",
+    "internal/plugins",
+    "pattern",
+    "resources",
+    "strategy/ctxmissing",
+    "strategy/exception",
+    "strategy/sampling",
+    "utils",
+    "xraylog",
+  ]
+  pruneopts = "UT"
+  revision = "89001052516f60c9b3bebf297ce5f2a52ada1301"
+  version = "v1.0.0-rc.14"
 
 [[projects]]
   digest = "1:667f41be124637d8af08d9163be07cc718ae291bc590b6a91047c94b25ef0753"
@@ -142,7 +166,22 @@
     "github.com/aws/aws-sdk-go/aws/endpoints",
     "github.com/aws/aws-sdk-go/aws/request",
     "github.com/aws/aws-sdk-go/aws/session",
+    "github.com/aws/aws-sdk-go/service/lambda",
     "github.com/aws/aws-sdk-go/service/xray",
+    "github.com/aws/aws-xray-sdk-go/awsplugins/beanstalk",
+    "github.com/aws/aws-xray-sdk-go/awsplugins/ec2",
+    "github.com/aws/aws-xray-sdk-go/awsplugins/ecs",
+    "github.com/aws/aws-xray-sdk-go/daemoncfg",
+    "github.com/aws/aws-xray-sdk-go/header",
+    "github.com/aws/aws-xray-sdk-go/internal/logger",
+    "github.com/aws/aws-xray-sdk-go/internal/plugins",
+    "github.com/aws/aws-xray-sdk-go/pattern",
+    "github.com/aws/aws-xray-sdk-go/resources",
+    "github.com/aws/aws-xray-sdk-go/strategy/ctxmissing",
+    "github.com/aws/aws-xray-sdk-go/strategy/exception",
+    "github.com/aws/aws-xray-sdk-go/strategy/sampling",
+    "github.com/aws/aws-xray-sdk-go/utils",
+    "github.com/aws/aws-xray-sdk-go/xraylog",
     "github.com/pkg/errors",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/suite",
