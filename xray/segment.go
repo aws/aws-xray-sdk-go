@@ -52,6 +52,7 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
+// Initial commit
 // BeginSegment creates a Segment for a given name and context.
 func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) {
 	seg := basicSegment(name, nil)
