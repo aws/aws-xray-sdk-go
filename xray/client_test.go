@@ -28,7 +28,7 @@ func newRequest(ctx context.Context, method, url string, body io.Reader) (contex
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	ctx, root := BeginSegment(ctx, "Test")
+	ctx, root := BeginSegment(ctx, "Test",false)
 	req = req.WithContext(ctx)
 	return ctx, root, req, nil
 }

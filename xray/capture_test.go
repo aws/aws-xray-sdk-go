@@ -23,7 +23,7 @@ func TestSimpleCapture(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, root := BeginSegment(ctx, "Test")
+	ctx, root := BeginSegment(ctx, "Test",false)
 	err := Capture(ctx, "TestService", func(context.Context) error {
 		root.Close(nil)
 		return nil
@@ -50,7 +50,7 @@ func TestErrorCapture(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, root := BeginSegment(ctx, "Test")
+	ctx, root := BeginSegment(ctx, "Test",false)
 	defaultStrategy, err := exception.NewDefaultFormattingStrategy()
 	if !assert.NoError(t, err) {
 		return
@@ -82,7 +82,7 @@ func TestPanicCapture(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, root := BeginSegment(ctx, "Test")
+	ctx, root := BeginSegment(ctx, "Test",false)
 	var captureErr error
 	func() {
 		defer func() {
@@ -135,7 +135,7 @@ func TestCaptureAsync(t *testing.T) {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	ctx, root := BeginSegment(ctx, "Test")
+	ctx, root := BeginSegment(ctx, "Test",false)
 	CaptureAsync(ctx, "TestService", func(context.Context) error {
 		defer wg.Done()
 		root.Close(nil)

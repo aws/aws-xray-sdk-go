@@ -28,7 +28,7 @@ func TestSegmentDataRace(t *testing.T) {
 	n := 100
 	wg.Add(n)
 	for i := 0; i < n; i++ { // flaky data race test, so we run it multiple times
-		_, seg := BeginSegment(ctx, "TestSegment")
+		_, seg := BeginSegment(ctx, "TestSegment",false)
 
 		go func() {
 			defer wg.Done()
@@ -42,7 +42,7 @@ func TestSegmentDataRace(t *testing.T) {
 func TestSubsegmentDataRace(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
-	ctx, seg := BeginSegment(ctx, "TestSegment")
+	ctx, seg := BeginSegment(ctx, "TestSegment",false)
 	defer seg.Close(nil)
 
 	var wg sync.WaitGroup
@@ -66,7 +66,7 @@ func TestSubsegmentDataRaceWithContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	ctx, seg := BeginSegment(ctx, "TestSegment")
+	ctx, seg := BeginSegment(ctx, "TestSegment",false)
 
 	wg := sync.WaitGroup{}
 
@@ -116,7 +116,7 @@ func TestSegmentDownstreamHeader(t *testing.T) {
 func TestParentSegmentTotalCount(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
-	ctx, seg := BeginSegment(ctx, "test")
+	ctx, seg := BeginSegment(ctx, "test",false)
 
 	var wg sync.WaitGroup
 	n := 2

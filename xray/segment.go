@@ -12,6 +12,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
 	"os"
 	"runtime"
 	"sync/atomic"
@@ -52,9 +53,8 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
-// Initial commit
 // BeginSegment creates a Segment for a given name and context.
-func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) {
+func BeginSegment(ctx context.Context, name string, sample bool) (context.Context, *Segment) {
 	seg := basicSegment(name, nil)
 
 	cfg := GetRecorder(ctx)
@@ -62,6 +62,15 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 
 	seg.Lock()
 	defer seg.Unlock()
+
+	if sample {
+		sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(&sampling.Request{})
+		seg.Sampled = sd.Sample
+		logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
+		seg.AddRuleName(sd)
+	} else if !sample {
+		logger.Debug("In the case of directly using BeginSegment API without instrumenting application will result in all segment sampling")
+	}
 
 	seg.addPlugin(plugins.InstancePluginMetadata)
 	seg.addSDKAndServiceInformation()
@@ -208,7 +217,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 
 // NewSegmentFromHeader creates a segment for downstream call and add information to the segment that gets from HTTP header.
 func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (context.Context, *Segment) {
-	con, seg := BeginSegment(ctx, name)
+	con, seg := BeginSegment(ctx, name, false)
 
 	if h.TraceID != "" {
 		seg.TraceID = h.TraceID
