@@ -9,6 +9,8 @@
 package xray
 
 import (
+	"crypto/rand"
+	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/suite"
 	"testing"
