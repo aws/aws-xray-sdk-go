@@ -237,4 +237,4 @@ func testAWSDataRace(ctx context.Context, td *TestDaemon, t *testing.T, svc *lam
 	seg.Close(nil)
 }
 
-// Test commit 6
+// Test commit 7
