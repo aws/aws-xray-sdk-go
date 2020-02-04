@@ -117,7 +117,7 @@ func fakeSession(t *testing.T, failConn bool) (*session.Session, func()) {
 }
 
 func testClientSuccessfulConnection(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda) {
-	ctx, root := BeginSegment(ctx, "Test",false)
+	ctx, root := BeginSegment(ctx, "Test")
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	root.Close(nil)
 	assert.NoError(t, err)
@@ -168,7 +168,7 @@ func testClientSuccessfulConnection(ctx context.Context, td *TestDaemon, t *test
 }
 
 func testClientFailedConnection(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda) {
-	ctx, root := BeginSegment(ctx, "Test",false)
+	ctx, root := BeginSegment(ctx, "Test")
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	root.Close(nil)
 	assert.Error(t, err)
@@ -211,7 +211,7 @@ func testClientWithoutSegment(ctx context.Context, td *TestDaemon, t *testing.T,
 func testAWSDataRace(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	ctx, seg := BeginSegment(ctx, "TestSegment",false)
+	ctx, seg := BeginSegment(ctx, "TestSegment")
 
 	var wg sync.WaitGroup
 	for i := 0; i < 5; i++ {

@@ -21,7 +21,7 @@ func TestTraceID(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, seg := BeginSegment(ctx, "test",false)
+	ctx, seg := BeginSegment(ctx, "test")
 	defer seg.Close(nil)
 	traceID := TraceID(ctx)
 	assert.Equal(t, seg.TraceID, traceID)
@@ -36,7 +36,7 @@ func TestRequestWasNotTraced(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, seg := BeginSegment(ctx, "test",false)
+	ctx, seg := BeginSegment(ctx, "test")
 	defer seg.Close(nil)
 	assert.Equal(t, seg.RequestWasTraced, RequestWasTraced(ctx))
 }
@@ -48,7 +48,7 @@ func TestDetachContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	ctx1, seg := BeginSegment(ctx, "test",false)
+	ctx1, seg := BeginSegment(ctx, "test")
 	defer seg.Close(nil)
 	ctx2 := DetachContext(ctx1)
 	cancel()
@@ -66,7 +66,7 @@ func TestValidAnnotations(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, root := BeginSegment(ctx, "Test",false)
+	ctx, root := BeginSegment(ctx, "Test")
 
 	var err exception.MultiError
 	if e := AddAnnotation(ctx, "string", "str"); e != nil {
@@ -98,7 +98,7 @@ func TestInvalidAnnotations(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, root := BeginSegment(ctx, "Test",false)
+	ctx, root := BeginSegment(ctx, "Test")
 	type MyObject struct{}
 
 	err := AddAnnotation(ctx, "Object", &MyObject{})
@@ -115,7 +115,7 @@ func TestSimpleMetadata(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, root := BeginSegment(ctx, "Test",false)
+	ctx, root := BeginSegment(ctx, "Test")
 	var err exception.MultiError
 	if e := AddMetadata(ctx, "string", "str"); e != nil {
 		err = append(err, e)
@@ -146,7 +146,7 @@ func TestAddError(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, root := BeginSegment(ctx, "Test",false)
+	ctx, root := BeginSegment(ctx, "Test")
 	err := AddError(ctx, errors.New("New Error"))
 	assert.NoError(t, err)
 	root.Close(err)

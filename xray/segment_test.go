@@ -10,6 +10,8 @@ package xray
 
 import (
 	"context"
+	"net/http"
+	"net/url"
 	"sync"
 	"testing"
 	"time"
@@ -28,7 +30,7 @@ func TestSegmentDataRace(t *testing.T) {
 	n := 100
 	wg.Add(n)
 	for i := 0; i < n; i++ { // flaky data race test, so we run it multiple times
-		_, seg := BeginSegment(ctx, "TestSegment",false)
+		_, seg := BeginSegment(ctx, "TestSegment")
 
 		go func() {
 			defer wg.Done()
@@ -42,7 +44,7 @@ func TestSegmentDataRace(t *testing.T) {
 func TestSubsegmentDataRace(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
-	ctx, seg := BeginSegment(ctx, "TestSegment",false)
+	ctx, seg := BeginSegment(ctx, "TestSegment")
 	defer seg.Close(nil)
 
 	var wg sync.WaitGroup
@@ -66,7 +68,7 @@ func TestSubsegmentDataRaceWithContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	ctx, seg := BeginSegment(ctx, "TestSegment",false)
+	ctx, seg := BeginSegment(ctx, "TestSegment")
 
 	wg := sync.WaitGroup{}
 
@@ -94,7 +96,7 @@ func TestSegmentDownstreamHeader(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &header.Header{
+	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &http.Request{URL:&url.URL{}}, &header.Header{
 		TraceID:  "fakeid",
 		ParentID: "reqid",
 	})
@@ -116,7 +118,7 @@ func TestSegmentDownstreamHeader(t *testing.T) {
 func TestParentSegmentTotalCount(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
-	ctx, seg := BeginSegment(ctx, "test",false)
+	ctx, seg := BeginSegment(ctx, "test")
 
 	var wg sync.WaitGroup
 	n := 2
