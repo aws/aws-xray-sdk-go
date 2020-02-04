@@ -256,7 +256,7 @@ func (conn *driverConn) Close() error {
 	return conn.Conn.Close()
 }
 
-// copied from sql/driver/convert.go
+// copied from https://github.com/golang/go/blob/e6ebbe0d20fe877b111cf4ccf8349cba129d6d3a/src/database/sql/convert.go#L93-L99
 // defaultCheckNamedValue wraps the default ColumnConverter to have the same
 // function signature as the CheckNamedValue in the driver.NamedValueChecker
 // interface.
