@@ -78,12 +78,12 @@ type driverDriver struct {
 	baseName string // the name of the base driver
 }
 
-func (driver *driverDriver) Open(dsn string) (driver.Conn, error) {
-	rawConn, err := driver.Driver.Open(dsn)
+func (d *driverDriver) Open(dsn string) (driver.Conn, error) {
+	rawConn, err := d.Driver.Open(dsn)
 	if err != nil {
 		return nil, err
 	}
-	attr, err := newDBAttribute(context.Background(), driver.baseName, driver.Driver, rawConn, dsn, false)
+	attr, err := newDBAttribute(context.Background(), d.baseName, d.Driver, rawConn, dsn, false)
 	if err != nil {
 		rawConn.Close()
 		return nil, err
