@@ -16,6 +16,23 @@ import (
 	"sync"
 )
 
+// SQLConnector wraps the connector, and traces SQL executions.
+// Unlike SQLContext, SQLConnector doesn't filter the password of the dsn.
+// So, you have to filter the password before passing the dns to SQLConnector.
+func SQLConnector(dsn string, connector driver.Connector) driver.Connector {
+	d := &driverDriver{
+		Driver:   connector.Driver(),
+		baseName: "unknown",
+	}
+	return &driverConnector{
+		Connector: connector,
+		driver:    d,
+		name:      dsn,
+		filtered:  true,
+		// initialized attr lazy because we have no context here.
+	}
+}
+
 func (conn *driverConn) ResetSession(ctx context.Context) error {
 	if sr, ok := conn.Conn.(driver.SessionResetter); ok {
 		return Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
@@ -28,8 +45,9 @@ func (conn *driverConn) ResetSession(ctx context.Context) error {
 
 type driverConnector struct {
 	driver.Connector
-	driver *driverDriver
-	name   string
+	driver   *driverDriver
+	filtered bool
+	name     string
 
 	mu   sync.RWMutex
 	attr *dbAttribute
@@ -77,7 +95,7 @@ func (c *driverConnector) getAttr(ctx context.Context) (*dbAttribute, error) {
 	}
 	defer conn.Close()
 
-	attr, err = newDBAttribute(context.Background(), c.driver.baseName, c.driver.Driver, conn, c.name)
+	attr, err = newDBAttribute(ctx, c.driver.baseName, c.driver.Driver, conn, c.name, c.filtered)
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +147,7 @@ func (d *driverDriver) OpenConnector(name string) (driver.Connector, error) {
 	c = &driverConnector{
 		Connector: c,
 		driver:    d,
+		filtered:  false,
 		name:      name,
 		// initialized attr lazy because we have no context here.
 	}

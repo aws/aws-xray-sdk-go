@@ -9,431 +9,281 @@
 package xray
 
 import (
-	"context"
-	"crypto/rand"
-	"database/sql"
+	"encoding/json"
 	"errors"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestSQL(t *testing.T) {
-	suite.Run(t, &sqlTestSuite{
-		dbs: map[string]sqlmock.Sqlmock{},
-	})
-}
+// utility functions for testing SQL
 
-type sqlTestSuite struct {
-	suite.Suite
-
-	dbs map[string]sqlmock.Sqlmock
-
-	dsn  string
-	db   *sql.DB
-	mock sqlmock.Sqlmock
-}
-
-func (s *sqlTestSuite) mockDB(dsn string) {
-	if dsn == "" {
-		b := make([]byte, 32)
-		rand.Read(b)
-		dsn = string(b)
-	}
-
-	var err error
-	s.dsn = dsn
-	if mock, ok := s.dbs[dsn]; ok {
-		s.mock = mock
-	} else {
-		_, s.mock, err = sqlmock.NewWithDSN(dsn)
-		s.Require().NoError(err)
-		s.dbs[dsn] = s.mock
-	}
-}
-
-func (s *sqlTestSuite) connect() {
-	var err error
-	s.db, err = SQLContext("sqlmock", s.dsn)
-	s.Require().NoError(err)
-}
-
-func (s *sqlTestSuite) mockPSQL(err error) {
+func mockPostgreSQL(mock sqlmock.Sqlmock, err error) {
 	row := sqlmock.NewRows([]string{"version()", "current_user", "current_database()"}).
 		AddRow("test version", "test user", "test database").
 		RowError(0, err)
-	s.mock.ExpectPrepare(`SELECT version\(\), current_user, current_database\(\)`).ExpectQuery().WillReturnRows(row)
+	mock.ExpectPrepare(`SELECT version\(\), current_user, current_database\(\)`).ExpectQuery().WillReturnRows(row)
 }
-func (s *sqlTestSuite) mockMySQL(err error) {
+func mockMySQL(mock sqlmock.Sqlmock, err error) {
 	row := sqlmock.NewRows([]string{"version()", "current_user()", "database()"}).
 		AddRow("test version", "test user", "test database").
 		RowError(0, err)
-	s.mock.ExpectPrepare(`SELECT version\(\), current_user\(\), database\(\)`).ExpectQuery().WillReturnRows(row)
+	mock.ExpectPrepare(`SELECT version\(\), current_user\(\), database\(\)`).ExpectQuery().WillReturnRows(row)
 }
-func (s *sqlTestSuite) mockMSSQL(err error) {
+func mockMSSQL(mock sqlmock.Sqlmock, err error) {
 	row := sqlmock.NewRows([]string{"@@version", "current_user", "db_name()"}).
 		AddRow("test version", "test user", "test database").
 		RowError(0, err)
-	s.mock.ExpectPrepare(`SELECT @@version, current_user, db_name\(\)`).ExpectQuery().WillReturnRows(row)
+	mock.ExpectPrepare(`SELECT @@version, current_user, db_name\(\)`).ExpectQuery().WillReturnRows(row)
 }
-func (s *sqlTestSuite) mockOracle(err error) {
+func mockOracle(mock sqlmock.Sqlmock, err error) {
 	row := sqlmock.NewRows([]string{"version", "user", "ora_database_name"}).
 		AddRow("test version", "test user", "test database").
 		RowError(0, err)
-	s.mock.ExpectPrepare(`SELECT version FROM v\$instance UNION SELECT user, ora_database_name FROM dual`).ExpectQuery().WillReturnRows(row)
+	mock.ExpectPrepare(`SELECT version FROM v\$instance UNION SELECT user, ora_database_name FROM dual`).ExpectQuery().WillReturnRows(row)
 }
 
-func (s *sqlTestSuite) TestPasswordlessURL() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("", attr.connectionString)
-		s.Equal("postgres://user@host:5432/database", attr.url)
-		checked = true
+func capturePing(dsn string) (*Segment, error) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	db, err := SQLContext("sqlmock", dsn)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	ctx, root := BeginSegment(ctx, "test")
+	if err := db.PingContext(ctx); err != nil {
+		return nil, err
+	}
+	root.Close(nil)
+
+	seg, err := td.Recv()
+	if err != nil {
+		return nil, err
+	}
+	var subseg *Segment
+	if err := json.Unmarshal(seg.Subsegments[0], &subseg); err != nil {
+		return nil, err
 	}
 
-	s.mockDB("postgres://user@host:5432/database")
-	s.mockPSQL(nil)
-	s.connect()
-
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
+	return subseg, nil
 }
 
-func (s *sqlTestSuite) TestPasswordURL() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("", attr.connectionString)
-		s.Equal("postgres://user@host:5432/database", attr.url)
-		checked = true
+func TestDSN(t *testing.T) {
+	tc := []struct {
+		dsn string
+		url string
+		str string
+	}{
+		{
+			dsn: "postgres://user@host:5432/database",
+			url: "postgres://user@host:5432/database",
+		},
+		{
+			dsn: "postgres://user:password@host:5432/database",
+			url: "postgres://user@host:5432/database",
+		},
+		{
+			dsn: "postgres://host:5432/database?password=password",
+			url: "postgres://host:5432/database",
+		},
+		{
+			dsn: "user:password@host:5432/database",
+			url: "user@host:5432/database",
+		},
+		{
+			dsn: "host:5432/database?password=password",
+			url: "host:5432/database",
+		},
+		{
+			dsn: "user%2Fpassword@host:5432/database",
+			url: "user@host:5432/database",
+		},
+		{
+			dsn: "user/password@host:5432/database",
+			url: "user@host:5432/database",
+		},
+		{
+			dsn: "user=user database=database",
+			str: "user=user database=database",
+		},
+		{
+			dsn: "user=user password=password database=database",
+			str: "user=user database=database",
+		},
+		{
+			dsn: "odbc:server=localhost;user id=sa;password={foo}};bar};otherthing=thing",
+			str: "odbc:server=localhost;user id=sa;otherthing=thing",
+		},
 	}
 
-	s.mockDB("postgres://user:password@host:5432/database")
-	s.mockPSQL(nil)
-	s.connect()
+	for _, tt := range tc {
+		tt := tt
+		t.Run(tt.dsn, func(t *testing.T) {
+			db, mock, err := sqlmock.NewWithDSN(tt.dsn)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer db.Close()
+			mockPostgreSQL(mock, nil)
 
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
+			subseg, err := capturePing(tt.dsn)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.NoError(t, mock.ExpectationsWereMet())
+
+			assert.Equal(t, "remote", subseg.Namespace)
+			assert.Equal(t, "Postgres", subseg.SQL.DatabaseType)
+			assert.Equal(t, tt.url, subseg.SQL.URL)
+			assert.Equal(t, tt.str, subseg.SQL.ConnectionString)
+			assert.Equal(t, "test version", subseg.SQL.DatabaseVersion)
+			assert.Equal(t, "test user", subseg.SQL.User)
+			assert.False(t, subseg.Throttle)
+			assert.False(t, subseg.Error)
+			assert.False(t, subseg.Fault)
+		})
+	}
 }
 
-func (s *sqlTestSuite) TestPasswordURLQuery() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("", attr.connectionString)
-		s.Equal("postgres://host:5432/database", attr.url)
-		checked = true
+func TestPostgreSQL(t *testing.T) {
+	dsn := "test-postgre"
+	db, mock, err := sqlmock.NewWithDSN(dsn)
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer db.Close()
+	mockPostgreSQL(mock, nil)
 
-	s.mockDB("postgres://host:5432/database?password=password")
-	s.mockPSQL(nil)
-	s.connect()
+	subseg, err := capturePing(dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.NoError(t, mock.ExpectationsWereMet())
 
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
+	assert.Equal(t, "remote", subseg.Namespace)
+	assert.Equal(t, "Postgres", subseg.SQL.DatabaseType)
+	assert.Equal(t, "", subseg.SQL.URL)
+	assert.Equal(t, dsn, subseg.SQL.ConnectionString)
+	assert.Equal(t, "test version", subseg.SQL.DatabaseVersion)
+	assert.Equal(t, "test user", subseg.SQL.User)
+	assert.False(t, subseg.Throttle)
+	assert.False(t, subseg.Error)
+	assert.False(t, subseg.Fault)
 }
 
-func (s *sqlTestSuite) TestPasswordURLSchemaless() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("", attr.connectionString)
-		s.Equal("user@host:5432/database", attr.url)
-		checked = true
+func TestMySQL(t *testing.T) {
+	dsn := "test-mysql"
+	db, mock, err := sqlmock.NewWithDSN(dsn)
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer db.Close()
+	mockPostgreSQL(mock, errors.New("syntax error"))
+	mockMySQL(mock, nil)
 
-	s.mockDB("user:password@host:5432/database")
-	s.mockPSQL(nil)
-	s.connect()
+	subseg, err := capturePing(dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.NoError(t, mock.ExpectationsWereMet())
 
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
+	assert.Equal(t, "remote", subseg.Namespace)
+	assert.Equal(t, "MySQL", subseg.SQL.DatabaseType)
+	assert.Equal(t, "", subseg.SQL.URL)
+	assert.Equal(t, dsn, subseg.SQL.ConnectionString)
+	assert.Equal(t, "test version", subseg.SQL.DatabaseVersion)
+	assert.Equal(t, "test user", subseg.SQL.User)
+	assert.False(t, subseg.Throttle)
+	assert.False(t, subseg.Error)
+	assert.False(t, subseg.Fault)
 }
 
-func (s *sqlTestSuite) TestPasswordURLSchemalessUserlessQuery() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("", attr.connectionString)
-		s.Equal("host:5432/database", attr.url)
-		checked = true
+func TestMSSQL(t *testing.T) {
+	dsn := "test-mssql"
+	db, mock, err := sqlmock.NewWithDSN(dsn)
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer db.Close()
+	mockPostgreSQL(mock, errors.New("syntax error"))
+	mockMySQL(mock, errors.New("syntax error"))
+	mockMSSQL(mock, nil)
 
-	s.mockDB("host:5432/database?password=password")
-	s.mockPSQL(nil)
-	s.connect()
+	subseg, err := capturePing(dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.NoError(t, mock.ExpectationsWereMet())
 
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
+	assert.Equal(t, "remote", subseg.Namespace)
+	assert.Equal(t, "MS SQL", subseg.SQL.DatabaseType)
+	assert.Equal(t, "", subseg.SQL.URL)
+	assert.Equal(t, dsn, subseg.SQL.ConnectionString)
+	assert.Equal(t, "test version", subseg.SQL.DatabaseVersion)
+	assert.Equal(t, "test user", subseg.SQL.User)
+	assert.False(t, subseg.Throttle)
+	assert.False(t, subseg.Error)
+	assert.False(t, subseg.Fault)
 }
 
-func (s *sqlTestSuite) TestWeirdPasswordURL() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("", attr.connectionString)
-		s.Equal("user@host:5432/database", attr.url)
-		checked = true
+func TestOracle(t *testing.T) {
+	dsn := "test-oracle"
+	db, mock, err := sqlmock.NewWithDSN(dsn)
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer db.Close()
+	mockPostgreSQL(mock, errors.New("syntax error"))
+	mockMySQL(mock, errors.New("syntax error"))
+	mockMSSQL(mock, errors.New("syntax error"))
+	mockOracle(mock, nil)
 
-	s.mockDB("user%2Fpassword@host:5432/database")
-	s.mockPSQL(nil)
-	s.connect()
+	subseg, err := capturePing(dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.NoError(t, mock.ExpectationsWereMet())
 
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
+	assert.Equal(t, "remote", subseg.Namespace)
+	assert.Equal(t, "Oracle", subseg.SQL.DatabaseType)
+	assert.Equal(t, "", subseg.SQL.URL)
+	assert.Equal(t, dsn, subseg.SQL.ConnectionString)
+	assert.Equal(t, "test version", subseg.SQL.DatabaseVersion)
+	assert.Equal(t, "test user", subseg.SQL.User)
+	assert.False(t, subseg.Throttle)
+	assert.False(t, subseg.Error)
+	assert.False(t, subseg.Fault)
 }
 
-func (s *sqlTestSuite) TestWeirderPasswordURL() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("", attr.connectionString)
-		s.Equal("user@host:5432/database", attr.url)
-		checked = true
+func TestUnknownDatabase(t *testing.T) {
+	dsn := "test-unknown"
+	db, mock, err := sqlmock.NewWithDSN(dsn)
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer db.Close()
+	mockPostgreSQL(mock, errors.New("syntax error"))
+	mockMySQL(mock, errors.New("syntax error"))
+	mockMSSQL(mock, errors.New("syntax error"))
+	mockOracle(mock, errors.New("syntax error"))
 
-	s.mockDB("user/password@host:5432/database")
-	s.mockPSQL(nil)
-	s.connect()
-
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
-}
-
-func (s *sqlTestSuite) TestPasswordlessConnectionString() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("user=user database=database", attr.connectionString)
-		s.Equal("", attr.url)
-		checked = true
+	subseg, err := capturePing(dsn)
+	if err != nil {
+		t.Fatal(err)
 	}
+	assert.NoError(t, mock.ExpectationsWereMet())
 
-	s.mockDB("user=user database=database")
-	s.mockPSQL(nil)
-	s.connect()
-
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
-}
-
-func (s *sqlTestSuite) TestPasswordConnectionString() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("user=user database=database", attr.connectionString)
-		s.Equal("", attr.url)
-		checked = true
-	}
-
-	s.mockDB("user=user password=password database=database")
-	s.mockPSQL(nil)
-	s.connect()
-
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
-}
-
-func (s *sqlTestSuite) TestSemicolonPasswordConnectionString() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("odbc:server=localhost;user id=sa;otherthing=thing", attr.connectionString)
-		s.Equal("", attr.url)
-		checked = true
-	}
-
-	s.mockDB("odbc:server=localhost;user id=sa;password={foo}};bar};otherthing=thing")
-	s.mockPSQL(nil)
-	s.connect()
-
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
-}
-
-func (s *sqlTestSuite) TestPSQL() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("Postgres", attr.databaseType)
-		s.Equal("test version", attr.databaseVersion)
-		s.Equal("test user", attr.user)
-		s.Equal("test database", attr.dbname)
-		checked = true
-	}
-
-	s.mockDB("")
-	s.mockPSQL(nil)
-	s.connect()
-
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
-}
-
-func (s *sqlTestSuite) TestMySQL() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("MySQL", attr.databaseType)
-		s.Equal("test version", attr.databaseVersion)
-		s.Equal("test user", attr.user)
-		s.Equal("test database", attr.dbname)
-		checked = true
-	}
-
-	s.mockDB("")
-	s.mockPSQL(errors.New(""))
-	s.mockMySQL(nil)
-	s.connect()
-
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
-}
-
-func (s *sqlTestSuite) TestMSSQL() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("MS SQL", attr.databaseType)
-		s.Equal("test version", attr.databaseVersion)
-		s.Equal("test user", attr.user)
-		s.Equal("test database", attr.dbname)
-		checked = true
-	}
-
-	s.mockDB("")
-	s.mockPSQL(errors.New(""))
-	s.mockMySQL(errors.New(""))
-	s.mockMSSQL(nil)
-	s.connect()
-
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
-}
-
-func (s *sqlTestSuite) TestOracle() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("Oracle", attr.databaseType)
-		s.Equal("test version", attr.databaseVersion)
-		s.Equal("test user", attr.user)
-		s.Equal("test database", attr.dbname)
-		checked = true
-	}
-
-	s.mockDB("")
-	s.mockPSQL(errors.New(""))
-	s.mockMySQL(errors.New(""))
-	s.mockMSSQL(errors.New(""))
-	s.mockOracle(nil)
-	s.connect()
-
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
-}
-
-func (s *sqlTestSuite) TestUnknownDatabase() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Equal("Unknown", attr.databaseType)
-		s.Equal("Unknown", attr.databaseVersion)
-		s.Equal("Unknown", attr.user)
-		s.Equal("Unknown", attr.dbname)
-		checked = true
-	}
-
-	s.mockDB("")
-	s.mockPSQL(errors.New(""))
-	s.mockMySQL(errors.New(""))
-	s.mockMSSQL(errors.New(""))
-	s.mockOracle(errors.New(""))
-	s.connect()
-
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
-}
-
-func (s *sqlTestSuite) TestDriverVersionPackage() {
-	var checked bool
-	attrHook = func(attr *dbAttribute) {
-		s.Contains(attr.driverVersion, "DATA-DOG/go-sqlmock")
-		checked = true
-	}
-
-	s.mockDB("")
-	s.mockPSQL(nil)
-	s.connect()
-
-	ctx, seg := BeginSegment(context.Background(), "test")
-	defer seg.Close(nil)
-	conn, err := s.db.Conn(ctx)
-	s.Require().NoError(err)
-	defer conn.Close()
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Require().True(checked)
+	assert.Equal(t, "remote", subseg.Namespace)
+	assert.Equal(t, "Unknown", subseg.SQL.DatabaseType)
+	assert.Equal(t, "", subseg.SQL.URL)
+	assert.Equal(t, dsn, subseg.SQL.ConnectionString)
+	assert.Equal(t, "Unknown", subseg.SQL.DatabaseVersion)
+	assert.Equal(t, "Unknown", subseg.SQL.User)
+	assert.False(t, subseg.Throttle)
+	assert.False(t, subseg.Error)
+	assert.False(t, subseg.Fault)
 }

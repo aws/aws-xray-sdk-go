@@ -83,7 +83,7 @@ func (driver *driverDriver) Open(dsn string) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	attr, err := newDBAttribute(context.Background(), driver.baseName, driver.Driver, rawConn, dsn)
+	attr, err := newDBAttribute(context.Background(), driver.baseName, driver.Driver, rawConn, dsn, false)
 	if err != nil {
 		rawConn.Close()
 		return nil, err
@@ -286,7 +286,7 @@ type dbAttribute struct {
 	dbname           string
 }
 
-func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, conn driver.Conn, dsn string) (*dbAttribute, error) {
+func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, conn driver.Conn, dsn string, filtered bool) (*dbAttribute, error) {
 	var attr dbAttribute
 
 	// Detect if DSN is a URL or not, set appropriate attribute
@@ -333,7 +333,11 @@ func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, con
 		// some unknown DSL. We attempt to detect whether it's space-delimited or semicolon-delimited
 		// then remove any keys with the name "password" or "pwd". This won't catch everything, but
 		// from surveying the current (Jan 2017) landscape of drivers it should catch most.
-		attr.connectionString = stripPasswords(dsn)
+		if filtered {
+			attr.connectionString = dsn
+		} else {
+			attr.connectionString = stripPasswords(dsn)
+		}
 	}
 
 	// Detect database type and use that to populate attributes
