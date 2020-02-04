@@ -1,9 +1,7 @@
 module github.com/aws/aws-xray-sdk-go
 
-go 1.11
-
 require (
-	github.com/DATA-DOG/go-sqlmock v1.4.0
+	github.com/DATA-DOG/go-sqlmock v1.2.0
 	github.com/aws/aws-sdk-go v1.17.12
 	github.com/davecgh/go-spew v0.0.0-20160907170601-6d212800a42e // indirect
 	github.com/pkg/errors v0.8.1
