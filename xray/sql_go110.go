@@ -18,7 +18,7 @@ import (
 
 // SQLConnector wraps the connector, and traces SQL executions.
 // Unlike SQLContext, SQLConnector doesn't filter the password of the dsn.
-// So, you have to filter the password before passing the dns to SQLConnector.
+// So, you have to filter the password before passing the dsn to SQLConnector.
 func SQLConnector(dsn string, connector driver.Connector) driver.Connector {
 	d := &driverDriver{
 		Driver:   connector.Driver(),
