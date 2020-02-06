@@ -35,10 +35,7 @@ func SQLConnector(dsn string, connector driver.Connector) driver.Connector {
 
 func (conn *driverConn) ResetSession(ctx context.Context) error {
 	if sr, ok := conn.Conn.(driver.SessionResetter); ok {
-		return Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
-			conn.attr.populate(ctx, "RESET SESSION")
-			return sr.ResetSession(ctx)
-		})
+		return sr.ResetSession(ctx)
 	}
 	return nil
 }
