@@ -695,7 +695,9 @@ func stripPasswords(dsn string) string {
 			if b, err := buf.ReadByte(); err == nil && b == '{' {
 				inBraces = true
 			}
-			buf.UnreadByte()
+			if err := buf.UnreadByte(); err != nil {
+				panic(err)
+			}
 		case '}':
 			b, err := buf.ReadByte()
 			if err != nil {
@@ -705,7 +707,9 @@ func stripPasswords(dsn string) string {
 				tok.WriteByte(b)
 			} else {
 				inBraces = false
-				buf.UnreadByte()
+				if err := buf.UnreadByte(); err != nil {
+					panic(err)
+				}
 			}
 		}
 	}

@@ -287,3 +287,30 @@ func TestUnknownDatabase(t *testing.T) {
 	assert.False(t, subseg.Error)
 	assert.False(t, subseg.Fault)
 }
+
+func TestStripPasswords(t *testing.T) {
+	tc := []struct {
+		in   string
+		want string
+	}{
+		{
+			in:   "user=user database=database",
+			want: "user=user database=database",
+		},
+		{
+			in:   "user=user password=password database=database",
+			want: "user=user database=database",
+		},
+		{
+			in:   "odbc:server=localhost;user id=sa;password={foo}};bar};otherthing=thing",
+			want: "odbc:server=localhost;user id=sa;otherthing=thing",
+		},
+	}
+
+	for _, tt := range tc {
+		got := stripPasswords(tt.in)
+		if got != tt.want {
+			t.Errorf("%s: want %s, got %s", tt.in, tt.want, got)
+		}
+	}
+}
