@@ -184,18 +184,16 @@ func (conn *driverConn) ExecContext(ctx context.Context, query string, args []dr
 		return nil, driver.ErrSkip
 	}
 
-	var skipped bool
 	var err error
 	var result driver.Result
 	if execerCtx, ok := conn.Conn.(driver.ExecerContext); ok {
-		err = Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
-			conn.attr.populate(ctx, query)
-			var err error
+		Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
 			result, err = execerCtx.ExecContext(ctx, query, args)
 			if err == driver.ErrSkip {
-				skipped = true
+				conn.attr.populate(ctx, query+" -- skipped")
 				return nil
 			}
+			conn.attr.populate(ctx, query)
 			return err
 		})
 	} else {
@@ -208,20 +206,16 @@ func (conn *driverConn) ExecContext(ctx context.Context, query string, args []dr
 		if err0 != nil {
 			return nil, err0
 		}
-		err = Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
+		Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
 			var err error
 			result, err = execer.Exec(query, dargs)
 			if err == driver.ErrSkip {
 				conn.attr.populate(ctx, query+" -- skipped")
-				skipped = true
 				return nil
 			}
 			conn.attr.populate(ctx, query)
 			return err
 		})
-	}
-	if skipped {
-		return nil, driver.ErrSkip
 	}
 	return result, err
 }
@@ -236,18 +230,16 @@ func (conn *driverConn) QueryContext(ctx context.Context, query string, args []d
 		return nil, driver.ErrSkip
 	}
 
-	var skipped bool
 	var err error
 	var rows driver.Rows
 	if queryerCtx, ok := conn.Conn.(driver.QueryerContext); ok {
-		err = Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
-			conn.attr.populate(ctx, query)
-			var err error
+		Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
 			rows, err = queryerCtx.QueryContext(ctx, query, args)
 			if err == driver.ErrSkip {
-				skipped = true
+				conn.attr.populate(ctx, query+" -- skipped")
 				return nil
 			}
+			conn.attr.populate(ctx, query)
 			return err
 		})
 	} else {
@@ -261,19 +253,14 @@ func (conn *driverConn) QueryContext(ctx context.Context, query string, args []d
 			return nil, err0
 		}
 		err = Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
-			var err error
 			rows, err = queryer.Query(query, dargs)
 			if err == driver.ErrSkip {
 				conn.attr.populate(ctx, query+" -- skipped")
-				skipped = true
 				return nil
 			}
 			conn.attr.populate(ctx, query)
 			return err
 		})
-	}
-	if skipped {
-		return nil, driver.ErrSkip
 	}
 	return rows, err
 }
