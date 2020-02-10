@@ -19,22 +19,33 @@ import (
 )
 
 func TestSegmentDataRace(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	for i := 0; i < 10; i++ { // flaky data race test, so we run it multiple times
+	var wg sync.WaitGroup
+	n := 100
+	wg.Add(n)
+	for i := 0; i < n; i++ { // flaky data race test, so we run it multiple times
 		_, seg := BeginSegment(ctx, "TestSegment")
 
-		go seg.Close(nil)
-		cancel()
+		go func() {
+			defer wg.Done()
+			seg.Close(nil)
+		}()
 	}
+	cancel()
+	wg.Wait()
 }
 
 func TestSubsegmentDataRace(t *testing.T) {
-	ctx := context.Background()
+	ctx, td := NewTestDaemon()
+	defer td.Close()
 	ctx, seg := BeginSegment(ctx, "TestSegment")
 	defer seg.Close(nil)
 
-	wg := sync.WaitGroup{}
+	var wg sync.WaitGroup
 	n := 5
 	wg.Add(n)
 	for i := 0; i < n; i++ {
@@ -50,23 +61,27 @@ func TestSubsegmentDataRace(t *testing.T) {
 }
 
 func TestSubsegmentDataRaceWithContextCancel(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	ctx, seg := BeginSegment(ctx, "TestSegment")
 
 	wg := sync.WaitGroup{}
 
 	for i := 0; i < 4; i++ {
-		if i!=3{
+		if i != 3 {
 			wg.Add(1)
 		}
 		go func(i int) {
-			if i!=3{
+			if i != 3 {
 				time.Sleep(1)
 				defer wg.Done()
 			}
 			_, seg := BeginSubsegment(ctx, "TestSubsegment1")
 			seg.Close(nil)
-			if i== 3{
+			if i == 3 {
 				cancel() // Context is cancelled abruptly
 			}
 		}(i)
@@ -76,14 +91,16 @@ func TestSubsegmentDataRaceWithContextCancel(t *testing.T) {
 }
 
 func TestSegmentDownstreamHeader(t *testing.T) {
-	ctx := context.Background()
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
 	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &header.Header{
 		TraceID:  "fakeid",
 		ParentID: "reqid",
 	})
 	defer seg.Close(nil)
 
-	wg := sync.WaitGroup{}
+	var wg sync.WaitGroup
 	n := 2
 	wg.Add(n)
 	for i := 0; i < n; i++ {
@@ -97,24 +114,23 @@ func TestSegmentDownstreamHeader(t *testing.T) {
 }
 
 func TestParentSegmentTotalCount(t *testing.T) {
-	ctx := context.Background()
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "test")
 
-	ctx, seg := BeginSegment(ctx,"test")
-
-
-	wg := sync.WaitGroup{}
+	var wg sync.WaitGroup
 	n := 2
 	wg.Add(2 * n)
 
 	for i := 0; i < n; i++ {
 		go func(ctx context.Context) { // add async nested subsegments
-			c1,_ := BeginSubsegment(ctx, "TestSubsegment1")
-			c2,_ := BeginSubsegment(c1, "TestSubsegment2")
+			c1, _ := BeginSubsegment(ctx, "TestSubsegment1")
+			c2, _ := BeginSubsegment(c1, "TestSubsegment2")
 
 			go func(ctx context.Context) { // add async nested subsegments
-				c1,_ := BeginSubsegment(ctx, "TestSubsegment1")
+				c1, _ := BeginSubsegment(ctx, "TestSubsegment1")
 				BeginSubsegment(c1, "TestSubsegment2")
-                wg.Done()
+				wg.Done()
 			}(c2) // passing context
 
 			wg.Done()
@@ -122,5 +138,5 @@ func TestParentSegmentTotalCount(t *testing.T) {
 	}
 	wg.Wait()
 
-    assert.Equal(t, 4 * uint32(n) , seg.ParentSegment.totalSubSegments, "totalSubSegments count should be correctly registered on the parent segment")
+	assert.Equal(t, 4*uint32(n), seg.ParentSegment.totalSubSegments, "totalSubSegments count should be correctly registered on the parent segment")
 }
