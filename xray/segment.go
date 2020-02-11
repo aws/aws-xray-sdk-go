@@ -56,35 +56,8 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 
 // BeginSegment creates a Segment for a given name and context.
 func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) {
-	seg := basicSegment(name, nil)
 
-	cfg := GetRecorder(ctx)
-	seg.assignConfiguration(cfg)
-
-	seg.Lock()
-	defer seg.Unlock()
-
-	seg.addPlugin(plugins.InstancePluginMetadata)
-	seg.addSDKAndServiceInformation()
-	if seg.ParentSegment.GetConfiguration().ServiceVersion != "" {
-		seg.GetService().Version = seg.ParentSegment.GetConfiguration().ServiceVersion
-	}
-
-	// Sampling strategy fallbacks to default sampling
-	sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(&sampling.Request{})
-	seg.Sampled = sd.Sample
-	logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
-	seg.AddRuleName(sd)
-
-	if ctx.Done() != nil {
-		go func() {
-			select {
-			case <-ctx.Done():
-				seg.handleContextDone()
-			}
-		}()
-	}
-	return context.WithValue(ctx, ContextKey, seg), seg
+	return BeginSegmentWithSamplingDecision(ctx, name, nil, nil)
 }
 
 func BeginSegmentWithSamplingDecision(ctx context.Context, name string, r *http.Request, traceHeader *header.Header) (context.Context, *Segment) {
@@ -102,27 +75,37 @@ func BeginSegmentWithSamplingDecision(ctx context.Context, name string, r *http.
 		seg.GetService().Version = seg.ParentSegment.GetConfiguration().ServiceVersion
 	}
 
-	seg.Sampled = traceHeader.SamplingDecision == header.Sampled
-
-	switch traceHeader.SamplingDecision {
-	case header.Sampled:
-		logger.Debug("Incoming header decided: Sampled=true")
-	case header.NotSampled:
-		logger.Debug("Incoming header decided: Sampled=false")
-	}
-
-	if traceHeader.SamplingDecision != header.Sampled && traceHeader.SamplingDecision != header.NotSampled {
-		samplingRequest := &sampling.Request{
-			Host:        r.Host,
-			Url:         r.URL.Path,
-			Method:      r.Method,
-			ServiceName: seg.Name,
-			ServiceType: plugins.InstancePluginMetadata.Origin,
-		}
-		sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(samplingRequest)
+	// Sampling strategy fallbacks to default sampling
+	if r == nil && traceHeader == nil {
+		sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(&sampling.Request{})
 		seg.Sampled = sd.Sample
 		logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
 		seg.AddRuleName(sd)
+	}
+
+	if r != nil && traceHeader != nil {
+		seg.Sampled = traceHeader.SamplingDecision == header.Sampled
+
+		switch traceHeader.SamplingDecision {
+		case header.Sampled:
+			logger.Debug("Incoming header decided: Sampled=true")
+		case header.NotSampled:
+			logger.Debug("Incoming header decided: Sampled=false")
+		}
+
+		if traceHeader.SamplingDecision != header.Sampled && traceHeader.SamplingDecision != header.NotSampled {
+			samplingRequest := &sampling.Request{
+				Host:        r.Host,
+				Url:         r.URL.Path,
+				Method:      r.Method,
+				ServiceName: seg.Name,
+				ServiceType: plugins.InstancePluginMetadata.Origin,
+			}
+			sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(samplingRequest)
+			seg.Sampled = sd.Sample
+			logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
+			seg.AddRuleName(sd)
+		}
 	}
 
 	if ctx.Done() != nil {
@@ -260,7 +243,12 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = true
 
-	return context.WithValue(ctx, ContextKey, seg), seg
+	//return context.WithValue(ctx, ContextKey, seg), seg
+	if seg.ParentSegment.Sampled {
+		return context.WithValue(ctx, ContextKey, seg), seg
+	} else {
+		return BeginDummySubSegment(ctx, "Dummy SubSeg")
+	}
 }
 
 // NewSegmentFromHeader creates a segment for downstream call and add information to the segment that gets from HTTP header.
