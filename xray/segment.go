@@ -83,6 +83,7 @@ func BeginSegmentWithSamplingDecision(ctx context.Context, name string, r *http.
 		seg.AddRuleName(sd)
 	}
 
+	// Sampling strategy for http calls
 	if r != nil && traceHeader != nil {
 		seg.Sampled = traceHeader.SamplingDecision == header.Sampled
 
@@ -243,12 +244,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = true
 
-	//return context.WithValue(ctx, ContextKey, seg), seg
-	if seg.ParentSegment.Sampled {
-		return context.WithValue(ctx, ContextKey, seg), seg
-	} else {
-		return BeginDummySubSegment(ctx, "Dummy SubSeg")
-	}
+	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
 // NewSegmentFromHeader creates a segment for downstream call and add information to the segment that gets from HTTP header.
