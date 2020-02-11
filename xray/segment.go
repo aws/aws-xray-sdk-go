@@ -56,6 +56,36 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 
 // BeginSegment creates a Segment for a given name and context.
 func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) {
+	//seg := basicSegment(name, nil)
+	//
+	//cfg := GetRecorder(ctx)
+	//seg.assignConfiguration(cfg)
+	//
+	//seg.Lock()
+	//defer seg.Unlock()
+	//
+	//seg.addPlugin(plugins.InstancePluginMetadata)
+	//seg.addSDKAndServiceInformation()
+	//if seg.ParentSegment.GetConfiguration().ServiceVersion != "" {
+	//	seg.GetService().Version = seg.ParentSegment.GetConfiguration().ServiceVersion
+	//}
+	//
+	//// Sampling strategy fallbacks to default sampling
+	//sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(&sampling.Request{})
+	//seg.Sampled = sd.Sample
+	//logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
+	//seg.AddRuleName(sd)
+	//
+	//if ctx.Done() != nil {
+	//	go func() {
+	//		select {
+	//		case <-ctx.Done():
+	//			seg.handleContextDone()
+	//		}
+	//	}()
+	//}
+	//
+	//return context.WithValue(ctx, ContextKey, seg), seg
 
 	return BeginSegmentWithSamplingDecision(ctx, name, nil, nil)
 }
