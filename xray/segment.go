@@ -249,7 +249,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 
 // NewSegmentFromHeader creates a segment for downstream call and add information to the segment that gets from HTTP header.
 func NewSegmentFromHeader(ctx context.Context, name string, r *http.Request, h *header.Header) (context.Context, *Segment) {
-	con, seg := BeginSegmentWithSamplingDecision(ctx, name, r, h)
+	con, seg := BeginSegmentWithSampling(ctx, name, r, h)
 
 	if h.TraceID != "" {
 		seg.TraceID = h.TraceID
