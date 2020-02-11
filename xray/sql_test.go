@@ -182,6 +182,16 @@ func (s *sqlTestSuite) TestSemicolonPasswordConnectionString() {
 	s.Equal("", s.db.url)
 }
 
+func (s *sqlTestSuite) TestMySQLConnectionString() {
+	s.mockDB("username:password@protocol(address:1234)/dbname?param=value")
+	s.mockMySQL(nil)
+	s.connect()
+
+	s.Require().NoError(s.mock.ExpectationsWereMet())
+	s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.connectionString)
+	s.Equal("", s.db.url)
+}
+
 func (s *sqlTestSuite) TestPSQL() {
 	s.mockDB("")
 	s.mockPSQL(nil)

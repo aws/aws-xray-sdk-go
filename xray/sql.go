@@ -284,7 +284,7 @@ func stripPasswords(dsn string) string {
 			isPassword = true
 			flush()
 			resLen := res.Len()
-			if res.Bytes()[resLen-1] == ':' {
+			if resLen > 0 && res.Bytes()[resLen-1] == ':' {
 				res.Truncate(resLen - 1)
 			}
 			res.WriteByte(c)
