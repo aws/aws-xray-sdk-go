@@ -142,3 +142,4 @@ func TestParentSegmentTotalCount(t *testing.T) {
 
 	assert.Equal(t, 4*uint32(n), seg.ParentSegment.totalSubSegments, "totalSubSegments count should be correctly registered on the parent segment")
 }
+
