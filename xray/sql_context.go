@@ -705,8 +705,10 @@ func stripPasswords(dsn string) string {
 		case '=':
 			tokStr := strings.ToLower(tok.String())
 			isPassword = `password=` == tokStr || `pwd=` == tokStr
-			if b, err := buf.ReadByte(); err == nil && b == '{' {
-				inBraces = true
+			if b, err := buf.ReadByte(); err != nil {
+				break
+			} else {
+				inBraces = b == '{'
 			}
 			if err := buf.UnreadByte(); err != nil {
 				panic(err)

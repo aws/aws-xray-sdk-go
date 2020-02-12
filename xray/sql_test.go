@@ -306,6 +306,16 @@ func TestStripPasswords(t *testing.T) {
 			want: "odbc:server=localhost;user id=sa;otherthing=thing",
 		},
 
+		// see https://github.com/aws/aws-xray-sdk-go/issues/181
+		{
+			in:   "password=",
+			want: "",
+		},
+		{
+			in:   "pwd=",
+			want: "",
+		},
+
 		// test cases for https://github.com/go-sql-driver/mysql
 		{
 			in:   "user:password@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true",
