@@ -305,6 +305,34 @@ func TestStripPasswords(t *testing.T) {
 			in:   "odbc:server=localhost;user id=sa;password={foo}};bar};otherthing=thing",
 			want: "odbc:server=localhost;user id=sa;otherthing=thing",
 		},
+
+		// test cases for https://github.com/go-sql-driver/mysql
+		{
+			in:   "user:password@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true",
+			want: "user@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true",
+		},
+
+		// got: "@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true"
+		// {
+		// 	in:   "user@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true",
+		// 	want: "user@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true",
+		// },
+
+		{
+			in:   "user:password@tcp([de:ad:be:ef::ca:fe]:80)/dbname?timeout=90s&collation=utf8mb4_unicode_ci",
+			want: "user@tcp([de:ad:be:ef::ca:fe]:80)/dbname?timeout=90s&collation=utf8mb4_unicode_ci",
+		},
+
+		// @tcp([de:ad:be:ef::ca:fe]:80)/dbname?timeout=90s&collation=utf8mb4_unicode_ci
+		// {
+		// 	in:   "user@tcp([de:ad:be:ef::ca:fe]:80)/dbname?timeout=90s&collation=utf8mb4_unicode_ci",
+		// 	want: "user@tcp([de:ad:be:ef::ca:fe]:80)/dbname?timeout=90s&collation=utf8mb4_unicode_ci",
+		// },
+
+		{
+			in:   "user:password@/",
+			want: "user@/",
+		},
 	}
 
 	for _, tt := range tc {
