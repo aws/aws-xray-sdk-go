@@ -10,6 +10,7 @@ package xray
 
 import (
 	"context"
+	"github.com/aws/aws-xray-sdk-go/strategy/sanitizing"
 	"net"
 	"os"
 	"sync"
@@ -80,6 +81,12 @@ func newGlobalConfig() *globalConfig {
 	}
 	ret.emitter = emt
 
+	san, err := sanitizing.NewDefaultSanitizingStrategy()
+	if err != nil {
+		panic(err)
+	}
+	ret.sanitizingStrategy = san
+
 	cms := os.Getenv("AWS_XRAY_CONTEXT_MISSING")
 	if cms != "" {
 		if cms == ctxmissing.RuntimeErrorStrategy {
@@ -107,6 +114,7 @@ type globalConfig struct {
 	streamingStrategy           StreamingStrategy
 	exceptionFormattingStrategy exception.FormattingStrategy
 	contextMissingStrategy      ctxmissing.Strategy
+	sanitizingStrategy          sanitizing.Strategy
 }
 
 // Config is a set of X-Ray configurations.
@@ -118,6 +126,7 @@ type Config struct {
 	StreamingStrategy           StreamingStrategy
 	ExceptionFormattingStrategy exception.FormattingStrategy
 	ContextMissingStrategy      ctxmissing.Strategy
+	sanitizingStrategy          sanitizing.Strategy
 
 	// LogLevel and LogFormat are deprecated and no longer have any effect.
 	// See SetLogger() and the associated xraylog.Logger interface to control
