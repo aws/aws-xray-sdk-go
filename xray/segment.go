@@ -179,9 +179,7 @@ func (seg *Segment) assignConfiguration(cfg *Config) {
 
 // Begin DummySubSegment creates a in the case of no sampling to reduce memory footprint
 func BeginDummySubSegment(ctx context.Context, name string) (context.Context, *Segment) {
-	var parent *Segment
-
-	parent = GetSegment(ctx)
+	parent := GetSegment(ctx)
 	if parent == nil {
 		cfg := GetRecorder(ctx)
 		failedMessage := fmt.Sprintf("failed to begin subsegment named '%v': segment cannot be found.", name)
