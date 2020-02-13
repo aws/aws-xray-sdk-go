@@ -54,7 +54,7 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 
 // Begin DummySegment creates a segment in the case of no sampling to reduce memory footprint
 func BeginDummySegment(ctx context.Context, name string) (context.Context, *Segment) {
-	dummySeg := &Segment{parent:nil}
+	dummySeg := &Segment{parent: nil}
 	dummySeg.ParentSegment = dummySeg
 	logger.Debugf("Beginning segment named %s", name)
 
