@@ -75,16 +75,14 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 		seg.GetService().Version = seg.ParentSegment.GetConfiguration().ServiceVersion
 	}
 
-	// Sampling strategy fallbacks to default sampling in the case of directly using BeginSegment API without any instrumentation
-	if r == nil && traceHeader == nil {
+	if r == nil || traceHeader == nil {
+		// Sampling strategy fallbacks to default sampling in the case of directly using BeginSegment API without any instrumentation
 		sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(&sampling.Request{})
 		seg.Sampled = sd.Sample
 		logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
 		seg.AddRuleName(sd)
-	}
-
-	// Sampling strategy for http calls
-	if r != nil && traceHeader != nil {
+	} else {
+		// Sampling strategy for http calls
 		seg.Sampled = traceHeader.SamplingDecision == header.Sampled
 
 		switch traceHeader.SamplingDecision {
