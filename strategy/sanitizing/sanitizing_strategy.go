@@ -28,7 +28,7 @@ func (ds *DefaultSanitizer) SQLSanitizer(san string) string {
 
 	if i < j {
 		str1 := san[0:i]
-		str2 := san[j:len(san)]
+		str2 := san[j:]
 
 		buf.WriteString(str1)
 		buf.WriteString(str2)
