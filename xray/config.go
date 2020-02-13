@@ -10,7 +10,6 @@ package xray
 
 import (
 	"context"
-	"github.com/aws/aws-xray-sdk-go/strategy/sanitizing"
 	"net"
 	"os"
 	"sync"
@@ -22,6 +21,7 @@ import (
 	"github.com/aws/aws-xray-sdk-go/strategy/ctxmissing"
 	"github.com/aws/aws-xray-sdk-go/strategy/exception"
 	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
+	"github.com/aws/aws-xray-sdk-go/strategy/sanitizing"
 )
 
 // SDKVersion records the current X-Ray Go SDK version.
