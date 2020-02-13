@@ -52,6 +52,25 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
+// Begin DummySegment creates a segment in the case of no sampling to reduce memory footprint
+func BeginDummySegment(ctx context.Context, name string) (context.Context, *Segment) {
+	dummySeg := &Segment{parent:nil}
+	dummySeg.ParentSegment = dummySeg
+	logger.Debugf("Beginning segment named %s", name)
+
+	cfg := GetRecorder(ctx)
+	dummySeg.assignConfiguration(cfg)
+
+	dummySeg.Lock()
+	defer dummySeg.Unlock()
+
+	dummySeg.Name = name
+	dummySeg.TraceID = "dummy segment"
+	dummySeg.Sampled = false
+
+	return context.WithValue(ctx, ContextKey, dummySeg), dummySeg
+}
+
 // BeginSegment creates a Segment for a given name and context.
 func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) {
 	seg := basicSegment(name, nil)
@@ -156,6 +175,35 @@ func (seg *Segment) assignConfiguration(cfg *Config) {
 		}
 	}
 	seg.Unlock()
+}
+
+// Begin DummySubSegment creates a in the case of no sampling to reduce memory footprint
+func BeginDummySubSegment(ctx context.Context, name string) (context.Context, *Segment) {
+	var parent *Segment
+
+	parent = GetSegment(ctx)
+	if parent == nil {
+		cfg := GetRecorder(ctx)
+		failedMessage := fmt.Sprintf("failed to begin subsegment named '%v': segment cannot be found.", name)
+		if cfg != nil && cfg.ContextMissingStrategy != nil {
+			cfg.ContextMissingStrategy.ContextMissing(failedMessage)
+		} else {
+			globalCfg.ContextMissingStrategy().ContextMissing(failedMessage)
+		}
+		return ctx, nil
+	}
+
+	dummySubSeg := &Segment{parent: parent}
+	logger.Debugf("Beginning subsegment named %s", name)
+
+	dummySubSeg.Lock()
+	defer dummySubSeg.Unlock()
+
+	dummySubSeg.ParentSegment = parent.ParentSegment
+	dummySubSeg.Name = name
+	dummySubSeg.TraceID = "dummy subsegment"
+
+	return context.WithValue(ctx, ContextKey, dummySubSeg), dummySubSeg
 }
 
 // BeginSubsegment creates a subsegment for a given name and context.
