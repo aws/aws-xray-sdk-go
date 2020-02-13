@@ -11,8 +11,8 @@ package sanitizing
 // Strategy provides an interface for
 // implementing different sanitizers
 type Strategy interface {
-	SqlSanitizer(san string) string
-	HttpSanitizer(san string) string
-	AwsSanitizer(san string) string
+	SQLSanitizer(san string) string
+	HTTPSanitizer(san string) string
+	AWSSanitizer(san string) string
 	MetadataSanitizer(san string) string
 }

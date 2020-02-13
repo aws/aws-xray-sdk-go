@@ -126,7 +126,7 @@ type Config struct {
 	StreamingStrategy           StreamingStrategy
 	ExceptionFormattingStrategy exception.FormattingStrategy
 	ContextMissingStrategy      ctxmissing.Strategy
-	sanitizingStrategy          sanitizing.Strategy
+	SanitizingStrategy          sanitizing.Strategy
 
 	// LogLevel and LogFormat are deprecated and no longer have any effect.
 	// See SetLogger() and the associated xraylog.Logger interface to control

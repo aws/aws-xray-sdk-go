@@ -12,23 +12,23 @@ import (
 	"strings"
 )
 
-type DefaultSanitizer struct {}
+type DefaultSanitizer struct{}
 
 // NewDefaultSanitizingStrategy initializes
 // an instance of DefaultSanitizer.
-func NewDefaultSanitizingStrategy()  (*DefaultSanitizer, error){
+func NewDefaultSanitizingStrategy() (*DefaultSanitizer, error) {
 	return &DefaultSanitizer{}, nil
 }
 
 // returns sanitized sql dsn
-func (ds *DefaultSanitizer) SqlSanitizer(san string) string {
+func (ds *DefaultSanitizer) SQLSanitizer(san string) string {
 	buf := bytes.Buffer{}
 	i := strings.Index(san, ":")
 	j := strings.Index(san, "@")
 
 	if i < j {
 		str1 := san[0:i]
-		str2 := san[j: len(san)]
+		str2 := san[j:len(san)]
 
 		buf.WriteString(str1)
 		buf.WriteString(str2)
@@ -39,12 +39,12 @@ func (ds *DefaultSanitizer) SqlSanitizer(san string) string {
 	return san
 }
 
-func (ds *DefaultSanitizer) HttpSanitizer(san string) string {
+func (ds *DefaultSanitizer) HTTPSanitizer(san string) string {
 	// Code for HTTP Sanitizer
 	return ""
 }
 
-func (ds *DefaultSanitizer) AwsSanitizer(san string) string {
+func (ds *DefaultSanitizer) AWSSanitizer(san string) string {
 	// Code for AWS Sanitizer
 	return ""
 }
