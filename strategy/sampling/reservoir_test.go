@@ -32,7 +32,7 @@ func takeOverTime(r *Reservoir, millis int) int {
 }
 
 const TestDuration = 1500
-// fix: 6
+// fix: 7
 func TestOnePerSecond(t *testing.T) {
 	clock := &utils.DefaultClock{}
 	cap := 1
