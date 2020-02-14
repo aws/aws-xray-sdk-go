@@ -26,7 +26,7 @@ func takeOverTime(r *Reservoir, millis int) int {
 		if r.Take() {
 			taken++
 		}
-		time.Sleep(103 * time.Millisecond)
+		time.Sleep(102 * time.Millisecond)
 	}
 	return taken
 }
