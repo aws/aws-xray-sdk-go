@@ -10,7 +10,6 @@ package sampling
 
 import (
 	"fmt"
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"math"
 	"testing"
 	"time"
@@ -19,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const Interval = 100
+const Interval = 50
 
 func takeOverTime(r *Reservoir, millis int) int {
 	taken := 0
@@ -27,7 +26,7 @@ func takeOverTime(r *Reservoir, millis int) int {
 		if r.Take() {
 			taken++
 		}
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(Interval * time.Millisecond)
 	}
 	return taken
 }
@@ -44,7 +43,14 @@ func TestOnePerSecond(t *testing.T) {
 		},
 	}
 	taken := takeOverTime(res, TestDuration)
-	logger.Debug(taken)
+
+	i := int(math.Ceil(TestDuration/1000.0))
+	fmt.Println(i)
+	fmt.Println(taken)
+	if i<=taken {
+		fmt.Println("Success!")
+	}
+
 	assert.True(t, int(math.Ceil(TestDuration/1000.0)) <= taken)
 	// See: https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-576957465
 	j := int(math.Ceil(TestDuration/1000.0))+cap
