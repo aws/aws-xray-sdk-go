@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const Interval = 50
+const Interval = 100
 
 func takeOverTime(r *Reservoir, millis int) int {
 	taken := 0
@@ -26,7 +26,7 @@ func takeOverTime(r *Reservoir, millis int) int {
 		if r.Take() {
 			taken++
 		}
-		time.Sleep(Interval * time.Millisecond)
+		time.Sleep(110 * time.Millisecond)
 	}
 	return taken
 }
