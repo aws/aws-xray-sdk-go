@@ -9,6 +9,7 @@
 package sampling
 
 import (
+	"fmt"
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"math"
 	"testing"
@@ -26,7 +27,7 @@ func takeOverTime(r *Reservoir, millis int) int {
 		if r.Take() {
 			taken++
 		}
-		time.Sleep(Interval * time.Millisecond)
+		time.Sleep(1000 * time.Millisecond)
 	}
 	return taken
 }
@@ -46,6 +47,12 @@ func TestOnePerSecond(t *testing.T) {
 	logger.Debug(taken)
 	assert.True(t, int(math.Ceil(TestDuration/1000.0)) <= taken)
 	// See: https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-576957465
+	j := int(math.Ceil(TestDuration/1000.0))+cap
+	fmt.Println(j)
+	fmt.Println(taken)
+	if j>=taken {
+		fmt.Println("Success!")
+	}
 	assert.True(t, int(math.Ceil(TestDuration/1000.0))+cap >= taken)
 }
 
