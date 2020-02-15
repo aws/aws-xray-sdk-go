@@ -23,6 +23,10 @@ import (
 	"time"
 )
 
+// we can't know that the original driver will return driver.ErrSkip in advance.
+// so we add this message to the query if it returns driver.ErrSkip.
+const msgErrSkip = " -- skip fast-path; continue as if unimplemented"
+
 // namedValueChecker is the same as driver.NamedValueChecker.
 // Copied from database/sql/driver/driver.go for supporting Go 1.8.
 type namedValueChecker interface {
@@ -190,7 +194,7 @@ func (conn *driverConn) ExecContext(ctx context.Context, query string, args []dr
 		Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
 			result, err = execerCtx.ExecContext(ctx, query, args)
 			if err == driver.ErrSkip {
-				conn.attr.populate(ctx, query+" -- skipped")
+				conn.attr.populate(ctx, query+msgErrSkip)
 				return nil
 			}
 			conn.attr.populate(ctx, query)
@@ -210,7 +214,7 @@ func (conn *driverConn) ExecContext(ctx context.Context, query string, args []dr
 			var err error
 			result, err = execer.Exec(query, dargs)
 			if err == driver.ErrSkip {
-				conn.attr.populate(ctx, query+" -- skipped")
+				conn.attr.populate(ctx, query+msgErrSkip)
 				return nil
 			}
 			conn.attr.populate(ctx, query)
@@ -236,7 +240,7 @@ func (conn *driverConn) QueryContext(ctx context.Context, query string, args []d
 		Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
 			rows, err = queryerCtx.QueryContext(ctx, query, args)
 			if err == driver.ErrSkip {
-				conn.attr.populate(ctx, query+" -- skipped")
+				conn.attr.populate(ctx, query+msgErrSkip)
 				return nil
 			}
 			conn.attr.populate(ctx, query)
@@ -255,7 +259,7 @@ func (conn *driverConn) QueryContext(ctx context.Context, query string, args []d
 		err = Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
 			rows, err = queryer.Query(query, dargs)
 			if err == driver.ErrSkip {
-				conn.attr.populate(ctx, query+" -- skipped")
+				conn.attr.populate(ctx, query+msgErrSkip)
 				return nil
 			}
 			conn.attr.populate(ctx, query)
