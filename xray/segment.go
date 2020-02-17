@@ -52,14 +52,15 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
-func BeginSanitizing(cs func(string) string, value string, whichSanitizer bool, san string) string {
-	if whichSanitizer {
-		defaultSanitized := globalCfg.sanitizingStrategy.DefaultSanitizer(san, value)
-		return  defaultSanitized
-	} else {
-		customSanitized := globalCfg.sanitizingStrategy.CustomSanitizer(cs, value)
-		return  customSanitized
-	}
+func BeginDefaultSanitizing(san string, value string) string {
+
+	defaultSanitized := globalCfg.sanitizingStrategy.DefaultSanitizer(san, value)
+	return defaultSanitized
+}
+
+func BeginCustomSanitizing(cs func(string) string, value string) string {
+	customSanitized := globalCfg.sanitizingStrategy.CustomSanitizer(cs, value)
+	return customSanitized
 }
 
 // BeginSegment creates a Segment for a given name and context.

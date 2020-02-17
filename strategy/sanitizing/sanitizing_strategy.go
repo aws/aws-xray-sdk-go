@@ -52,13 +52,12 @@ func (ds *Sanitizer) DefaultSanitizer(san string, value string) string {
 		return value
 
 	default:
-		return "We do not support sanitizing this value :" +value
+		return "We do not support sanitizing this value :" + value
 
 	}
 }
 
-func (ds *Sanitizer) CustomSanitizer(cs CustomSanitizeFunction , value string) string {
+func (ds *Sanitizer) CustomSanitizer(cs CustomSanitizeFunction, value string) string {
 
 	return cs(value)
 }
-

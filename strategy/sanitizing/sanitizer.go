@@ -11,13 +11,8 @@ package sanitizing
 // Strategy provides an interface for
 // implementing different sanitizers
 type Strategy interface {
-
 	DefaultSanitizer(san string, value string) string
 	CustomSanitizer(cs CustomSanitizeFunction, value string) string
 }
 
 type CustomSanitizeFunction func(string) string
-
-
-
-
