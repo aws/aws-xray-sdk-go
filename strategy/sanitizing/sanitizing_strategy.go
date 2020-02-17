@@ -20,6 +20,7 @@ func NewSanitizingStrategy() (*Sanitizer, error) {
 	return &Sanitizer{}, nil
 }
 
+// DefaultSanitizer provides basic sanitizing implementation
 func (ds *Sanitizer) DefaultSanitizer(san string, value string) string {
 	switch san {
 	case "SQL":
@@ -40,15 +41,19 @@ func (ds *Sanitizer) DefaultSanitizer(san string, value string) string {
 		return value
 
 	case "HTTP":
+		// Code for HTTP Sanitizer
 		return value
 
 	case "AWS":
+		// Code for AWS Sanitizer
 		return value
 
 	case "Metadata":
+		// Code for Metadata Sanitizer
 		return value
 
-	case "Annotations":
+	case "Annotation":
+		// Code for Annotation Sanitizer
 		return value
 
 	default:
@@ -57,6 +62,7 @@ func (ds *Sanitizer) DefaultSanitizer(san string, value string) string {
 	}
 }
 
+// CustomSanitizer hooks Sanitizer logic provided by customer
 func (ds *Sanitizer) CustomSanitizer(cs CustomSanitizeFunction, value string) string {
 
 	return cs(value)

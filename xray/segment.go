@@ -52,12 +52,14 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
+// BeginDefaultSanitizing returns sanitized string for a given san(SQL, HTTP, AWS, Metadata, Annotations).
 func BeginDefaultSanitizing(san string, value string) string {
 
 	defaultSanitized := globalCfg.sanitizingStrategy.DefaultSanitizer(san, value)
 	return defaultSanitized
 }
 
+// BeginCustomSanitizing uses custom sanitizer provided by customer and returns sanitized string
 func BeginCustomSanitizing(cs func(string) string, value string) string {
 	customSanitized := globalCfg.sanitizingStrategy.CustomSanitizer(cs, value)
 	return customSanitized
