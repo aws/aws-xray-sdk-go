@@ -12,44 +12,53 @@ import (
 	"strings"
 )
 
-type DefaultSanitizer struct{}
+type Sanitizer struct{}
 
 // NewDefaultSanitizingStrategy initializes
 // an instance of DefaultSanitizer.
-func NewDefaultSanitizingStrategy() (*DefaultSanitizer, error) {
-	return &DefaultSanitizer{}, nil
+func NewSanitizingStrategy() (*Sanitizer, error) {
+	return &Sanitizer{}, nil
 }
 
-// returns sanitized sql dsn
-func (ds *DefaultSanitizer) SQLSanitizer(san string) string {
-	buf := bytes.Buffer{}
-	i := strings.Index(san, ":")
-	j := strings.Index(san, "@")
+func (ds *Sanitizer) DefaultSanitizer(san string, value string) string {
+	switch san {
+	case "SQL":
+		buf := bytes.Buffer{}
+		i := strings.Index(value, ":")
+		j := strings.Index(value, "@")
 
-	if i < j {
-		str1 := san[0:i]
-		str2 := san[j:]
+		if i < j {
+			str1 := value[0:i]
+			str2 := value[j:]
 
-		buf.WriteString(str1)
-		buf.WriteString(str2)
+			buf.WriteString(str1)
+			buf.WriteString(str2)
 
-		san = buf.String()
+			value = buf.String()
+		}
+
+		return value
+
+	case "HTTP":
+		return value
+
+	case "AWS":
+		return value
+
+	case "Metadata":
+		return value
+
+	case "Annotations":
+		return value
+
+	default:
+		return "We do not support sanitizing this value :" +value
+
 	}
-
-	return san
 }
 
-func (ds *DefaultSanitizer) HTTPSanitizer(san string) string {
-	// Code for HTTP Sanitizer
-	return ""
+func (ds *Sanitizer) CustomSanitizer(cs CustomSanitizeFunction , value string) string {
+
+	return cs(value)
 }
 
-func (ds *DefaultSanitizer) AWSSanitizer(san string) string {
-	// Code for AWS Sanitizer
-	return ""
-}
-
-func (ds *DefaultSanitizer) MetadataSanitizer(san string) string {
-	// Code for metadata Sanitizer
-	return ""
-}

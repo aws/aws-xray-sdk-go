@@ -81,7 +81,7 @@ func newGlobalConfig() *globalConfig {
 	}
 	ret.emitter = emt
 
-	san, err := sanitizing.NewDefaultSanitizingStrategy()
+	san, err := sanitizing.NewSanitizingStrategy()
 	if err != nil {
 		panic(err)
 	}
