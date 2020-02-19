@@ -17,6 +17,10 @@ import (
 // It uses `sql.Open` internally and shares the same function signature.
 // To ensure passwords are filtered, it is HIGHLY RECOMMENDED that your DSN
 // follows the format: `<schema>://<user>:<password>@<host>:<port>/<database>`
+//
+// Deprecated: SQL exists for historical compatibility.
+// Use SQLContext insted of SQL, it can be used
+// as a drop-in replacement of the database/sql package.
 func SQL(driver, dsn string) (*DB, error) {
 	db, err := SQLContext(driver, dsn)
 	if err != nil {
