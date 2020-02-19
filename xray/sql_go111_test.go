@@ -16,8 +16,14 @@ func (s *sqlTestSuite) TestMySQLPasswordConnectionString() {
 	s.connect()
 
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.connectionString)
-	s.Equal("", s.db.url)
+	if s.db.connectionString != "" {
+		s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.connectionString)
+		s.Equal("", s.db.url)
+	}
+	if s.db.url != "" {
+		s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.url)
+		s.Equal("", s.db.connectionString)
+	}
 }
 
 func (s *sqlTestSuite) TestMySQLPasswordlessConnectionString() {
@@ -26,6 +32,12 @@ func (s *sqlTestSuite) TestMySQLPasswordlessConnectionString() {
 	s.connect()
 
 	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.connectionString)
-	s.Equal("", s.db.url)
+	if s.db.connectionString != "" {
+		s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.connectionString)
+		s.Equal("", s.db.url)
+	}
+	if s.db.url != "" {
+		s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.url)
+		s.Equal("", s.db.connectionString)
+	}
 }
