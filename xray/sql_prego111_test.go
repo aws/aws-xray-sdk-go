@@ -10,6 +10,13 @@
 
 package xray
 
+import (
+	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
+)
+
 func TestMySQLPasswordConnectionString(t *testing.T) {
 	tc := []struct {
 		dsn string
