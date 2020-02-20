@@ -731,13 +731,15 @@ func stripPasswords(dsn string) string {
 				}
 			}
 		case '@':
-			isPassword = true
-			flush()
-			resLen := res.Len()
-			if resLen > 0 && res.Bytes()[resLen-1] == ':' {
-				res.Truncate(resLen - 1)
+			if strings.Contains(res.String(), ":") {
+				resLen := res.Len()
+				if resLen > 0 && res.Bytes()[resLen-1] == ':' {
+					res.Truncate(resLen - 1)
+				}
+				isPassword = true
+				flush()
+				res.WriteByte(c)
 			}
-			res.WriteByte(c)
 		}
 	}
 	inBraces = false

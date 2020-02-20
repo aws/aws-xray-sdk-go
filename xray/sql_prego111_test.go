@@ -29,3 +29,43 @@ func (s *sqlTestSuite) TestMySQLPasswordlessConnectionStringPreGo111() {
 	s.Equal("", s.db.connectionString)
 	s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.url)
 }
+
+func TestMySQLPasswordConnectionString(t *testing.T) {
+	tc := []struct {
+		dsn string
+		url string
+		str string
+	}{
+		{
+			dsn: "username:password@protocol(address:1234)/dbname?param=value",
+			url: "username@protocol(address:1234)/dbname?param=value",
+		},
+		{
+			dsn: "username@protocol(address:1234)/dbname?param=value",
+			url: "username@protocol(address:1234)/dbname?param=value",
+		},
+	}
+
+	for _, tt := range tc {
+		tt := tt
+		t.Run(tt.dsn, func(t *testing.T) {
+			db, mock, err := sqlmock.NewWithDSN(tt.dsn)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer db.Close()
+			mockMySQL(mock, nil)
+
+			subseg, err := capturePing(tt.dsn)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.NoError(t, mock.ExpectationsWereMet())
+
+			assert.Equal(t, "remote", subseg.Namespace)
+			assert.Equal(t, "MySQL", subseg.SQL.DatabaseType)
+			assert.Equal(t, tt.url, subseg.SQL.URL)
+			assert.Equal(t, tt.str, subseg.SQL.ConnectionString)
+		})
+	}
+}
