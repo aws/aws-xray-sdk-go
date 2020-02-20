@@ -10,26 +10,6 @@
 
 package xray
 
-func (s *sqlTestSuite) TestMySQLPasswordConnectionStringPreGo111() {
-	s.mockDB("username:password@protocol(address:1234)/dbname?param=value")
-	s.mockMySQL(nil)
-	s.connect()
-
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Equal("", s.db.connectionString)
-	s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.url)
-}
-
-func (s *sqlTestSuite) TestMySQLPasswordlessConnectionStringPreGo111() {
-	s.mockDB("username@protocol(address:1234)/dbname?param=value")
-	s.mockMySQL(nil)
-	s.connect()
-
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	s.Equal("", s.db.connectionString)
-	s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.url)
-}
-
 func TestMySQLPasswordConnectionString(t *testing.T) {
 	tc := []struct {
 		dsn string
