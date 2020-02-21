@@ -280,6 +280,16 @@ func stripPasswords(dsn string) string {
 				inBraces = false
 				buf.UnreadByte()
 			}
+		case '@':
+			if strings.Contains(res.String(), ":") {
+				resLen := res.Len()
+				if resLen > 0 && res.Bytes()[resLen-1] == ':' {
+					res.Truncate(resLen - 1)
+				}
+				isPassword = true
+				flush()
+				res.WriteByte(c)
+			}
 		}
 	}
 	inBraces = false
