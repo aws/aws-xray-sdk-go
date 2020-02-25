@@ -142,7 +142,7 @@ func getTestSegment() string {
 	return message
 }
 
-// Benchamrks
+// Benchmarks
 func BenchmarkDefaultEmitter_packSegments(b *testing.B) {
 	seg := &Segment{}
 	subSeg := &Segment{}

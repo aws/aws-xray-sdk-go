@@ -187,7 +187,10 @@ func BenchmarkDetachContext(b *testing.B) {
 func BenchmarkAddAnnotation(b *testing.B) {
 	ctx, seg := BeginSegment(context.Background(), "TestSeg")
 	for i:=0; i<b.N; i++ {
-		AddAnnotation(ctx, "key", "value")
+		err := AddAnnotation(ctx, "key", "value")
+		if err != nil {
+			return
+		}
 	}
 	seg.Close(nil)
 }
@@ -195,7 +198,10 @@ func BenchmarkAddAnnotation(b *testing.B) {
 func BenchmarkAddMetadata(b *testing.B) {
 	ctx, seg := BeginSegment(context.Background(), "TestSeg")
 	for i:=0; i<b.N; i++ {
-		AddMetadata(ctx, "key", "value")
+		err := AddMetadata(ctx, "key", "value")
+		if err != nil {
+			return
+		}
 	}
 	seg.Close(nil)
 }

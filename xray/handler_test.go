@@ -156,7 +156,7 @@ func TestXRayHandlerPreservesOptionalInterfaces(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// Benchamrks
+// Benchmarks
 func BenchmarkHandler(b *testing.B) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
