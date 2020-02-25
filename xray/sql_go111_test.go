@@ -10,34 +10,55 @@
 
 package xray
 
-func (s *sqlTestSuite) TestMySQLPasswordConnectionString() {
-	s.mockDB("username:password@protocol(address:1234)/dbname?param=value")
-	s.mockMySQL(nil)
-	s.connect()
+import (
+	"testing"
 
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	if s.db.connectionString != "" {
-		s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.connectionString)
-		s.Equal("", s.db.url)
-	}
-	if s.db.url != "" {
-		s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.url)
-		s.Equal("", s.db.connectionString)
-	}
-}
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
+)
 
-func (s *sqlTestSuite) TestMySQLPasswordlessConnectionString() {
-	s.mockDB("username@protocol(address:1234)/dbname?param=value")
-	s.mockMySQL(nil)
-	s.connect()
-
-	s.Require().NoError(s.mock.ExpectationsWereMet())
-	if s.db.connectionString != "" {
-		s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.connectionString)
-		s.Equal("", s.db.url)
+func TestMySQLPasswordConnectionString(t *testing.T) {
+	tc := []struct {
+		dsn string
+		url string
+		str string
+	}{
+		{
+			dsn: "username:password@protocol(address:1234)/dbname?param=value",
+			url: "username@protocol(address:1234)/dbname?param=value",
+			str: "username@protocol(address:1234)/dbname?param=value",
+		},
+		{
+			dsn: "username@protocol(address:1234)/dbname?param=value",
+			url: "username@protocol(address:1234)/dbname?param=value",
+			str: "username@protocol(address:1234)/dbname?param=value",
+		},
 	}
-	if s.db.url != "" {
-		s.Equal("username@protocol(address:1234)/dbname?param=value", s.db.url)
-		s.Equal("", s.db.connectionString)
+
+	for _, tt := range tc {
+		tt := tt
+		t.Run(tt.dsn, func(t *testing.T) {
+			db, mock, err := sqlmock.NewWithDSN(tt.dsn)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer db.Close()
+			mockMySQL(mock, nil)
+
+			subseg, err := capturePing(tt.dsn)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.NoError(t, mock.ExpectationsWereMet())
+
+			assert.Equal(t, "remote", subseg.Namespace)
+			assert.Equal(t, "MySQL", subseg.SQL.DatabaseType)
+			if subseg.SQL.URL != "" {
+				assert.Equal(t, tt.url, subseg.SQL.URL)
+			}
+			if subseg.SQL.ConnectionString != "" {
+				assert.Equal(t, tt.str, subseg.SQL.ConnectionString)
+			}
+		})
 	}
 }
