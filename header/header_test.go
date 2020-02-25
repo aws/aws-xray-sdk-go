@@ -73,3 +73,10 @@ func TestLonghToString(t *testing.T) {
 	h.AdditionalData["Foo"] = "bar"
 	assert.Equal(t, "Root="+ExampleTraceID+";Parent=foo;Sampled=1;Foo=bar", h.String())
 }
+
+//Benchmark
+func BenchmarkFromString(b *testing.B) {
+	for i:=0; i<b.N; i++ {
+		FromString("Sampled=?; Root=" + ExampleTraceID + "; Parent=foo; Self=2; Foo=bar")
+	}
+}

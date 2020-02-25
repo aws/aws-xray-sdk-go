@@ -236,3 +236,37 @@ func testAWSDataRace(ctx context.Context, td *TestDaemon, t *testing.T, svc *lam
 	wg.Wait()
 	seg.Close(nil)
 }
+
+// Benchmarks
+func fakeSessionBenchmark(b *testing.B, failConn bool) (*session.Session, func()) {
+	cfg := &aws.Config{
+		Region:      aws.String("fake-moon-1"),
+		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop"),
+	}
+
+	var ts *httptest.Server
+	if !failConn {
+		ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			b := []byte(`{}`)
+			w.WriteHeader(http.StatusOK)
+			w.Write(b)
+		}))
+		cfg.Endpoint = aws.String(ts.URL)
+	}
+	s, err := session.NewSession(cfg)
+	assert.NoError(b, err)
+	return s, func() {
+		if ts != nil {
+			ts.Close()
+		}
+	}
+}
+
+func BenchmarkAWSWithWhitelist(b *testing.B) {
+	s, _ := fakeSessionBenchmark(b, false)
+	svc := lambda.New(s)
+	const whitelist = "../resources/AWSWhitelist.json"
+	for i :=0; i < b.N; i++  {
+		AWSWithWhitelist(svc.Client, whitelist)
+	}
+}

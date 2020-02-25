@@ -159,3 +159,15 @@ func TestCaptureAsync(t *testing.T) {
 		assert.Equal(t, "TestService", subseg.Name)
 	}
 }
+
+// Benchmarks
+func BenchmarkCapture(b *testing.B) {
+	ctx, seg:= BeginSegment(context.Background(), "TestCaptureSeg")
+	for i:=0; i<b.N; i++ {
+		Capture(ctx, "TestCaptureSubSeg", func(ctx context.Context) error {
+
+			return nil
+		})
+	}
+	seg.Close(nil)
+}

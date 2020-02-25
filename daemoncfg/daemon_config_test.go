@@ -289,3 +289,30 @@ func TestGetDaemonEndpointsForHostname7(t *testing.T) { // Invalid port - double
 	assert.True(t, strings.Contains(fmt.Sprint(err), portErr))
 	assert.Nil(t, dEndpt)
 }
+
+// Benchmarks
+func BenchmarkGetDaemonEndpoints(b *testing.B) {
+	for i:=0; i<b.N; i++ {
+		GetDaemonEndpoints()
+	}
+}
+
+func BenchmarkGetDaemonEndpointsFromEnv(b *testing.B) {
+	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "tcp:127.0.0.1:2000 udp:127.0.0.1:2000")
+
+	for i:=0; i<b.N; i++ {
+		GetDaemonEndpointsFromEnv()
+	}
+	os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
+	os.Setenv("AWS_XRAY_DAEMON_ADDRESS", "udp:127.0.0.1:2000")
+	for i:=0; i<b.N; i++ {
+		GetDaemonEndpointsFromEnv()
+	}
+	os.Unsetenv("AWS_XRAY_DAEMON_ADDRESS")
+}
+
+func BenchmarkGetDaemonEndpointsFromString(b *testing.B) {
+	for i:=0; i<b.N; i++ {
+		GetDaemonEndpointsFromString("udp:127.0.0.1:2000")
+	}
+}

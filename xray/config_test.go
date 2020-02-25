@@ -258,3 +258,30 @@ func TestSelectiveConfigWithContext(t *testing.T) {
 
 	ResetConfig()
 }
+
+// Benchmarks
+func BenchmarkConfigure(b *testing.B) {
+	daemonAddr := "127.0.0.1:3000"
+	logLevel := "error"
+	logFormat := "[%Level] %Msg%n"
+	serviceVersion := "TestVersion"
+
+	ss := &TestSamplingStrategy{}
+	efs := &TestExceptionFormattingStrategy{}
+	sms := &TestStreamingStrategy{}
+	cms := &TestContextMissingStrategy{}
+
+	for i:=0; i<b.N; i++ {
+		Configure(Config{
+			DaemonAddr:                  daemonAddr,
+			ServiceVersion:              serviceVersion,
+			SamplingStrategy:            ss,
+			ExceptionFormattingStrategy: efs,
+			StreamingStrategy:           sms,
+			ContextMissingStrategy:      cms,
+			LogLevel:                    logLevel,
+			LogFormat:                   logFormat,
+		})
+	}
+}
+

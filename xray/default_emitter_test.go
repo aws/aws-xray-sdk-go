@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net"
 	"testing"
 	"time"
 
@@ -140,3 +141,48 @@ func getTestSegment() string {
 		randomString(16))
 	return message
 }
+
+// Benchamrks
+func BenchmarkDefaultEmitter_packSegments(b *testing.B) {
+	seg := &Segment{}
+	subSeg := &Segment{}
+	subSeg.parent = seg
+	seg.ParentSegment = seg
+	subSeg.ParentSegment = seg.ParentSegment
+	seg.Sampled = true
+	seg.totalSubSegments = 22
+
+	for i := 0; i < 22; i++ {
+		seg.rawSubsegments = append(seg.rawSubsegments, subSeg)
+	}
+
+	for i:=0; i<b.N; i++ {
+		packSegments(seg, nil)
+	}
+}
+
+func BenchmarkDefaultEmitter(b *testing.B) {
+	// make sure `Header` has enough capacity
+	// to reproduce https://github.com/aws/aws-xray-sdk-go/pull/173
+	// minimum capacity is guaranteed by Go specs, but actual capacity is not.
+	Header = append(make([]byte, 0, 1024), Header...)
+
+	seg := &Segment{
+		ParentSegment: &Segment{
+			Sampled: true,
+		},
+	}
+	b.RunParallel(func(pb *testing.PB) {
+		emitter, err := NewDefaultEmitter(&net.UDPAddr{
+			IP:   net.IPv4(127, 0, 0, 1),
+			Port: 2000,
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		for pb.Next() {
+			emitter.Emit(seg)
+		}
+	})
+}
+
