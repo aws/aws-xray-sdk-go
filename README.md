@@ -197,14 +197,16 @@ dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
 
 **SQL**
 
-Any `db/sql` calls can be traced with X-Ray by replacing the `sql.Open` call with `xray.SQL`. It is recommended to use URLs instead of configuration strings if possible.
+Any `database/sql` calls can be traced with X-Ray by replacing the `sql.Open` call with `xray.SQLContext`. It is recommended to use URLs instead of configuration strings if possible.
 
 ```go
 func main() {
-  db := xray.SQL("postgres", "postgres://user:password@host:port/db")
-  row, _ := db.QueryRow("SELECT 1") // Use as normal
+  db, err := xray.SQLContext("postgres", "postgres://user:password@host:port/db")
+  row, err := db.QueryRowContext(ctx, "SELECT 1") // Use as normal
 }
 ```
+
+Note that the `xray.SQL` are deprecated and will be remove when the SDK becomes GA.
 
 **Lambda**
 
