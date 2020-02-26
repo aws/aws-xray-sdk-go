@@ -1,3 +1,11 @@
+// Copyright 2017-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at
+//
+//     http://aws.amazon.com/apache2.0/
+//
+// or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
 package xray
 
 import (
@@ -20,7 +28,7 @@ func TestAWS(t *testing.T) {
 	// Runs a suite of tests against two different methods of registering
 	// handlers on an AWS client.
 
-	type test func(*testing.T, *lambda.Lambda)
+	type test func(context.Context, *TestDaemon, *testing.T, *lambda.Lambda)
 	tests := []struct {
 		name     string
 		test     test
@@ -67,23 +75,32 @@ func TestAWS(t *testing.T) {
 
 	// Run all combinations of constructors + tests.
 	for _, cons := range constructors {
+		cons := cons
 		t.Run(cons.name, func(t *testing.T) {
 			for _, test := range tests {
+				test := test
+				ctx, td := NewTestDaemon()
+				defer td.Close()
+
 				t.Run(test.name, func(t *testing.T) {
-					test.test(t, cons.constructor(fakeSession(t, test.failConn)))
+					session, cleanup := fakeSession(t, test.failConn)
+					defer cleanup()
+					test.test(ctx, td, t, cons.constructor(session))
 				})
 			}
 		})
 	}
 }
 
-func fakeSession(t *testing.T, failConn bool) *session.Session {
+func fakeSession(t *testing.T, failConn bool) (*session.Session, func()) {
 	cfg := &aws.Config{
 		Region:      aws.String("fake-moon-1"),
 		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop"),
 	}
+
+	var ts *httptest.Server
 	if !failConn {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			b := []byte(`{}`)
 			w.WriteHeader(http.StatusOK)
 			w.Write(b)
@@ -92,22 +109,28 @@ func fakeSession(t *testing.T, failConn bool) *session.Session {
 	}
 	s, err := session.NewSession(cfg)
 	assert.NoError(t, err)
-	return s
+	return s, func() {
+		if ts != nil {
+			ts.Close()
+		}
+	}
 }
 
-func testClientSuccessfulConnection(t *testing.T, svc *lambda.Lambda) {
-	TestDaemon.Reset()
-	ctx, root := BeginSegment(context.Background(), "Test")
+func testClientSuccessfulConnection(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda) {
+	ctx, root := BeginSegment(ctx, "Test")
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	root.Close(nil)
 	assert.NoError(t, err)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	seg, err := td.Recv()
+	if !assert.NoError(t, err) {
+		return
+	}
 
-	subseg := &Segment{}
-	assert.NotEmpty(t, s.Subsegments)
-	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
+	var subseg *Segment
+	if !assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg)) {
+		return
+	}
 	assert.False(t, subseg.Fault)
 	assert.NotEmpty(t, subseg.Subsegments)
 
@@ -144,19 +167,21 @@ func testClientSuccessfulConnection(t *testing.T, svc *lambda.Lambda) {
 	}
 }
 
-func testClientFailedConnection(t *testing.T, svc *lambda.Lambda) {
-	TestDaemon.Reset()
-	ctx, root := BeginSegment(context.Background(), "Test")
+func testClientFailedConnection(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda) {
+	ctx, root := BeginSegment(ctx, "Test")
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	root.Close(nil)
 	assert.Error(t, err)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	seg, err := td.Recv()
+	if !assert.NoError(t, err) {
+		return
+	}
 
-	subseg := &Segment{}
-	assert.NotEmpty(t, s.Subsegments)
-	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
+	var subseg *Segment
+	if !assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg)) {
+		return
+	}
 	assert.True(t, subseg.Fault)
 	// Should contain 'marshal' and 'attempt' subsegments only.
 	assert.Len(t, subseg.Subsegments, 2)
@@ -178,39 +203,31 @@ func testClientFailedConnection(t *testing.T, svc *lambda.Lambda) {
 	assert.NotEmpty(t, connectSubseg.Subsegments)
 }
 
-func testClientWithoutSegment(t *testing.T, svc *lambda.Lambda) {
-	Configure(Config{ContextMissingStrategy: &TestContextMissingStrategy{}})
-	defer ResetConfig()
-
-	ctx := context.Background()
+func testClientWithoutSegment(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda) {
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	assert.NoError(t, err)
 }
 
-func testAWSDataRace(t *testing.T, svc *lambda.Lambda) {
-	Configure(Config{ContextMissingStrategy: &TestContextMissingStrategy{},DaemonAddr: "localhost:3000"})
-	defer ResetConfig()
-
-	ctx, cancel := context.WithCancel(context.Background())
-
+func testAWSDataRace(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	ctx, seg := BeginSegment(ctx, "TestSegment")
 
-	wg := sync.WaitGroup{}
-
+	var wg sync.WaitGroup
 	for i := 0; i < 5; i++ {
-		if i!=3 && i!=2{
+		if i != 3 && i != 2 {
 			wg.Add(1)
 		}
 		go func(i int) {
-			if i!=3 && i!=2{
-				time.Sleep(1)
+			if i != 3 && i != 2 {
+				time.Sleep(time.Nanosecond)
 				defer wg.Done()
 			}
 			_, seg := BeginSubsegment(ctx, "TestSubsegment1")
-			time.Sleep(1)
+			time.Sleep(time.Nanosecond)
 			seg.Close(nil)
 			svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
-			if i== 3 || i==2{
+			if i == 3 || i == 2 {
 				cancel() // cancel context
 			}
 		}(i)

@@ -17,11 +17,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
-	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
-
 	"github.com/aws/aws-xray-sdk-go/header"
-	"github.com/aws/aws-xray-sdk-go/internal/plugins"
 	"github.com/aws/aws-xray-sdk-go/pattern"
 )
 
@@ -89,13 +85,14 @@ func (dSN *DynamicSegmentNamer) Name(host string) string {
 // specific trace fields. HandlerWithContext names the generated segments
 // using the provided SegmentNamer.
 func HandlerWithContext(ctx context.Context, sn SegmentNamer, h http.Handler) http.Handler {
+	cfg := GetRecorder(ctx)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name := sn.Name(r.Host)
 
 		traceHeader := header.FromString(r.Header.Get(TraceIDHeaderKey))
-
-		r = r.WithContext(ctx)
-		c, seg := NewSegmentFromHeader(r.Context(), name, traceHeader)
+		ctx := context.WithValue(r.Context(), RecorderContextKey{}, cfg)
+		c, seg := NewSegmentFromHeader(ctx, name, r, traceHeader)
+		defer seg.Close(nil)
 		r = r.WithContext(c)
 
 		httpTrace(seg, h, w, r, traceHeader)
@@ -111,8 +108,8 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 		name := sn.Name(r.Host)
 
 		traceHeader := header.FromString(r.Header.Get(TraceIDHeaderKey))
-		ctx, seg := NewSegmentFromHeader(r.Context(), name, traceHeader)
-
+		ctx, seg := NewSegmentFromHeader(r.Context(), name, r, traceHeader)
+		defer seg.Close(nil)
 		r = r.WithContext(ctx)
 
 		httpTrace(seg, h, w, r, traceHeader)
@@ -137,19 +134,6 @@ func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Requ
 	respHeader.WriteString("Root=")
 	respHeader.WriteString(seg.TraceID)
 
-	if traceHeader.SamplingDecision != header.Sampled && traceHeader.SamplingDecision != header.NotSampled {
-		samplingRequest := &sampling.Request{
-			Host:        r.Host,
-			Url:         r.URL.Path,
-			Method:      r.Method,
-			ServiceName: seg.Name,
-			ServiceType: plugins.InstancePluginMetadata.Origin,
-		}
-		sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(samplingRequest)
-		seg.Sampled = sd.Sample
-		logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
-		seg.AddRuleName(sd)
-	}
 	if traceHeader.SamplingDecision == header.Requested {
 		respHeader.WriteString(";Sampled=")
 		respHeader.WriteString(strconv.Itoa(btoi(seg.Sampled)))
@@ -176,7 +160,6 @@ func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Requ
 		seg.Fault = true
 	}
 	seg.Unlock()
-	seg.Close(nil)
 }
 
 func clientIP(r *http.Request) (string, bool) {
