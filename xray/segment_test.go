@@ -11,6 +11,8 @@ package xray
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/url"
 	"sync"
 	"testing"
 	"time"
@@ -95,7 +97,7 @@ func TestSegmentDownstreamHeader(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &header.Header{
+	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &http.Request{URL:&url.URL{}}, &header.Header{
 		TraceID:  "fakeid",
 		ParentID: "reqid",
 	})
