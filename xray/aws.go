@@ -61,9 +61,8 @@ var xRayBeforeValidateHandler = request.NamedHandler{
 		if opseg == nil {
 			return
 		}
-		//opseg.Lock()	// Bhautik: Probable Data Race fix
+
 		opseg.Namespace = "aws"
-		//opseg.Unlock()  // Bhautik: Probable Data Race fix
 		marshalctx, _ := BeginSubsegment(ctx, "marshal")
 
 		r.HTTPRequest = r.HTTPRequest.WithContext(marshalctx)
@@ -435,5 +434,3 @@ func insertDescriptorValuesIntoMap(key string, data interface{}, descriptorMap m
 		}
 	}
 }
-
-// Trigger Git actions try 6
