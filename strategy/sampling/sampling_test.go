@@ -241,11 +241,10 @@ func BenchmarkNewLocalizedStrategyFromJSONBytes(b *testing.B) {
 	  "rules": [
 	  ]
 	}`)
-	for i:=0; i<b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		_, err := NewLocalizedStrategyFromJSONBytes(ruleBytes)
 		if err != nil {
 			return
 		}
 	}
 }
-

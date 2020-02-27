@@ -61,7 +61,6 @@ var xRayBeforeValidateHandler = request.NamedHandler{
 		if opseg == nil {
 			return
 		}
-
 		opseg.Namespace = "aws"
 		marshalctx, _ := BeginSubsegment(ctx, "marshal")
 
