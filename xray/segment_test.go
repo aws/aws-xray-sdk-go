@@ -97,7 +97,7 @@ func TestSegmentDownstreamHeader(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &http.Request{URL:&url.URL{}}, &header.Header{
+	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &http.Request{URL: &url.URL{}}, &header.Header{
 		TraceID:  "fakeid",
 		ParentID: "reqid",
 	})
@@ -146,7 +146,7 @@ func TestParentSegmentTotalCount(t *testing.T) {
 
 // Benchmarks
 func BenchmarkBeginSegment(b *testing.B) {
-	for i := 0 ; i < b.N ; i++ {
+	for i := 0; i < b.N; i++ {
 		_, seg := BeginSegment(context.Background(), "TestBenchSeg")
 		seg.Close(nil)
 	}
@@ -154,8 +154,8 @@ func BenchmarkBeginSegment(b *testing.B) {
 
 func BenchmarkBeginSubsegment(b *testing.B) {
 	ctx, seg := BeginSegment(context.Background(), "TestBenchSeg")
-	for i := 0 ; i < b.N ; i++ {
-		_, subSeg := BeginSubsegment(ctx,"TestBenchSubSeg")
+	for i := 0; i < b.N; i++ {
+		_, subSeg := BeginSubsegment(ctx, "TestBenchSubSeg")
 		subSeg.Close(nil)
 	}
 	seg.Close(nil)
@@ -163,9 +163,8 @@ func BenchmarkBeginSubsegment(b *testing.B) {
 
 func BenchmarkAddError(b *testing.B) {
 	_, seg := BeginSegment(context.Background(), "TestBenchSeg")
-	for i := 0 ; i < b.N ; i++ {
+	for i := 0; i < b.N; i++ {
 		seg.AddError(errors.New("new error"))
 	}
 	seg.Close(nil)
 }
-

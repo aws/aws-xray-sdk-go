@@ -182,8 +182,7 @@ func TestMultiGlobs(t *testing.T) {
 
 // Benchmark
 func BenchmarkWildcardMatch(b *testing.B) {
-	for i:=0; i<b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		WildcardMatch("*?", "aa", true)
 	}
 }
-

@@ -271,17 +271,17 @@ func BenchmarkConfigure(b *testing.B) {
 	sms := &TestStreamingStrategy{}
 	cms := &TestContextMissingStrategy{}
 
-	for i:=0; i<b.N; i++ {
-		Configure(Config{
-			DaemonAddr:                  daemonAddr,
-			ServiceVersion:              serviceVersion,
-			SamplingStrategy:            ss,
-			ExceptionFormattingStrategy: efs,
-			StreamingStrategy:           sms,
-			ContextMissingStrategy:      cms,
-			LogLevel:                    logLevel,
-			LogFormat:                   logFormat,
-		})
+	configure := Config{
+		DaemonAddr: daemonAddr,
+		ServiceVersion: serviceVersion,
+		SamplingStrategy: ss,
+		ExceptionFormattingStrategy: efs,
+		StreamingStrategy: sms,
+		ContextMissingStrategy: cms,
+		LogLevel: logLevel,
+		LogFormat: logFormat,
+	}
+	for i := 0; i < b.N; i++ {
+		Configure(configure)
 	}
 }
-

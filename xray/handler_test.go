@@ -162,13 +162,10 @@ func BenchmarkHandler(b *testing.B) {
 
 	})
 
-	for i:=0; i<b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		ts := httptest.NewServer(Handler(NewFixedSegmentNamer("test"), handler))
 		req := httptest.NewRequest(http.MethodGet, ts.URL, strings.NewReader(""))
 		http.DefaultTransport.RoundTrip(req)
 		ts.Close()
 	}
-
-
 }
-

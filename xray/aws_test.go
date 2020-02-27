@@ -238,7 +238,7 @@ func testAWSDataRace(ctx context.Context, td *TestDaemon, t *testing.T, svc *lam
 }
 
 // Benchmarks
-func fakeSessionBenchmark(b *testing.B, failConn bool) (*session.Session, func()) {
+func buildFakeBenchmarkSession(b *testing.B, failConn bool) (*session.Session, func()) {
 	cfg := &aws.Config{
 		Region:      aws.String("fake-moon-1"),
 		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop"),
@@ -263,10 +263,24 @@ func fakeSessionBenchmark(b *testing.B, failConn bool) (*session.Session, func()
 }
 
 func BenchmarkAWSWithWhitelist(b *testing.B) {
-	s, _ := fakeSessionBenchmark(b, false)
-	svc := lambda.New(s)
+	session, cleanup := buildFakeBenchmarkSession(b, false)
+	defer cleanup()
+	svc := lambda.New(session)
 	const whitelist = "../resources/AWSWhitelist.json"
+
 	for i :=0; i < b.N; i++  {
 		AWSWithWhitelist(svc.Client, whitelist)
 	}
+}
+
+func BenchmarkAWSSessionWithWhitelist(b *testing.B) {
+	session, cleanup := buildFakeBenchmarkSession(b, false)
+	defer cleanup()
+	const whitelist = "../resources/AWSWhitelist.json"
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			AWSSessionWithWhitelist(session, whitelist)
+		}
+	})
 }

@@ -2675,7 +2675,6 @@ func BenchmarkNewCentralizedStrategy_refreshManifest(b *testing.B) {
 		},
 	}
 
-
 	// Rule 'r1'
 	r1 := &CentralizedRule{
 		ruleName: "r1",
@@ -2764,6 +2763,3 @@ func BenchmarkCentralizedStrategy_refreshTargets(b *testing.B) {
 		}
 	})
 }
-
-
-

@@ -156,7 +156,7 @@ func BenchmarkDefaultEmitter_packSegments(b *testing.B) {
 		seg.rawSubsegments = append(seg.rawSubsegments, subSeg)
 	}
 
-	for i:=0; i<b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		packSegments(seg, nil)
 	}
 }
@@ -185,4 +185,3 @@ func BenchmarkDefaultEmitter(b *testing.B) {
 		}
 	})
 }
-
