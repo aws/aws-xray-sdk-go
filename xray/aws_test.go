@@ -262,25 +262,39 @@ func buildFakeBenchmarkSession(b *testing.B, failConn bool) (*session.Session, f
 	}
 }
 
-func BenchmarkAWSWithWhitelist(b *testing.B) {
-	session, cleanup := buildFakeBenchmarkSession(b, false)
-	defer cleanup()
-	svc := lambda.New(session)
-	const whitelist = "../resources/AWSWhitelist.json"
-
-	for i :=0; i < b.N; i++  {
-		AWSWithWhitelist(svc.Client, whitelist)
-	}
-}
-
-func BenchmarkAWSSessionWithWhitelist(b *testing.B) {
+func BenchmarkAWS_Datarace(b *testing.B) {
 	session, cleanup := buildFakeBenchmarkSession(b, false)
 	defer cleanup()
 	const whitelist = "../resources/AWSWhitelist.json"
+	svc := lambda.New(AWSSessionWithWhitelist(session, whitelist))
 
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			AWSSessionWithWhitelist(session, whitelist)
+	for i :=0; i<b.N; i++ {
+
+		ctx, cancel := context.WithCancel(context.Background())
+		ctx, seg := BeginSegment(ctx, "TestSegment")
+
+		var wg sync.WaitGroup
+		for i := 0; i < 5; i++ {
+			if i != 3 && i != 2 {
+				wg.Add(1)
+			}
+			go func(i int) {
+				if i != 3 && i != 2 {
+					time.Sleep(time.Nanosecond)
+					defer wg.Done()
+				}
+				_, seg := BeginSubsegment(ctx, "TestSubsegment1")
+				time.Sleep(time.Nanosecond)
+				seg.Close(nil)
+				svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
+				if i == 3 || i == 2 {
+					cancel() // cancel context
+				}
+			}(i)
 		}
-	})
+
+		wg.Wait()
+		seg.Close(nil)
+		cancel()
+	}
 }
