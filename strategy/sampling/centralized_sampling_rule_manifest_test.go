@@ -779,7 +779,6 @@ func TestFresh(t *testing.T) {
 }
 
 // benchmarks
-
 func BenchmarkCentralizedManifest_putRule(b *testing.B) {
 
 	r1 := &CentralizedRule{

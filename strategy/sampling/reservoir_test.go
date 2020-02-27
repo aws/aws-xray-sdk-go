@@ -254,7 +254,6 @@ func TestResetReservoirUsageRotation(t *testing.T) {
 }
 
 // Benchmarks
-
 func BenchmarkCentralizedReservoir_Take(b *testing.B) {
 	capacity := int64(100)
 	used := int64(0)

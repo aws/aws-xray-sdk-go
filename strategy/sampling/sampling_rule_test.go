@@ -314,7 +314,6 @@ func TestSnapshot(t *testing.T) {
 }
 
 // Benchmarks
-
 func BenchmarkCentralizedRule_Sample(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
