@@ -777,3 +777,67 @@ func TestFresh(t *testing.T) {
 
 	assert.False(t, m.expired())
 }
+
+// benchmarks
+
+func BenchmarkCentralizedManifest_putRule(b *testing.B) {
+
+	r1 := &CentralizedRule{
+		ruleName: "r1",
+		priority: 5,
+	}
+
+	r3 := &CentralizedRule{
+		ruleName: "r3",
+		priority: 7,
+	}
+
+	rules := []*CentralizedRule{r1, r3}
+
+	index := map[string]*CentralizedRule{
+		"r1": r1,
+		"r3": r3,
+	}
+
+	m := &CentralizedManifest{
+		Rules: rules,
+		Index: index,
+	}
+	// New xraySvc.CentralizedSamplingRule. Input to putRule().
+	resARN := "*"
+	serviceName := "www.foo.com"
+	httpMethod := "POST"
+	urlPath := "/bar/*"
+	reservoirSize := int64(10)
+	fixedRate := float64(0.05)
+	ruleName := "r2"
+	host := "local"
+	priority := int64(6)
+	serviceTye := "*"
+	new := &xraySvc.SamplingRule{
+		ServiceName:   &serviceName,
+		HTTPMethod:    &httpMethod,
+		URLPath:       &urlPath,
+		ReservoirSize: &reservoirSize,
+		FixedRate:     &fixedRate,
+		RuleName:      &ruleName,
+		Priority:      &priority,
+		Host:          &host,
+		ServiceType:   &serviceTye,
+		ResourceARN:   &resARN,
+	}
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := m.putRule(new)
+			if err != nil {
+				return
+			}
+		}
+	})
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			m.createUserRule(new)
+		}
+	})
+}

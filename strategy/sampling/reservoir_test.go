@@ -252,3 +252,48 @@ func TestResetReservoirUsageRotation(t *testing.T) {
 	assert.Equal(t, true, taken)
 	assert.Equal(t, int64(1), r.used)
 }
+
+// Benchmarks
+
+func BenchmarkCentralizedReservoir_Take(b *testing.B) {
+	capacity := int64(100)
+	used := int64(0)
+	quota := int64(9)
+
+	clock := &utils.MockClock{
+		NowTime: 1500000000,
+	}
+
+	r := &CentralizedReservoir{
+		quota: quota,
+		reservoir: &reservoir{
+			capacity:     capacity,
+			used:         used,
+			currentEpoch: clock.Now().Unix(),
+		},
+	}
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			r.Take(clock.Now().Unix())
+		}
+	})
+}
+
+func BenchmarkCentralizedReservoir_borrow(b *testing.B) {
+	clock := &utils.MockClock{
+		NowTime: 1500000000,
+	}
+
+	r := &CentralizedReservoir{
+		reservoir: &reservoir{
+			capacity: 10,
+		},
+	}
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			r.borrow(clock.Now().Unix())
+		}
+	})
+}

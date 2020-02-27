@@ -229,3 +229,23 @@ func TestNewLocalizedStrategyFromInvalidJSONBytes(t *testing.T) {
 	assert.Nil(t, ss)
 	assert.NotNil(t, err)
 }
+
+// Benchmarks
+func BenchmarkNewLocalizedStrategyFromJSONBytes(b *testing.B) {
+	ruleBytes := []byte(`{
+	  "version": 1,
+	  "default": {
+	    "fixed_target": 1,
+	    "rate":
+	  },
+	  "rules": [
+	  ]
+	}`)
+	for i:=0; i<b.N; i++ {
+		_, err := NewLocalizedStrategyFromJSONBytes(ruleBytes)
+		if err != nil {
+			return
+		}
+	}
+}
+

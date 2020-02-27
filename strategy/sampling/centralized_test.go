@@ -2635,3 +2635,135 @@ func TestLoadDaemonEndpoints2(t *testing.T) {
 	s.ShouldTrace(sr)
 	assert.Nil(t, s.daemonEndpoints)
 }
+
+// Benchmarks
+func BenchmarkCentralizedStrategy_ShouldTrace(b *testing.B) {
+	s, _ := NewCentralizedStrategy()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			s.ShouldTrace(&Request{})
+		}
+	})
+}
+
+func BenchmarkNewCentralizedStrategy_refreshManifest(b *testing.B) {
+	serviceTye := ""
+	resourceARN := "*"
+	// Valid no-op update for rule 'r1'
+	name1 := "r1"
+	fixedRate1 := 0.05
+	httpMethod1 := "POST"
+	priority1 := int64(4)
+	reservoirSize1 := int64(50)
+	serviceName1 := "www.foo.com"
+	urlPath1 := "/resource/bar"
+	version1 := int64(1)
+	u1 := &xraySvc.SamplingRuleRecord{
+		SamplingRule: &xraySvc.SamplingRule{
+			RuleName:      &name1,
+			ServiceName:   &serviceName1,
+			URLPath:       &urlPath1,
+			HTTPMethod:    &httpMethod1,
+			Priority:      &priority1,
+			ReservoirSize: &reservoirSize1,
+			FixedRate:     &fixedRate1,
+			Version:       &version1,
+			Host:          &serviceName1,
+			ServiceType:   &serviceTye,
+			ResourceARN:   &resourceARN,
+		},
+	}
+
+
+	// Rule 'r1'
+	r1 := &CentralizedRule{
+		ruleName: "r1",
+		reservoir: &CentralizedReservoir{
+			quota: 10,
+			reservoir: &reservoir{
+				capacity: 50,
+			},
+		},
+		Properties:  &Properties{},
+		priority:    4,
+		resourceARN: resourceARN,
+	}
+
+	// Rule 'r3'
+	r3 := &CentralizedRule{
+		ruleName: "r3",
+		reservoir: &CentralizedReservoir{
+			quota: 10,
+			reservoir: &reservoir{
+				capacity: 50,
+			},
+		},
+		Properties: &Properties{
+			Host:        "www.bar.com",
+			HTTPMethod:  "POST",
+			URLPath:     "/resource/foo",
+			FixedTarget: 40,
+			Rate:        0.10,
+			ServiceName: "www.bar.com",
+		},
+		priority:    8,
+		resourceARN: resourceARN,
+	}
+
+	// Sorted array
+	rules := []*CentralizedRule{r1, r3}
+
+	index := map[string]*CentralizedRule{
+		"r1": r1,
+		"r3": r3,
+	}
+
+	manifest := &CentralizedManifest{
+		Rules:       rules,
+		Index:       index,
+		refreshedAt: 1500000000,
+	}
+
+	// Mock proxy with updates u1, u2, and u3
+	proxy := &mockProxy{
+		samplingRules: []*xraySvc.SamplingRuleRecord{u1},
+	}
+
+	// Mock clock with time incremented to 60 seconds past current
+	// manifest refreshedAt timestamp.
+	clock := &utils.MockClock{
+		NowTime: 1500000060,
+	}
+
+	ss := &CentralizedStrategy{
+		manifest: manifest,
+		proxy:    proxy,
+		clock:    clock,
+	}
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			err := ss.refreshManifest()
+			if err != nil {
+				return
+			}
+		}
+	})
+}
+
+func BenchmarkCentralizedStrategy_refreshTargets(b *testing.B) {
+	s, _ := NewCentralizedStrategy()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			err := s.refreshTargets()
+			if err != nil {
+				return
+			}
+		}
+	})
+}
+
+
+
