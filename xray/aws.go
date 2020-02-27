@@ -235,9 +235,9 @@ func xrayCompleteHandler(filename string) request.NamedHandler {
 			if request.IsErrorThrottle(r.Error) {
 				opseg.Throttle = true
 			}
+
 			opseg.Unlock()
 			opseg.Close(r.Error)
-
 		},
 	}
 }
