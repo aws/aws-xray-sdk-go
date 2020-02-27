@@ -47,11 +47,9 @@ func beginSubsegment(r *request.Request, name string) {
 
 func endSubsegment(r *request.Request) {
 	seg := GetSegment(r.HTTPRequest.Context())
-	seg.Lock()
 	if seg == nil {
 		return
 	}
-	seg.Unlock()
 	seg.Close(r.Error)
 	r.HTTPRequest = r.HTTPRequest.WithContext(context.WithValue(r.HTTPRequest.Context(), ContextKey, seg.parent))
 }
