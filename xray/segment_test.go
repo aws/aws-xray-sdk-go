@@ -97,7 +97,7 @@ func TestSegmentDownstreamHeader(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &http.Request{URL: &url.URL{}}, &header.Header{
+	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &http.Request{URL:&url.URL{}}, &header.Header{
 		TraceID:  "fakeid",
 		ParentID: "reqid",
 	})
