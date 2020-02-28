@@ -162,9 +162,6 @@ func BenchmarkDefaultEmitter_packSegments(b *testing.B) {
 }
 
 func BenchmarkDefaultEmitter(b *testing.B) {
-	// make sure `Header` has enough capacity
-	// to reproduce https://github.com/aws/aws-xray-sdk-go/pull/173
-	// minimum capacity is guaranteed by Go specs, but actual capacity is not.
 	Header = append(make([]byte, 0, 1024), Header...)
 
 	seg := &Segment{
