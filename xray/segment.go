@@ -12,6 +12,8 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
+	"net/http"
 	"os"
 	"runtime"
 	"sync/atomic"
@@ -73,6 +75,11 @@ func BeginDummySegment(ctx context.Context, name string) (context.Context, *Segm
 
 // BeginSegment creates a Segment for a given name and context.
 func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) {
+
+	return BeginSegmentWithSampling(ctx, name, nil, nil)
+}
+
+func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request, traceHeader *header.Header) (context.Context, *Segment) {
 	seg := basicSegment(name, nil)
 
 	cfg := GetRecorder(ctx)
@@ -87,6 +94,38 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 		seg.GetService().Version = seg.ParentSegment.GetConfiguration().ServiceVersion
 	}
 
+	if r == nil || traceHeader == nil {
+		// Sampling strategy fallbacks to default sampling in the case of directly using BeginSegment API without any instrumentation
+		sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(&sampling.Request{})
+		seg.Sampled = sd.Sample
+		logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
+		seg.AddRuleName(sd)
+	} else {
+		// Sampling strategy for http calls
+		seg.Sampled = traceHeader.SamplingDecision == header.Sampled
+
+		switch traceHeader.SamplingDecision {
+		case header.Sampled:
+			logger.Debug("Incoming header decided: Sampled=true")
+		case header.NotSampled:
+			logger.Debug("Incoming header decided: Sampled=false")
+		}
+
+		if traceHeader.SamplingDecision != header.Sampled && traceHeader.SamplingDecision != header.NotSampled {
+			samplingRequest := &sampling.Request{
+				Host:        r.Host,
+				Url:         r.URL.Path,
+				Method:      r.Method,
+				ServiceName: seg.Name,
+				ServiceType: plugins.InstancePluginMetadata.Origin,
+			}
+			sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(samplingRequest)
+			seg.Sampled = sd.Sample
+			logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
+			seg.AddRuleName(sd)
+		}
+	}
+
 	if ctx.Done() != nil {
 		go func() {
 			select {
@@ -95,6 +134,7 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 			}
 		}()
 	}
+
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
@@ -252,22 +292,14 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 }
 
 // NewSegmentFromHeader creates a segment for downstream call and add information to the segment that gets from HTTP header.
-func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (context.Context, *Segment) {
-	con, seg := BeginSegment(ctx, name)
+func NewSegmentFromHeader(ctx context.Context, name string, r *http.Request, h *header.Header) (context.Context, *Segment) {
+	con, seg := BeginSegmentWithSampling(ctx, name, r, h)
 
 	if h.TraceID != "" {
 		seg.TraceID = h.TraceID
 	}
 	if h.ParentID != "" {
 		seg.ParentID = h.ParentID
-	}
-
-	seg.Sampled = h.SamplingDecision == header.Sampled
-	switch h.SamplingDecision {
-	case header.Sampled:
-		logger.Debug("Incoming header decided: Sampled=true")
-	case header.NotSampled:
-		logger.Debug("Incoming header decided: Sampled=false")
 	}
 
 	seg.IncomingHeader = h
