@@ -135,7 +135,11 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 		}()
 	}
 
-	return context.WithValue(ctx, ContextKey, seg), seg
+	if seg.Sampled {
+		return context.WithValue(ctx, ContextKey, seg), seg
+	} else {
+		return BeginDummySegment(ctx, "Dummy Seg")
+	}
 }
 
 func basicSegment(name string, h *header.Header) *Segment {
@@ -288,7 +292,11 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = true
 
-	return context.WithValue(ctx, ContextKey, seg), seg
+	if seg.ParentSegment.Sampled {
+		return context.WithValue(ctx, ContextKey, seg), seg
+	} else {
+		return BeginDummySegment(ctx, "Dummy SubSeg")
+	}
 }
 
 // NewSegmentFromHeader creates a segment for downstream call and add information to the segment that gets from HTTP header.
