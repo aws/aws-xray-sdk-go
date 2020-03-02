@@ -201,7 +201,7 @@ type Rule struct {
 	*Properties
 }
 
-// Sample is ...
+// Sample is used to provide sampling decision.
 func (r *Rule) Sample() *Decision {
 	var sd Decision
 
