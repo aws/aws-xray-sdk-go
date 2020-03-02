@@ -17,11 +17,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
-	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
-
 	"github.com/aws/aws-xray-sdk-go/header"
-	"github.com/aws/aws-xray-sdk-go/internal/plugins"
 	"github.com/aws/aws-xray-sdk-go/pattern"
 )
 
@@ -95,7 +91,7 @@ func HandlerWithContext(ctx context.Context, sn SegmentNamer, h http.Handler) ht
 
 		traceHeader := header.FromString(r.Header.Get(TraceIDHeaderKey))
 		ctx := context.WithValue(r.Context(), RecorderContextKey{}, cfg)
-		c, seg := NewSegmentFromHeader(ctx, name, traceHeader)
+		c, seg := NewSegmentFromHeader(ctx, name, r, traceHeader)
 		defer seg.Close(nil)
 		r = r.WithContext(c)
 
@@ -112,7 +108,7 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 		name := sn.Name(r.Host)
 
 		traceHeader := header.FromString(r.Header.Get(TraceIDHeaderKey))
-		ctx, seg := NewSegmentFromHeader(r.Context(), name, traceHeader)
+		ctx, seg := NewSegmentFromHeader(r.Context(), name, r, traceHeader)
 		defer seg.Close(nil)
 		r = r.WithContext(ctx)
 
@@ -138,19 +134,6 @@ func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Requ
 	respHeader.WriteString("Root=")
 	respHeader.WriteString(seg.TraceID)
 
-	if traceHeader.SamplingDecision != header.Sampled && traceHeader.SamplingDecision != header.NotSampled {
-		samplingRequest := &sampling.Request{
-			Host:        r.Host,
-			Url:         r.URL.Path,
-			Method:      r.Method,
-			ServiceName: seg.Name,
-			ServiceType: plugins.InstancePluginMetadata.Origin,
-		}
-		sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(samplingRequest)
-		seg.Sampled = sd.Sample
-		logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
-		seg.AddRuleName(sd)
-	}
 	if traceHeader.SamplingDecision == header.Requested {
 		respHeader.WriteString(";Sampled=")
 		respHeader.WriteString(strconv.Itoa(btoi(seg.Sampled)))
