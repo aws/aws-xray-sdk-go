@@ -9,7 +9,6 @@
 package xray
 
 import (
-	"bytes"
 	"encoding/json"
 	"net"
 	"sync"
@@ -63,13 +62,8 @@ func (de *DefaultEmitter) Emit(seg *Segment) {
 	}
 
 	for _, p := range packSegments(seg, nil) {
-		p := p
-		// defer expensive marshal until log message is actually logged
-		logger.DebugDeferred(func() string {
-			var b bytes.Buffer
-			json.Indent(&b, p, "", " ")
-			return b.String()
-		})
+		logger.Debug(string(p))
+
 		de.Lock()
 
 		if de.conn == nil {
