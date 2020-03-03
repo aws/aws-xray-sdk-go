@@ -58,7 +58,7 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 func BeginDummySegment(ctx context.Context, name string) (context.Context, *Segment) {
 	dummySeg := &Segment{parent: nil}
 	dummySeg.ParentSegment = dummySeg
-	logger.Debugf("Beginning segment named %s", name)
+	logger.Debugf("Beginning dummy segment named %s", name)
 
 	cfg := GetRecorder(ctx)
 	dummySeg.assignConfiguration(cfg)
@@ -67,7 +67,7 @@ func BeginDummySegment(ctx context.Context, name string) (context.Context, *Segm
 	defer dummySeg.Unlock()
 
 	dummySeg.Name = name
-	dummySeg.TraceID = "dummy segment"
+	dummySeg.TraceID = NewTraceID()
 	dummySeg.Sampled = false
 
 	return context.WithValue(ctx, ContextKey, dummySeg), dummySeg
@@ -139,7 +139,7 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 		return context.WithValue(ctx, ContextKey, seg), seg
 	}
 
-	return BeginDummySegment(ctx, "Dummy Seg")
+	return BeginDummySegment(ctx, "DummySegment")
 }
 
 func basicSegment(name string, h *header.Header) *Segment {
@@ -221,7 +221,7 @@ func (seg *Segment) assignConfiguration(cfg *Config) {
 	seg.Unlock()
 }
 
-// Begin DummySubSegment creates a in the case of no sampling to reduce memory footprint
+// Begin DummySubSegment creates a subsegment in the case of no sampling to reduce memory footprint
 func BeginDummySubSegment(ctx context.Context, name string) (context.Context, *Segment) {
 	parent := GetSegment(ctx)
 	if parent == nil {
@@ -236,14 +236,13 @@ func BeginDummySubSegment(ctx context.Context, name string) (context.Context, *S
 	}
 
 	dummySubSeg := &Segment{parent: parent}
-	logger.Debugf("Beginning subsegment named %s", name)
+	logger.Debugf("Beginning dummy subsegment named %s", name)
 
 	dummySubSeg.Lock()
 	defer dummySubSeg.Unlock()
 
 	dummySubSeg.ParentSegment = parent.ParentSegment
 	dummySubSeg.Name = name
-	dummySubSeg.TraceID = "dummy subsegment"
 
 	return context.WithValue(ctx, ContextKey, dummySubSeg), dummySubSeg
 }
@@ -296,7 +295,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 		return context.WithValue(ctx, ContextKey, seg), seg
 	}
 
-	return BeginDummySegment(ctx, "Dummy SubSeg")
+	return BeginDummySegment(ctx, "DummySubSegment")
 }
 
 // NewSegmentFromHeader creates a segment for downstream call and add information to the segment that gets from HTTP header.
