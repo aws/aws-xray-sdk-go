@@ -10,6 +10,8 @@ package xray
 
 import (
 	"context"
+	"net/http"
+	"net/url"
 	"sync"
 	"testing"
 	"time"
@@ -94,7 +96,7 @@ func TestSegmentDownstreamHeader(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &header.Header{
+	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &http.Request{URL:&url.URL{}}, &header.Header{
 		TraceID:  "fakeid",
 		ParentID: "reqid",
 	})
@@ -140,3 +142,4 @@ func TestParentSegmentTotalCount(t *testing.T) {
 
 	assert.Equal(t, 4*uint32(n), seg.ParentSegment.totalSubSegments, "totalSubSegments count should be correctly registered on the parent segment")
 }
+
