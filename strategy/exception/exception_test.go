@@ -102,5 +102,5 @@ func TestExceptionFromError(t *testing.T) {
 
 	assert.NotNil(t, err.ID)
 	assert.Equal(t, "new error", err.Message)
-	assert.Equal(t, "error", err.Type)
+	assert.Equal(t, "errors.errorString", err.Type)
 }
