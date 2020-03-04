@@ -129,9 +129,11 @@ func newCentralizedStrategy(fb *LocalizedStrategy) (*CentralizedStrategy, error)
 // ShouldTrace determines whether a request should be sampled. It matches the given parameters against
 // a list of known rules and uses the matched rule's values to make a decision.
 func (ss *CentralizedStrategy) ShouldTrace(request *Request) *Decision {
+	ss.mu.Lock()
 	if !ss.pollerStart {
 		ss.start()
 	}
+	ss.mu.Unlock()
 	if request.ServiceType == "" {
 		request.ServiceType = plugins.InstancePluginMetadata.Origin
 	}
@@ -185,8 +187,6 @@ func (ss *CentralizedStrategy) ShouldTrace(request *Request) *Decision {
 
 // start initiates rule and target pollers.
 func (ss *CentralizedStrategy) start() {
-	ss.mu.Lock()
-
 	if !ss.pollerStart {
 		var er error
 		ss.proxy, er = newProxy(ss.daemonEndpoints)
@@ -198,8 +198,6 @@ func (ss *CentralizedStrategy) start() {
 	}
 
 	ss.pollerStart = true
-
-	ss.mu.Unlock()
 }
 
 // startRulePoller starts rule poller.

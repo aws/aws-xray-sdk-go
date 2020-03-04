@@ -199,17 +199,19 @@ type Rule struct {
 
 	// Common sampling rule properties
 	*Properties
+
+	mu sync.RWMutex
 }
 
 // Sample is used to provide sampling decision.
 func (r *Rule) Sample() *Decision {
 	var sd Decision
-
+	r.mu.Lock()
 	if r.reservoir.Take() {
 		sd.Sample = true
 	} else {
 		sd.Sample = r.rand.Float64() < r.Rate
 	}
-
+	r.mu.Unlock()
 	return &sd
 }

@@ -121,9 +121,14 @@ func (dEFS *DefaultFormattingStrategy) ExceptionFromError(err error) Exception {
 			isRemote = true
 		}
 	}
+
+	// Fetches type from err
+	t := fmt.Sprintf("%T", err)
+	// normalize the type
+	t = strings.Replace(t, "*", "", -1)
 	e := Exception{
 		ID:      newExceptionID(),
-		Type:    "error",
+		Type:    t,
 		Message: err.Error(),
 		Remote:  isRemote,
 	}
