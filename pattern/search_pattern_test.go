@@ -179,3 +179,10 @@ func TestMultiGlobs(t *testing.T) {
 	assert.True(t, WildcardMatchCaseInsensitive("*?*a*", "ba"))
 
 }
+
+// Benchmark
+func BenchmarkWildcardMatch(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		WildcardMatch("*?", "aa", true)
+	}
+}
