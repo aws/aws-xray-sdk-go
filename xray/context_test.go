@@ -156,7 +156,7 @@ func TestAddError(t *testing.T) {
 		return
 	}
 	assert.Equal(t, "New Error", seg.Cause.Exceptions[0].Message)
-	assert.Equal(t, "error", seg.Cause.Exceptions[0].Type)
+	assert.Equal(t, "errors.errorString", seg.Cause.Exceptions[0].Type)
 }
 
 // Benchmarks
