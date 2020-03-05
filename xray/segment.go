@@ -95,7 +95,7 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 		if traceHeader.SamplingDecision != header.Sampled && traceHeader.SamplingDecision != header.NotSampled {
 			samplingRequest := &sampling.Request{
 				Host:        r.Host,
-				Url:         r.URL.Path,
+				URL:         r.URL.Path,
 				Method:      r.Method,
 				ServiceName: seg.Name,
 				ServiceType: plugins.InstancePluginMetadata.Origin,
