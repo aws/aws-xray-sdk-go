@@ -17,7 +17,7 @@ import (
 )
 
 // Header is added before sending segments to daemon.
-var Header = []byte(`{"format": "json", "version": 1}` + "\n")
+//var Header = []byte(`{"format": "json", "version": 1}` + "\n")
 
 // DefaultEmitter provides the naive implementation of emitting trace entities.
 type DefaultEmitter struct {
