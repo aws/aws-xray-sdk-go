@@ -57,6 +57,7 @@ func (de *DefaultEmitter) refresh(raddr *net.UDPAddr) (err error) {
 // Emit segment or subsegment if root segment is sampled.
 // seg has a write lock acquired by the caller.
 func (de *DefaultEmitter) Emit(seg *Segment) {
+	var Header = []byte(`{"format": "json", "version": 1}` + "\n")
 	if seg == nil || !seg.ParentSegment.Sampled {
 		return
 	}
