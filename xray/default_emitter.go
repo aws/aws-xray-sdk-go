@@ -17,7 +17,7 @@ import (
 )
 
 // Header is added before sending segments to daemon.
-//var Header = []byte(`{"format": "json", "version": 1}` + "\n")
+const Header = `{"format": "json", "version": 1}` + "\n"
 
 // DefaultEmitter provides the naive implementation of emitting trace entities.
 type DefaultEmitter struct {
@@ -57,7 +57,8 @@ func (de *DefaultEmitter) refresh(raddr *net.UDPAddr) (err error) {
 // Emit segment or subsegment if root segment is sampled.
 // seg has a write lock acquired by the caller.
 func (de *DefaultEmitter) Emit(seg *Segment) {
-	var Header = []byte(`{"format": "json", "version": 1}` + "\n")
+	HeaderBytes := []byte(Header)
+
 	if seg == nil || !seg.ParentSegment.Sampled {
 		return
 	}
@@ -74,7 +75,7 @@ func (de *DefaultEmitter) Emit(seg *Segment) {
 			}
 		}
 
-		_, err := de.conn.Write(append(Header, p...))
+		_, err := de.conn.Write(append(HeaderBytes, p...))
 		if err != nil {
 			logger.Error(err)
 		}

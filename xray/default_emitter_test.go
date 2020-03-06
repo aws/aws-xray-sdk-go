@@ -162,8 +162,6 @@ func BenchmarkDefaultEmitter_packSegments(b *testing.B) {
 }
 
 func BenchmarkDefaultEmitter(b *testing.B) {
-	//Header = append(make([]byte, 0, 1024), Header...)
-
 	seg := &Segment{
 		ParentSegment: &Segment{
 			Sampled: true,
