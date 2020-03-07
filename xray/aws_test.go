@@ -236,3 +236,65 @@ func testAWSDataRace(ctx context.Context, td *TestDaemon, t *testing.T, svc *lam
 	wg.Wait()
 	seg.Close(nil)
 }
+
+// Benchmarks
+func buildFakeBenchmarkSession(b *testing.B, failConn bool) (*session.Session, func()) {
+	cfg := &aws.Config{
+		Region:      aws.String("fake-moon-1"),
+		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop"),
+	}
+
+	var ts *httptest.Server
+	if !failConn {
+		ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			b := []byte(`{}`)
+			w.WriteHeader(http.StatusOK)
+			w.Write(b)
+		}))
+		cfg.Endpoint = aws.String(ts.URL)
+	}
+	s, err := session.NewSession(cfg)
+	assert.NoError(b, err)
+	return s, func() {
+		if ts != nil {
+			ts.Close()
+		}
+	}
+}
+
+func BenchmarkAWS_Datarace(b *testing.B) {
+	session, cleanup := buildFakeBenchmarkSession(b, false)
+	defer cleanup()
+	const whitelist = "../resources/AWSWhitelist.json"
+	svc := lambda.New(AWSSessionWithWhitelist(session, whitelist))
+
+	for i :=0; i<b.N; i++ {
+
+		ctx, cancel := context.WithCancel(context.Background())
+		ctx, seg := BeginSegment(ctx, "TestSegment")
+
+		var wg sync.WaitGroup
+		for i := 0; i < 5; i++ {
+			if i != 3 && i != 2 {
+				wg.Add(1)
+			}
+			go func(i int) {
+				if i != 3 && i != 2 {
+					time.Sleep(time.Nanosecond)
+					defer wg.Done()
+				}
+				_, seg := BeginSubsegment(ctx, "TestSubsegment1")
+				time.Sleep(time.Nanosecond)
+				seg.Close(nil)
+				svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
+				if i == 3 || i == 2 {
+					cancel() // cancel context
+				}
+			}(i)
+		}
+
+		wg.Wait()
+		seg.Close(nil)
+		cancel()
+	}
+}

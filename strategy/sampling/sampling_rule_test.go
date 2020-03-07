@@ -312,3 +312,34 @@ func TestSnapshot(t *testing.T) {
 	assert.Equal(t, "rule1", *ss.RuleName)
 	assert.Equal(t, now, *ss.Timestamp)
 }
+
+// Benchmarks
+func BenchmarkCentralizedRule_Sample(b *testing.B) {
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			clock := &utils.MockClock{
+				NowTime: 1500000000,
+			}
+
+			// Reservoir with unused quota
+			r := &reservoir{
+				currentEpoch: clock.Now().Unix(),
+				used:         0,
+			}
+
+			cr := &CentralizedReservoir{
+				quota:     10,
+				expiresAt: 1500000060,
+				reservoir: r,
+			}
+
+			csr := &CentralizedRule{
+				ruleName:  "r1",
+				reservoir: cr,
+				clock:     clock,
+			}
+			csr.Sample()
+		}
+	})
+}

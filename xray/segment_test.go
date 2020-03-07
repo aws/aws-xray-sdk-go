@@ -10,6 +10,7 @@ package xray
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"sync"
@@ -141,4 +142,29 @@ func TestParentSegmentTotalCount(t *testing.T) {
 	wg.Wait()
 
 	assert.Equal(t, 4*uint32(n), seg.ParentSegment.totalSubSegments, "totalSubSegments count should be correctly registered on the parent segment")
+}
+
+// Benchmarks
+func BenchmarkBeginSegment(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, seg := BeginSegment(context.Background(), "TestBenchSeg")
+		seg.Close(nil)
+	}
+}
+
+func BenchmarkBeginSubsegment(b *testing.B) {
+	ctx, seg := BeginSegment(context.Background(), "TestBenchSeg")
+	for i := 0; i < b.N; i++ {
+		_, subSeg := BeginSubsegment(ctx, "TestBenchSubSeg")
+		subSeg.Close(nil)
+	}
+	seg.Close(nil)
+}
+
+func BenchmarkAddError(b *testing.B) {
+	_, seg := BeginSegment(context.Background(), "TestBenchSeg")
+	for i := 0; i < b.N; i++ {
+		seg.AddError(errors.New("new error"))
+	}
+	seg.Close(nil)
 }
