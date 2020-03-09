@@ -432,3 +432,10 @@ func TestRoundTripReuseHTTP2Datarace(t *testing.T) {
 	// 	}
 	// }
 }
+
+// Benchmarks
+func BenchmarkClient(b *testing.B) {
+	for i:=0; i<b.N; i++ {
+		Client(nil)
+	}
+}
