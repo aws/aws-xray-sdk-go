@@ -10,7 +10,8 @@ package ec2
 
 import "github.com/aws/aws-xray-sdk-go/awsplugins/ec2"
 
-const Origin = "AWS::EC2::Instance"
+// Origin is the type of AWS resource that runs your application.
+const Origin = ec2.Origin
 
 func init() {
 	ec2.Init()

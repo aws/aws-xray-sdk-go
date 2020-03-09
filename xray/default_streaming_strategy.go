@@ -71,9 +71,9 @@ func (dSS *DefaultStreamingStrategy) StreamCompletedSubsegments(seg *Segment) []
 		// Add extra information into child subsegment
 		child.Lock()
 		child.beforeEmitSubsegment(seg)
-		cb, err:= json.Marshal(child)
-		if err!= nil{
-			logger.Errorf("JSON error while marshalling subsegment: %v",err)
+		cb, err := json.Marshal(child)
+		if err != nil {
+			logger.Errorf("JSON error while marshalling subsegment: %v", err)
 		}
 		outSegments = append(outSegments, cb)
 		logger.Debugf("Streaming subsegment named '%s' from segment tree.", child.Name)
