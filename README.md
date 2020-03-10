@@ -195,6 +195,18 @@ xray.AWS(dynamo.Client)
 dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
 ```
 
+**S3**
+
+`aws-xray-sdk-go` does not currently support [`*Request.Presign()`](https://docs.aws.amazon.com/sdk-for-go/api/aws/request/#Request.Presign) operations and will panic if one is encountered.  This results in an error similar to: 
+
+`panic: failed to begin subsegment named 's3': segment cannot be found.`
+
+If you encounter this, you can set `AWS_XRAY_CONTEXT_MISSING` environment variable to `LOG_ERROR`.  This will instruct the SDK to log the error and continue processing your requests.
+
+```go
+os.Setenv("AWS_XRAY_CONTEXT_MISSING", "LOG_ERROR")
+```
+
 **SQL**
 
 Any `database/sql` calls can be traced with X-Ray by replacing the `sql.Open` call with `xray.SQLContext`. It is recommended to use URLs instead of configuration strings if possible.
@@ -214,9 +226,8 @@ Note that the `xray.SQL` are deprecated and will be remove when the SDK becomes 
 For Lambda support use version v1.0.0-rc.1 and higher
 ```
 
-Regarding Lambda integration, lambda will be responsible for generating segments for customers and send them to X-Ray service. AWS X-Ray Go SDK will make sure there will be a FacadeSegment inside lambda context so that customers are able to instrument their application successfully for subsegments generation case which includes `Capture`, `HTTP Client`, `AWS`, `SQL` and `Custom Subsegments` usage.
+If you are using the AWS X-Ray Go SDK inside a Lambda function, there will be a FacadeSegment inside the Lambda context.  This allows you to instrument your Lambda function using `Configure`, `Capture`, `HTTP Client`, `AWS`, `SQL` and `Custom Subsegments` usage.  `Segment` operations are not supported.
 
-Any operations regarding segment is not supported when using Lambda function.
 ```go
 func HandleRequest(ctx context.Context, name string) (string, error) {
     xray.Configure(xray.Config{LogLevel: "trace"})

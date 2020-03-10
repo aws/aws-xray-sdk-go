@@ -5,6 +5,7 @@
 //     http://aws.amazon.com/apache2.0/
 //
 // or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
 package daemoncfg
 
 import (
@@ -21,12 +22,12 @@ var addressDelimiter = " " // delimiter between tcp and udp addresses
 var udpKey = "udp"
 var tcpKey = "tcp"
 
-/// DaemonEndpoints stores X-Ray daemon configuration about the ip address and port for UDP and TCP port. It gets the address
-/// string from "AWS_TRACING_DAEMON_ADDRESS" and then from recorder's configuration for DaemonAddr.
-/// A notation of '127.0.0.1:2000' or 'tcp:127.0.0.1:2000 udp:127.0.0.2:2001' or 'udp:127.0.0.1:2000 tcp:127.0.0.2:2001'
-/// are both acceptable. The first one means UDP and TCP are running at the same address.
-/// Notation 'hostname:2000' or 'tcp:hostname:2000 udp:hostname:2001' or 'udp:hostname:2000 tcp:hostname:2001' are also acceptable.
-/// By default it assumes a X-Ray daemon running at 127.0.0.1:2000 listening to both UDP and TCP traffic.
+// DaemonEndpoints stores X-Ray daemon configuration about the ip address and port for UDP and TCP port. It gets the address
+// string from "AWS_TRACING_DAEMON_ADDRESS" and then from recorder's configuration for DaemonAddr.
+// A notation of '127.0.0.1:2000' or 'tcp:127.0.0.1:2000 udp:127.0.0.2:2001' or 'udp:127.0.0.1:2000 tcp:127.0.0.2:2001'
+// are both acceptable. The first one means UDP and TCP are running at the same address.
+// Notation 'hostname:2000' or 'tcp:hostname:2000 udp:hostname:2001' or 'udp:hostname:2000 tcp:hostname:2001' are also acceptable.
+// By default it assumes a X-Ray daemon running at 127.0.0.1:2000 listening to both UDP and TCP traffic.
 type DaemonEndpoints struct {
 	// UDPAddr represents UDP endpoint for segments to be sent by emitter.
 	UDPAddr *net.UDPAddr
@@ -93,13 +94,13 @@ func GetDaemonEndpointsFromString(dAddr string) (*DaemonEndpoints, error) {
 
 func resolveAddress(dAddr string) (*DaemonEndpoints, error) {
 	addr := strings.Split(dAddr, addressDelimiter)
-	if len(addr) == 1 {
+	switch len(addr) {
+	case 1:
 		return parseSingleForm(addr[0])
-	} else if len(addr) == 2 {
+	case 2:
 		return parseDoubleForm(addr)
-	} else {
-		return nil, errors.New("invalid daemon address: " + dAddr)
 	}
+	return nil, errors.New("invalid daemon address: " + dAddr)
 }
 
 func parseDoubleForm(addr []string) (*DaemonEndpoints, error) {

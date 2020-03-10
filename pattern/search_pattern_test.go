@@ -28,7 +28,7 @@ func TestMatchExactNegative(t *testing.T) {
 	assert.False(t, WildcardMatchCaseInsensitive("foo", "bar"))
 }
 
-func TestSignleWildcardPositive(t *testing.T) {
+func TestSingleWildcardPositive(t *testing.T) {
 	assert.True(t, WildcardMatchCaseInsensitive("fo?", "foo"))
 }
 
@@ -178,4 +178,11 @@ func TestMultiGlobs(t *testing.T) {
 	assert.False(t, WildcardMatchCaseInsensitive("*?*a", "a"))
 	assert.True(t, WildcardMatchCaseInsensitive("*?*a*", "ba"))
 
+}
+
+// Benchmark
+func BenchmarkWildcardMatch(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		WildcardMatch("*?", "aa", true)
+	}
 }

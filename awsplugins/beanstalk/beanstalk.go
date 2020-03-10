@@ -16,8 +16,10 @@ import (
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
 )
 
+// Origin is the type of AWS resource that runs your application.
 const Origin = "AWS::ElasticBeanstalk::Environment"
 
+// Init activates ElasticBeanstalkPlugin at runtime.
 func Init() {
 	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.BeanstalkMetadata == nil {
 		addPluginMetadata(plugins.InstancePluginMetadata)
