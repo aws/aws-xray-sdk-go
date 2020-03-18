@@ -26,9 +26,16 @@ import (
 	"github.com/aws/aws-xray-sdk-go/resources"
 )
 
+// RequestIDKey is the key name of the request id.
 const RequestIDKey string = "request_id"
+
+// ExtendedRequestIDKey is the key name of the extend request id.
 const ExtendedRequestIDKey string = "id_2"
+
+// S3ExtendedRequestIDHeaderKey is the key name of the s3 extend request id.
 const S3ExtendedRequestIDHeaderKey string = "x-amz-id-2"
+
+// TraceIDHeaderKey is the HTTP header name used for tracing.
 const TraceIDHeaderKey = "x-amzn-trace-id"
 
 type jsonMap struct {

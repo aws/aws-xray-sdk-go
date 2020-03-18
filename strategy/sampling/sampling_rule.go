@@ -40,7 +40,7 @@ func (p *Properties) AppliesTo(host, path, method string) bool {
 // Assumes lock is already held, if required.
 func (r *CentralizedRule) AppliesTo(request *Request) bool {
 	return (request.Host == "" || pattern.WildcardMatchCaseInsensitive(r.Host, request.Host)) &&
-		(request.Url == "" || pattern.WildcardMatchCaseInsensitive(r.URLPath, request.Url)) &&
+		(request.URL == "" || pattern.WildcardMatchCaseInsensitive(r.URLPath, request.URL)) &&
 		(request.Method == "" || pattern.WildcardMatchCaseInsensitive(r.HTTPMethod, request.Method)) &&
 		(request.ServiceName == "" || pattern.WildcardMatchCaseInsensitive(r.ServiceName, request.ServiceName)) &&
 		(request.ServiceType == "" || pattern.WildcardMatchCaseInsensitive(r.serviceType, request.ServiceType))
@@ -190,7 +190,7 @@ func (r *CentralizedRule) snapshot() *xraySvc.SamplingStatisticsDocument {
 	return s
 }
 
-// Local Sampling Rule
+// Rule is local sampling rule.
 type Rule struct {
 	reservoir *Reservoir
 
@@ -199,16 +199,19 @@ type Rule struct {
 
 	// Common sampling rule properties
 	*Properties
+
+	mu sync.RWMutex
 }
 
+// Sample is used to provide sampling decision.
 func (r *Rule) Sample() *Decision {
 	var sd Decision
-
+	r.mu.Lock()
 	if r.reservoir.Take() {
 		sd.Sample = true
 	} else {
 		sd.Sample = r.rand.Float64() < r.Rate
 	}
-
+	r.mu.Unlock()
 	return &sd
 }
