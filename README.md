@@ -219,7 +219,6 @@ Regarding Lambda integration, lambda will be responsible for generating segments
 Any operations regarding segment is not supported when using Lambda function.
 ```go
 func HandleRequest(ctx context.Context, name string) (string, error) {
-    xray.Configure(xray.Config{LogLevel: "trace"})
     sess := session.Must(session.NewSession())
     dynamo := dynamodb.New(sess)
     xray.AWS(dynamo.Client)
