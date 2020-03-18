@@ -230,7 +230,6 @@ If you are using the AWS X-Ray Go SDK inside a Lambda function, there will be a 
 
 ```go
 func HandleRequest(ctx context.Context, name string) (string, error) {
-    xray.Configure(xray.Config{LogLevel: "trace"})
     sess := session.Must(session.NewSession())
     dynamo := dynamodb.New(sess)
     xray.AWS(dynamo.Client)

@@ -1,4 +1,4 @@
-Release v1.0.0-rc.15 (2019-03-09)
+Release v1.0.0-rc.15 (2019-03-11)
 ================================
 ### SDK Breaking Changes
 * Custom SQL driver. [PR #169](https://github.com/aws/aws-xray-sdk-go/pull/169)
