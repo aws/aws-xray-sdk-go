@@ -161,7 +161,9 @@ func TestAddError(t *testing.T) {
 
 // Benchmarks
 func BenchmarkGetRecorder(b *testing.B) {
-	ctx, seg := BeginSegment(context.Background(), "TestSeg")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
 	for i := 0; i < b.N; i++ {
 		GetRecorder(ctx)
 	}
@@ -169,7 +171,9 @@ func BenchmarkGetRecorder(b *testing.B) {
 }
 
 func BenchmarkGetSegment(b *testing.B) {
-	ctx, seg := BeginSegment(context.Background(), "TestSeg")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
 	for i := 0; i < b.N; i++ {
 		GetSegment(ctx)
 	}
@@ -177,7 +181,9 @@ func BenchmarkGetSegment(b *testing.B) {
 }
 
 func BenchmarkDetachContext(b *testing.B) {
-	ctx, seg := BeginSegment(context.Background(), "TestSeg")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
 	for i := 0; i < b.N; i++ {
 		DetachContext(ctx)
 	}
@@ -185,7 +191,9 @@ func BenchmarkDetachContext(b *testing.B) {
 }
 
 func BenchmarkAddAnnotation(b *testing.B) {
-	ctx, seg := BeginSegment(context.Background(), "TestSeg")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
 	for i := 0; i < b.N; i++ {
 		err := AddAnnotation(ctx, "key", "value")
 		if err != nil {
@@ -196,7 +204,9 @@ func BenchmarkAddAnnotation(b *testing.B) {
 }
 
 func BenchmarkAddMetadata(b *testing.B) {
-	ctx, seg := BeginSegment(context.Background(), "TestSeg")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
 	for i := 0; i < b.N; i++ {
 		err := AddMetadata(ctx, "key", "value")
 		if err != nil {

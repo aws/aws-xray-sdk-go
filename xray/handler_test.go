@@ -158,12 +158,14 @@ func TestXRayHandlerPreservesOptionalInterfaces(t *testing.T) {
 
 // Benchmarks
 func BenchmarkHandler(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 	})
 
 	for i := 0; i < b.N; i++ {
-		ts := httptest.NewServer(Handler(NewFixedSegmentNamer("test"), handler))
+		ts := httptest.NewServer(HandlerWithContext(ctx, NewFixedSegmentNamer("test"), handler))
 		req := httptest.NewRequest(http.MethodGet, ts.URL, strings.NewReader(""))
 		http.DefaultTransport.RoundTrip(req)
 		ts.Close()
