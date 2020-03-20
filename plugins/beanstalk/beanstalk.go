@@ -10,7 +10,8 @@ package beanstalk
 
 import "github.com/aws/aws-xray-sdk-go/awsplugins/beanstalk"
 
-const Origin = "AWS::ElasticBeanstalk::Environment"
+// Origin is the type of AWS resource that runs your application.
+const Origin = beanstalk.Origin
 
 func init() {
 	beanstalk.Init()

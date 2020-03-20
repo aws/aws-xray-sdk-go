@@ -6,10 +6,11 @@
 //
 // or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-// Reservoirs allow a specified (`perSecond`) amount of `Take()`s per second.
 package sampling
 
 import "github.com/aws/aws-xray-sdk-go/utils"
+
+// Reservoirs allow a specified (`perSecond`) amount of `Take()`s per second.
 
 // reservoir is a set of properties common to all reservoirs
 type reservoir struct {

@@ -9,8 +9,13 @@
 package plugins
 
 const (
-	EBServiceName  = "elastic_beanstalk"
+	// EBServiceName is the key name for metadata of ElasticBeanstalkPlugin.
+	EBServiceName = "elastic_beanstalk"
+
+	// EC2ServiceName is the key name for metadata of EC2Plugin.
 	EC2ServiceName = "ec2"
+
+	// ECSServiceName is the key name for metadata of ECSPlugin.
 	ECSServiceName = "ecs"
 )
 

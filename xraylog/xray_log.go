@@ -21,7 +21,7 @@ import (
 // to show up).
 type Logger interface {
 	// Log can be called concurrently from multiple goroutines so make sure
-	// your implemenation is goroutine safe.
+	// your implementation is goroutine safe.
 	Log(level LogLevel, msg fmt.Stringer)
 }
 
@@ -31,9 +31,16 @@ type Logger interface {
 type LogLevel int
 
 const (
+	// LogLevelDebug is usually only enabled when debugging.
 	LogLevelDebug LogLevel = iota + 1
+
+	// LogLevelInfo is general operational entries about what's going on inside the application.
 	LogLevelInfo
+
+	// LogLevelWarn is non-critical entries that deserve eyes.
 	LogLevelWarn
+
+	// LogLevelError is used for errors that should definitely be noted.
 	LogLevelError
 )
 

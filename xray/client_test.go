@@ -336,14 +336,6 @@ func TestRoundTripReuseDatarace(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-
-	// FIXME: @shogo82148 sometimes fail with context deadline exceeded
-	// for i := 0; i < n; i++ {
-	// 	_, err := td.Recv()
-	// 	if !assert.NoError(t, err) {
-	// 		return
-	// 	}
-	// }
 }
 
 func TestRoundTripReuseTLSDatarace(t *testing.T) {
@@ -373,14 +365,6 @@ func TestRoundTripReuseTLSDatarace(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-
-	// FIXME: @shogo82148 sometimes fail with context deadline exceeded
-	// for i := 0; i < n; i++ {
-	// 	_, err := td.Recv()
-	// 	if !assert.NoError(t, err) {
-	// 		return
-	// 	}
-	// }
 }
 
 func TestRoundTripReuseHTTP2Datarace(t *testing.T) {
@@ -423,12 +407,11 @@ func TestRoundTripReuseHTTP2Datarace(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
 
-	// FIXME: @shogo82148 sometimes fail with context deadline exceeded
-	// for i := 0; i < n; i++ {
-	// 	_, err := td.Recv()
-	// 	if !assert.NoError(t, err) {
-	// 		return
-	// 	}
-	// }
+// Benchmarks
+func BenchmarkClient(b *testing.B) {
+	for i:=0; i<b.N; i++ {
+		Client(nil)
+	}
 }

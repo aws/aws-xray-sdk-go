@@ -17,16 +17,19 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-type timer struct {
+// Timer is the same as time.Timer except that it has jitters.
+// A Timer must be created with NewTimer.
+type Timer struct {
 	t      *time.Timer
 	d      time.Duration
 	jitter time.Duration
 }
 
-func NewTimer(d, jitter time.Duration) *timer {
+// NewTimer creates a new Timer that will send the current time on its channel.
+func NewTimer(d, jitter time.Duration) *Timer {
 	t := time.NewTimer(d - time.Duration(rand.Int63n(int64(jitter))))
 
-	jitteredTimer := timer{
+	jitteredTimer := Timer{
 		t:      t,
 		d:      d,
 		jitter: jitter,
@@ -35,10 +38,13 @@ func NewTimer(d, jitter time.Duration) *timer {
 	return &jitteredTimer
 }
 
-func (j *timer) C() <-chan time.Time {
+// C is channel.
+func (j *Timer) C() <-chan time.Time {
 	return j.t.C
 }
 
-func (j *timer) Reset() {
+// Reset resets the timer.
+// Reset should be invoked only on stopped or expired timers with drained channels.
+func (j *Timer) Reset() {
 	j.t.Reset(j.d - time.Duration(rand.Int63n(int64(j.jitter))))
 }
