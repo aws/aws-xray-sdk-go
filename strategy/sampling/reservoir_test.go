@@ -46,7 +46,7 @@ func TestOnePerSecond(t *testing.T) {
 	taken := takeOverTime(res, TestDuration)
 	assert.True(t, int(math.Ceil(TestDuration/1000.0)) <= taken)
 	assert.True(t, int(math.Ceil(TestDuration/1000.0))+cap >= taken)
-	// Try 4s
+	// Try 1
 }
 
 func TestTenPerSecond(t *testing.T) {
