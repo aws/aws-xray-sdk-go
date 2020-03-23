@@ -10,7 +10,8 @@ package ecs
 
 import "github.com/aws/aws-xray-sdk-go/awsplugins/ecs"
 
-const Origin = "AWS::ECS::Container"
+// Origin is the type of AWS resource that runs your application.
+const Origin = ecs.Origin
 
 func init() {
 	ecs.Init()
