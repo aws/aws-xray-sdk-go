@@ -20,8 +20,6 @@ import (
 const Interval = 100
 
 func takeOverTime(r *Reservoir, millis int) int {
-	r.mu.Lock()
-	defer r.mu.Unlock()
 	taken := 0
 	for i := 0; i < millis/Interval; i++ {
 		if r.Take() {

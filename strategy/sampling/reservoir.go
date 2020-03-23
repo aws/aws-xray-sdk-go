@@ -98,6 +98,8 @@ type Reservoir struct {
 
 // Take attempts to consume a unit from the local reservoir. Returns true if unit taken, false otherwise.
 func (r *Reservoir) Take() bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	// Reset counters if new second
 	if now := r.clock.Now().Unix(); now != r.currentEpoch {
 		r.used = 0
