@@ -54,25 +54,6 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
-// Begin DummySegment creates a segment in the case of no sampling to reduce memory footprint
-func BeginDummySegment(ctx context.Context, name string) (context.Context, *Segment) {
-	dummySeg := &Segment{parent: nil}
-	dummySeg.ParentSegment = dummySeg
-	logger.Debugf("Beginning dummy segment named %s", name)
-
-	cfg := GetRecorder(ctx)
-	dummySeg.assignConfiguration(cfg)
-
-	dummySeg.Lock()
-	defer dummySeg.Unlock()
-
-	dummySeg.Name = name
-	dummySeg.TraceID = NewTraceID()
-	dummySeg.Sampled = false
-
-	return context.WithValue(ctx, ContextKey, dummySeg), dummySeg
-}
-
 // BeginSegment creates a Segment for a given name and context.
 func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) {
 
@@ -133,11 +114,7 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 		}()
 	}
 
-	if seg.Sampled {
-		return context.WithValue(ctx, ContextKey, seg), seg
-	}
-
-	return BeginDummySegment(ctx, "DummySegment")
+	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
 func basicSegment(name string, h *header.Header) *Segment {
@@ -219,32 +196,6 @@ func (seg *Segment) assignConfiguration(cfg *Config) {
 	seg.Unlock()
 }
 
-// Begin DummySubSegment creates a subsegment in the case of no sampling to reduce memory footprint
-func BeginDummySubSegment(ctx context.Context, name string) (context.Context, *Segment) {
-	parent := GetSegment(ctx)
-	if parent == nil {
-		cfg := GetRecorder(ctx)
-		failedMessage := fmt.Sprintf("failed to begin subsegment named '%v': segment cannot be found.", name)
-		if cfg != nil && cfg.ContextMissingStrategy != nil {
-			cfg.ContextMissingStrategy.ContextMissing(failedMessage)
-		} else {
-			globalCfg.ContextMissingStrategy().ContextMissing(failedMessage)
-		}
-		return ctx, nil
-	}
-
-	dummySubSeg := &Segment{parent: parent}
-	logger.Debugf("Beginning dummy subsegment named %s", name)
-
-	dummySubSeg.Lock()
-	defer dummySubSeg.Unlock()
-
-	dummySubSeg.ParentSegment = parent.ParentSegment
-	dummySubSeg.Name = name
-
-	return context.WithValue(ctx, ContextKey, dummySubSeg), dummySubSeg
-}
-
 // BeginSubsegment creates a subsegment for a given name and context.
 func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segment) {
 	if len(name) > 200 {
@@ -289,11 +240,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = true
 
-	if seg.ParentSegment.Sampled {
-		return context.WithValue(ctx, ContextKey, seg), seg
-	}
-
-	return BeginDummySegment(ctx, "DummySubSegment")
+	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
 // NewSegmentFromHeader creates a segment for downstream call and add information to the segment that gets from HTTP header.
