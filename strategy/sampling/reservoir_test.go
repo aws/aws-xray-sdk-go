@@ -47,7 +47,7 @@ func TestOnePerSecond(t *testing.T) {
 	assert.True(t, int(math.Ceil(TestDuration/1000.0)) <= taken)
 	// See: https://github.com/aws/aws-xray-sdk-go/pull/177#issuecomment-576957465
 	assert.True(t, int(math.Ceil(TestDuration/1000.0))+cap >= taken)
-	// Try 1
+	// Try 2
 }
 
 func TestTenPerSecond(t *testing.T) {
