@@ -22,12 +22,12 @@ const Interval = 100
 func takeOverTime(r *Reservoir, millis int) int {
 	taken := 0
 	for i := 0; i < millis/Interval; i++ {
-		r.mu.Lock()
+		//r.mu.Lock()
 		if r.Take() {
 			taken++
 		}
 		time.Sleep(Interval * time.Millisecond)
-		r.mu.Unlock()
+		//r.mu.Unlock()
 	}
 	return taken
 }
