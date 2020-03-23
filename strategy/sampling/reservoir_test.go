@@ -22,10 +22,12 @@ const Interval = 100
 func takeOverTime(r *Reservoir, millis int) int {
 	taken := 0
 	for i := 0; i < millis/Interval; i++ {
+		r.mu.Lock()
 		if r.Take() {
 			taken++
 		}
 		time.Sleep(Interval * time.Millisecond)
+		r.mu.Unlock()
 	}
 	return taken
 }
@@ -44,6 +46,7 @@ func TestOnePerSecond(t *testing.T) {
 	taken := takeOverTime(res, TestDuration)
 	assert.True(t, int(math.Ceil(TestDuration/1000.0)) <= taken)
 	assert.True(t, int(math.Ceil(TestDuration/1000.0))+cap >= taken)
+	// Try 4s
 }
 
 func TestTenPerSecond(t *testing.T) {
