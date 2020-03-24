@@ -21,14 +21,14 @@ const Interval = 100
 
 func takeOverTime(r *Reservoir, millis int) int {
 	taken := 0
+	r.mu.Lock()
 	for i := 0; i < millis/Interval; i++ {
-		r.mu.Lock()
 		if r.Take() {
 			taken++
 		}
 		time.Sleep(Interval * time.Millisecond)
-		r.mu.Unlock()
 	}
+	r.mu.Unlock()
 	return taken
 }
 
@@ -294,6 +294,22 @@ func BenchmarkCentralizedReservoir_borrow(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			r.borrow(clock.Now().Unix())
+		}
+	})
+}
+
+func BenchmarkReservoir_Take(b *testing.B) {
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			clock := &utils.DefaultClock{}
+			cap := 1
+			res := &Reservoir{
+				clock: clock,
+				reservoir: &reservoir{
+					capacity: int64(cap),
+				},
+			}
+			takeOverTime(res, TestDuration)
 		}
 	})
 }
