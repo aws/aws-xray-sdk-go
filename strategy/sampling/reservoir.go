@@ -8,11 +8,7 @@
 
 package sampling
 
-import (
-	"sync"
-
-	"github.com/aws/aws-xray-sdk-go/utils"
-)
+import "github.com/aws/aws-xray-sdk-go/utils"
 
 // Reservoirs allow a specified (`perSecond`) amount of `Take()`s per second.
 
@@ -92,8 +88,6 @@ type Reservoir struct {
 	clock utils.Clock
 
 	*reservoir
-
-	mu sync.RWMutex
 }
 
 // Take attempts to consume a unit from the local reservoir. Returns true if unit taken, false otherwise.
