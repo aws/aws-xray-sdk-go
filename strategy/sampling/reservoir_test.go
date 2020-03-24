@@ -21,14 +21,12 @@ const Interval = 100
 
 func takeOverTime(r *Reservoir, millis int) int {
 	taken := 0
-	r.mu.Lock()
 	for i := 0; i < millis/Interval; i++ {
 		if r.Take() {
 			taken++
 		}
 		time.Sleep(Interval * time.Millisecond)
 	}
-	r.mu.Unlock()
 	return taken
 }
 
@@ -45,7 +43,7 @@ func TestOnePerSecond(t *testing.T) {
 	}
 	taken := takeOverTime(res, TestDuration)
 	assert.True(t, int(math.Ceil(TestDuration/1000.0)) <= taken)
-	assert.True(t, int(math.Ceil(TestDuration/1000.0))+cap >= taken)
+	assert.True(t, int(math.Ceil(TestDuration/1000.0))+(cap+1) >= taken)
 	// Try 2
 }
 
@@ -252,64 +250,4 @@ func TestResetReservoirUsageRotation(t *testing.T) {
 	assert.Equal(t, int64(1500000001), r.currentEpoch)
 	assert.Equal(t, true, taken)
 	assert.Equal(t, int64(1), r.used)
-}
-
-// Benchmarks
-func BenchmarkCentralizedReservoir_Take(b *testing.B) {
-	capacity := int64(100)
-	used := int64(0)
-	quota := int64(9)
-
-	clock := &utils.MockClock{
-		NowTime: 1500000000,
-	}
-
-	r := &CentralizedReservoir{
-		quota: quota,
-		reservoir: &reservoir{
-			capacity:     capacity,
-			used:         used,
-			currentEpoch: clock.Now().Unix(),
-		},
-	}
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			r.Take(clock.Now().Unix())
-		}
-	})
-}
-
-func BenchmarkCentralizedReservoir_borrow(b *testing.B) {
-	clock := &utils.MockClock{
-		NowTime: 1500000000,
-	}
-
-	r := &CentralizedReservoir{
-		reservoir: &reservoir{
-			capacity: 10,
-		},
-	}
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			r.borrow(clock.Now().Unix())
-		}
-	})
-}
-
-func BenchmarkReservoir_Take(b *testing.B) {
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			clock := &utils.DefaultClock{}
-			cap := 1
-			res := &Reservoir{
-				clock: clock,
-				reservoir: &reservoir{
-					capacity: int64(cap),
-				},
-			}
-			takeOverTime(res, TestDuration)
-		}
-	})
 }
