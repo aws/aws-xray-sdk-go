@@ -30,4 +30,3 @@ func (t *DefaultClock) Now() time.Time {
 func (t *DefaultClock) Increment(_, _ int64) time.Time {
 	return time.Now()
 }
-
