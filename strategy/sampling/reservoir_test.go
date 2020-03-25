@@ -9,12 +9,13 @@
 package sampling
 
 import (
+	"github.com/aws/aws-xray-sdk-go/utils"
+	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-xray-sdk-go/utils"
-	"github.com/stretchr/testify/assert"
+	//"time"
 )
 
 const Interval = 100
@@ -44,7 +45,7 @@ func TestOnePerSecond(t *testing.T) {
 	taken := takeOverTime(res, TestDuration)
 	assert.True(t, int(math.Ceil(TestDuration/1000.0)) <= taken)
 	assert.True(t, int(math.Ceil(TestDuration/1000.0))+(cap+1) >= taken)
-	// Try 2
+	// Try 3
 }
 
 func TestTenPerSecond(t *testing.T) {
