@@ -9,13 +9,12 @@
 package sampling
 
 import (
-	"github.com/aws/aws-xray-sdk-go/utils"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
 	"time"
 
-	//"time"
+	"github.com/aws/aws-xray-sdk-go/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 const Interval = 100
