@@ -9,24 +9,22 @@
 package sampling
 
 import (
-	"math"
-	"testing"
-	"time"
-
+	"fmt"
 	"github.com/aws/aws-xray-sdk-go/utils"
 	"github.com/stretchr/testify/assert"
+	"math"
+	"testing"
 )
 
 const Interval = 100
 
 func takeOverTime(r *Reservoir, millis int) int {
 	taken := 0
-	time.Now().Round(time.Second)
 	for i := 0; i < millis/Interval; i++ {
 		if r.Take() {
 			taken++
 		}
-		time.Sleep(Interval * time.Millisecond)
+		r.clock.Increment(0, 1e6 * Interval)
 	}
 	return taken
 }
@@ -34,7 +32,7 @@ func takeOverTime(r *Reservoir, millis int) int {
 const TestDuration = 1500
 
 func TestOnePerSecond(t *testing.T) {
-	clock := &utils.DefaultClock{}
+	clock := &utils.MockClock{}
 	cap := 1
 	res := &Reservoir{
 		clock: clock,
@@ -43,11 +41,12 @@ func TestOnePerSecond(t *testing.T) {
 		},
 	}
 	taken := takeOverTime(res, TestDuration)
+	fmt.Println(taken)
 	assert.True(t, int(math.Ceil(TestDuration/1000.0)) == taken)
 }
 
 func TestTenPerSecond(t *testing.T) {
-	clock := &utils.DefaultClock{}
+	clock := &utils.MockClock{}
 	cap := 10
 	res := &Reservoir{
 		clock: clock,
