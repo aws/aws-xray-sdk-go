@@ -24,7 +24,7 @@ func takeOverTime(r *Reservoir, millis int) int {
 		if r.Take() {
 			taken++
 		}
-		r.clock.Increment(0, 1e6 * Interval)
+		r.clock.Increment(0, 1e6*Interval)
 	}
 	return taken
 }
