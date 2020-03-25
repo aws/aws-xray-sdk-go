@@ -21,6 +21,7 @@ const Interval = 100
 
 func takeOverTime(r *Reservoir, millis int) int {
 	taken := 0
+	time.Now().Round(time.Second)
 	for i := 0; i < millis/Interval; i++ {
 		if r.Take() {
 			taken++
@@ -42,9 +43,7 @@ func TestOnePerSecond(t *testing.T) {
 		},
 	}
 	taken := takeOverTime(res, TestDuration)
-	assert.True(t, int(math.Ceil(TestDuration/1000.0)) <= taken)
-	assert.True(t, int(math.Ceil(TestDuration/1000.0))+(cap+1) >= taken)
-	// Try 3
+	assert.True(t, int(math.Ceil(TestDuration/1000.0)) == taken)
 }
 
 func TestTenPerSecond(t *testing.T) {
@@ -57,8 +56,7 @@ func TestTenPerSecond(t *testing.T) {
 		},
 	}
 	taken := takeOverTime(res, TestDuration)
-	assert.True(t, int(math.Ceil(float64(TestDuration*cap)/1000.0)) <= taken)
-	assert.True(t, int(math.Ceil(float64(TestDuration*cap)/1000.0))+cap >= taken)
+	assert.True(t, int(math.Ceil(float64(TestDuration*cap)/1000.0)) == taken)
 }
 
 func TestTakeQuotaAvailable(t *testing.T) {
