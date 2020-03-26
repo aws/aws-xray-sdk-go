@@ -2116,7 +2116,7 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 	assert.Equal(t, r3, ss.manifest.Index["r3"])
 
 	// Increment time to 1500000010
-	clock.Increment(10)
+	clock.Increment(10, 0)
 
 	// Expected state of 'r1' after refresh
 	expR1 := &CentralizedRule{
@@ -2176,7 +2176,7 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 	assert.Equal(t, expR3, ss.manifest.Index["r3"])
 
 	// Increment time to 1500000020
-	clock.Increment(10)
+	clock.Increment(10, 0)
 
 	// Expected state of 'r3' after refresh
 	expR3 = &CentralizedRule{
