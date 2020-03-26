@@ -14,16 +14,16 @@ package pattern
 import "strings"
 
 // WildcardMatchCaseInsensitive returns true if text matches pattern (case-insensitive); returns false otherwise.
-func WildcardMatchCaseInsensitive(pattern string, text string) bool {
+func WildcardMatchCaseInsensitive(pattern, text string) bool {
 	return WildcardMatch(pattern, text, true)
 }
 
 // WildcardMatch returns true if text matches pattern at the given case-sensitivity; returns false otherwise.
-func WildcardMatch(pattern string, text string, caseInsensitive bool) bool {
+func WildcardMatch(pattern, text string, caseInsensitive bool) bool {
 	patternLen := len(pattern)
 	textLen := len(text)
-	if 0 == patternLen {
-		return 0 == textLen
+	if patternLen == 0 {
+		return textLen == 0
 	}
 
 	if pattern == "*" {
@@ -41,23 +41,29 @@ func WildcardMatch(pattern string, text string, caseInsensitive bool) bool {
 	pStar := 0
 
 	for i < textLen {
-		if p < patternLen && pattern[p] == text[i] {
-			i++
-			p++
-		} else if p < patternLen && '?' == pattern[p] {
-			i++
-			p++
-		} else if p < patternLen && pattern[p] == '*' {
-			iStar = i
-			pStar = p
-			p++
-		} else if iStar != textLen {
-			iStar++
-			i = iStar
-			p = pStar + 1
-		} else {
+		if p < patternLen {
+			switch pattern[p] {
+			case text[i]:
+				i++
+				p++
+				continue
+			case '?':
+				i++
+				p++
+				continue
+			case '*':
+				iStar = i
+				pStar = p
+				p++
+				continue
+			}
+		}
+		if iStar == textLen {
 			return false
 		}
+		iStar++
+		i = iStar
+		p = pStar + 1
 	}
 
 	for p < patternLen && pattern[p] == '*' {
