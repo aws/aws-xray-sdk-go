@@ -54,11 +54,12 @@ const (
 )
 
 func samplingDecision(s string) SamplingDecision {
-	if s == string(Sampled) {
+	switch s {
+	case string(Sampled):
 		return Sampled
-	} else if s == string(NotSampled) {
+	case string(NotSampled):
 		return NotSampled
-	} else if s == string(Requested) {
+	case string(Requested):
 		return Requested
 	}
 	return Unknown
@@ -84,13 +85,14 @@ func FromString(s string) *Header {
 		p := strings.TrimSpace(parts[i])
 		value, valid := valueFromKeyValuePair(p)
 		if valid {
-			if strings.HasPrefix(p, RootPrefix) {
+			switch {
+			case strings.HasPrefix(p, RootPrefix):
 				ret.TraceID = value
-			} else if strings.HasPrefix(p, ParentPrefix) {
+			case strings.HasPrefix(p, ParentPrefix):
 				ret.ParentID = value
-			} else if strings.HasPrefix(p, SampledPrefix) {
+			case strings.HasPrefix(p, SampledPrefix):
 				ret.SamplingDecision = samplingDecision(p)
-			} else if !strings.HasPrefix(p, SelfPrefix) {
+			case !strings.HasPrefix(p, SelfPrefix):
 				key, valid := keyFromKeyValuePair(p)
 				if valid {
 					ret.AdditionalData[key] = value

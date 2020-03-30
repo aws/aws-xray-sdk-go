@@ -10,6 +10,7 @@ package xray
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"sync"
@@ -96,7 +97,7 @@ func TestSegmentDownstreamHeader(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &http.Request{URL:&url.URL{}}, &header.Header{
+	ctx, seg := NewSegmentFromHeader(ctx, "TestSegment", &http.Request{URL: &url.URL{}}, &header.Header{
 		TraceID:  "fakeid",
 		ParentID: "reqid",
 	})
@@ -143,3 +144,35 @@ func TestParentSegmentTotalCount(t *testing.T) {
 	assert.Equal(t, 4*uint32(n), seg.ParentSegment.totalSubSegments, "totalSubSegments count should be correctly registered on the parent segment")
 }
 
+// Benchmarks
+func BenchmarkBeginSegment(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	for i := 0; i < b.N; i++ {
+		_, seg := BeginSegment(ctx, "TestBenchSeg")
+		seg.Close(nil)
+	}
+}
+
+func BenchmarkBeginSubsegment(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestBenchSeg")
+	for i := 0; i < b.N; i++ {
+		_, subSeg := BeginSubsegment(ctx, "TestBenchSubSeg")
+		subSeg.Close(nil)
+	}
+	seg.Sampled = false
+	seg.Close(nil)
+}
+
+func BenchmarkAddError(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	_, seg := BeginSegment(ctx, "TestBenchSeg")
+	for i := 0; i < b.N; i++ {
+		seg.AddError(errors.New("new error"))
+	}
+	seg.Sampled = false
+	seg.Close(nil)
+}

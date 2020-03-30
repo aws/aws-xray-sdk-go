@@ -24,7 +24,7 @@ import (
 )
 
 // SDKVersion records the current X-Ray Go SDK version.
-const SDKVersion = "1.0.0-rc.14"
+const SDKVersion = "1.0.0-rc.15"
 
 // SDKType records which X-Ray SDK customer uses.
 const SDKType = "X-Ray for Go"
@@ -36,8 +36,8 @@ type SDK struct {
 	RuleName string `json:"sampling_rule_name,omitempty"`
 }
 
-// The logger instance used by xray. Only set from init() functions as
-// SetLogger is not goroutine safe.
+// SetLogger sets the logger instance used by xray.
+// Only set from init() functions as SetLogger is not goroutine safe.
 func SetLogger(l xraylog.Logger) {
 	logger.Logger = l
 }

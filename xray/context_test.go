@@ -156,5 +156,62 @@ func TestAddError(t *testing.T) {
 		return
 	}
 	assert.Equal(t, "New Error", seg.Cause.Exceptions[0].Message)
-	assert.Equal(t, "error", seg.Cause.Exceptions[0].Type)
+	assert.Equal(t, "errors.errorString", seg.Cause.Exceptions[0].Type)
+}
+
+// Benchmarks
+func BenchmarkGetRecorder(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
+	for i := 0; i < b.N; i++ {
+		GetRecorder(ctx)
+	}
+	seg.Close(nil)
+}
+
+func BenchmarkGetSegment(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
+	for i := 0; i < b.N; i++ {
+		GetSegment(ctx)
+	}
+	seg.Close(nil)
+}
+
+func BenchmarkDetachContext(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
+	for i := 0; i < b.N; i++ {
+		DetachContext(ctx)
+	}
+	seg.Close(nil)
+}
+
+func BenchmarkAddAnnotation(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
+	for i := 0; i < b.N; i++ {
+		err := AddAnnotation(ctx, "key", "value")
+		if err != nil {
+			return
+		}
+	}
+	seg.Close(nil)
+}
+
+func BenchmarkAddMetadata(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
+	for i := 0; i < b.N; i++ {
+		err := AddMetadata(ctx, "key", "value")
+		if err != nil {
+			return
+		}
+	}
+	seg.Close(nil)
 }

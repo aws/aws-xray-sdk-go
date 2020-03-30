@@ -102,5 +102,40 @@ func TestExceptionFromError(t *testing.T) {
 
 	assert.NotNil(t, err.ID)
 	assert.Equal(t, "new error", err.Message)
-	assert.Equal(t, "error", err.Type)
+	assert.Equal(t, "errors.errorString", err.Type)
+}
+
+// Benchmarks
+func BenchmarkDefaultFormattingStrategy_Error(b *testing.B) {
+	defs, _ := NewDefaultFormattingStrategy()
+	err := defs.Error("Test")
+
+	for i := 0; i < b.N; i++ {
+		convertStack(err.StackTrace())
+	}
+}
+
+func BenchmarkDefaultFormattingStrategy_ExceptionFromError(b *testing.B) {
+	defaultStrategy := &DefaultFormattingStrategy{}
+	err := "new error"
+
+	for i := 0; i < b.N; i++ {
+		defaultStrategy.ExceptionFromError(errors.New(err))
+	}
+}
+
+func BenchmarkDefaultFormattingStrategy_Panic(b *testing.B) {
+	defs, _ := NewDefaultFormattingStrategy()
+
+	for i := 0; i < b.N; i++ {
+		var err *XRayError
+		func() {
+			defer func() {
+				err = defs.Panic(recover().(string))
+			}()
+			panic("Test")
+		}()
+		convertStack(err.StackTrace())
+	}
+
 }
