@@ -1,3 +1,30 @@
+Release v1.0.0-rc.15 (2019-03-11)
+================================
+### SDK Breaking Changes
+* Custom SQL driver. [PR #169](https://github.com/aws/aws-xray-sdk-go/pull/169)
+
+### SDK Enhancements
+* Efficient implementation of wildcard matching. [PR #149](https://github.com/aws/aws-xray-sdk-go/pull/149)
+* Whitelisting Sagemaker runtime InvokeEndpoint operation. [PR #154](https://github.com/aws/aws-xray-sdk-go/pull/154/files)
+* Added context missing environment variable support. [PR #161](https://github.com/aws/aws-xray-sdk-go/pull/161)
+* Added stale bot support for Github Repository. [PR #162](https://github.com/aws/aws-xray-sdk-go/pull/162)
+* Upgrade golangci-lint version. [PR #166](https://github.com/aws/aws-xray-sdk-go/pull/166)
+* Fixes golint warnings. [PR #170](https://github.com/aws/aws-xray-sdk-go/pull/170)
+* Added support for Git Actions. [PR #172](https://github.com/aws/aws-xray-sdk-go/pull/172)
+* README update for presign request. [PR #176](https://github.com/aws/aws-xray-sdk-go/pull/176)
+* Fix data races in testing. [PR #177](https://github.com/aws/aws-xray-sdk-go/pull/177)
+* Fixes sampling issue in calling BeginSegment API directly. [PR #187](https://github.com/aws/aws-xray-sdk-go/pull/187)
+* Captures error type from panic. [PR #195](https://github.com/aws/aws-xray-sdk-go/pull/195)
+* Upgrades Sqlmock to 1.4.1 . [PR #190](https://github.com/aws/aws-xray-sdk-go/pull/190)
+* Fixes data race in default sampling strategy. [PR #196](https://github.com/aws/aws-xray-sdk-go/pull/196)
+* Added benchmark support to data races and performance issues. [PR #197](https://github.com/aws/aws-xray-sdk-go/pull/197)
+* Upgrades Travis CI to add Go 1.14 . [PR #198](https://github.com/aws/aws-xray-sdk-go/pull/198)
+* Fixes data race in emitter. [PR #200](https://github.com/aws/aws-xray-sdk-go/pull/200)
+
+### SDK Bugs
+* Fixes break logging tools. [PR #185](https://github.com/aws/aws-xray-sdk-go/pull/185)
+* Fixes memory leak in BeginSegment method. [PR #156](https://github.com/aws/aws-xray-sdk-go/pull/156)
+
 Release v1.0.0-rc.14 (2019-09-03)
 ================================
 ### SDK Enhancements

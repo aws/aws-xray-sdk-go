@@ -16,16 +16,18 @@ import (
 // MockClock is a struct to record current time.
 type MockClock struct {
 	NowTime int64
+	NowNanos int64
 }
 
 // Now function returns NowTime value.
 func (c *MockClock) Now() time.Time {
-	return time.Unix(c.NowTime, 0)
+	return time.Unix(c.NowTime, c.NowNanos)
 }
 
 // Increment is a method to increase current time.
-func (c *MockClock) Increment(d int64) time.Time {
-	t := atomic.AddInt64(&c.NowTime, d)
+func (c *MockClock) Increment(s int64, ns int64) time.Time {
+	sec := atomic.AddInt64(&c.NowTime, s)
+	nSec := atomic.AddInt64(&c.NowNanos, ns)
 
-	return time.Unix(t, 0)
+	return time.Unix(sec, nSec)
 }

@@ -4,15 +4,17 @@
 
 ![Screenshot of the AWS X-Ray console](/images/example.png?raw=true)
 
-## Installing
+## Installing into GOPATH
 
 The AWS X-Ray SDK for Go is compatible with Go 1.9 and above.
 
 Install the SDK using the following command (The SDK's non-testing dependencies will be installed):
-Use `go get` to retrieve the SDK to add it to your `GOPATH` workspace, or your project's Go module dependencies (Go 1.11 and up):
+Use `go get` to retrieve the SDK to add it to your `GOPATH` workspace:
+
 ```
 go get github.com/aws/aws-xray-sdk-go
 ```
+
 To update the SDK, use `go get -u` to retrieve the latest version of the SDK.
 
 ```
@@ -25,7 +27,19 @@ If you also want to install SDK's testing dependencies. They can be installed us
 go get -u -t github.com/aws/aws-xray-sdk-go/...
 ```
 
-### Dep
+## Installing using Go Modules
+
+The X-Ray SDK for Go is currently in release candidate (RC) stage. The latest RC of the SDK is the recommended version and will be supported before the GA release of v1, which is tracked in this [issue](https://github.com/aws/aws-xray-sdk-go/issues/205).
+
+If you are using Go 1.11 and above, you can install the SDK using Go Modules. You must specify the latest RC version when installing the SDK, like so: 
+
+```
+go get github.com/aws/aws-xray-sdk-go@v1.0.0-rc.15
+```
+
+To get a different specific release version of the SDK use `@<tag>` in your `go get` command.
+
+## Installing using Dep
 If you are using Go 1.9 and above, you can also use [Dep](https://github.com/golang/dep) to add the SDK to your application's dependencies.
 Using Dep will help your application stay pinned to a specific version of the SDK.
 
@@ -34,11 +48,6 @@ To add the SDK to your application using Dep, run:
 ```
 dep ensure -add github.com/aws/aws-xray-sdk-go
 ```
-
-### Go Modules
-If you are using Go modules, your `go get` will default to the latest tagged release version of the SDK.
-To get a specific release version of the SDK use `@<tag>` in your `go get` command.
-
 
 ## Getting Help
 
@@ -195,6 +204,18 @@ xray.AWS(dynamo.Client)
 dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
 ```
 
+**S3**
+
+`aws-xray-sdk-go` does not currently support [`*Request.Presign()`](https://docs.aws.amazon.com/sdk-for-go/api/aws/request/#Request.Presign) operations and will panic if one is encountered.  This results in an error similar to: 
+
+`panic: failed to begin subsegment named 's3': segment cannot be found.`
+
+If you encounter this, you can set `AWS_XRAY_CONTEXT_MISSING` environment variable to `LOG_ERROR`.  This will instruct the SDK to log the error and continue processing your requests.
+
+```go
+os.Setenv("AWS_XRAY_CONTEXT_MISSING", "LOG_ERROR")
+```
+
 **SQL**
 
 Any `database/sql` calls can be traced with X-Ray by replacing the `sql.Open` call with `xray.SQLContext`. It is recommended to use URLs instead of configuration strings if possible.
@@ -214,12 +235,10 @@ Note that the `xray.SQL` are deprecated and will be remove when the SDK becomes 
 For Lambda support use version v1.0.0-rc.1 and higher
 ```
 
-Regarding Lambda integration, lambda will be responsible for generating segments for customers and send them to X-Ray service. AWS X-Ray Go SDK will make sure there will be a FacadeSegment inside lambda context so that customers are able to instrument their application successfully for subsegments generation case which includes `Capture`, `HTTP Client`, `AWS`, `SQL` and `Custom Subsegments` usage.
+If you are using the AWS X-Ray Go SDK inside a Lambda function, there will be a FacadeSegment inside the Lambda context.  This allows you to instrument your Lambda function using `Configure`, `Capture`, `HTTP Client`, `AWS`, `SQL` and `Custom Subsegments` usage.  `Segment` operations are not supported.
 
-Any operations regarding segment is not supported when using Lambda function.
 ```go
 func HandleRequest(ctx context.Context, name string) (string, error) {
-    xray.Configure(xray.Config{LogLevel: "trace"})
     sess := session.Must(session.NewSession())
     dynamo := dynamodb.New(sess)
     xray.AWS(dynamo.Client)
