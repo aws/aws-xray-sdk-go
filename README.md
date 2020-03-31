@@ -263,7 +263,7 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
     _, subseg := xray.BeginSubsegment(ctx, "subsegment-name")
     subseg.Close(nil)
     
-    db := xray.SQL("postgres", "postgres://user:password@host:port/db")
+    db := xray.SQLContext("postgres", "postgres://user:password@host:port/db")
     row, _ := db.QueryRow(ctx, "SELECT 1")
     
     return fmt.Sprintf("Hello %s!", name), nil
