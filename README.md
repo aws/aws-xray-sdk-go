@@ -29,15 +29,19 @@ go get -u -t github.com/aws/aws-xray-sdk-go/...
 
 ## Installing using Go Modules
 
-The X-Ray SDK for Go is currently in release candidate (RC) stage. The latest RC of the SDK is the recommended version and will be supported before the GA release of v1, which is tracked in this [issue](https://github.com/aws/aws-xray-sdk-go/issues/205).
+The latest version of the SDK is the recommended version.
 
-If you are using Go 1.11 and above, you can install the SDK using Go Modules. You must specify the latest RC version when installing the SDK, like so: 
+If you are using Go 1.11 and above, you can install the SDK using Go Modules (in project's go.mod), like so: 
 
 ```
-go get github.com/aws/aws-xray-sdk-go@v1.0.0-rc.15
+go get github.com/aws/aws-xray-sdk-go
 ```
 
-To get a different specific release version of the SDK use `@<tag>` in your `go get` command.
+To get a different specific release version of the SDK use `@<tag>` in your `go get` command. Also, to get the rc version use this command with the specific version.
+
+```
+go get github.com/aws/aws-xray-sdk-go@v1.0.0
+```
 
 ## Installing using Dep
 If you are using Go 1.9 and above, you can also use [Dep](https://github.com/golang/dep) to add the SDK to your application's dependencies.
@@ -139,6 +143,7 @@ func init() {
   })
 }
 ```
+Note that the plugins under "github.com/aws/aws-xray-sdk-go/plugins/" are deprecated starting from version `1.0.0` and no longer have any effect. So, customers will have to load plugins conditionally at runtime.
 
 **Start a custom segment/subsegment**
 
@@ -227,7 +232,7 @@ func main() {
 }
 ```
 
-Note that the `xray.SQL` are deprecated and will be remove when the SDK becomes GA.
+Note that the `xray.SQL` are deprecated and will be remove when the SDK becomes GA (in the SDK relase of v1.0.0).
 
 **Lambda**
 
