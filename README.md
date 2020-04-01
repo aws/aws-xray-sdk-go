@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/aws/aws-xray-sdk-go.svg?branch=master)](https://travis-ci.org/aws/aws-xray-sdk-go)
 
-# AWS X-Ray SDK for Go <sup><sup><sup>(RC)</sup></sup></sup>
+# AWS X-Ray SDK for Go
 
 ![Screenshot of the AWS X-Ray console](/images/example.png?raw=true)
 
