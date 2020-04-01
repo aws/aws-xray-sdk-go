@@ -118,7 +118,7 @@ Note that the `xray.Config{}` fields `LogLevel` and `LogFormat` are deprecated s
 
 ***Plugins***
 
-Customers have to load plugins conditionally at runtime. For this purpose, plugins under "github.com/aws/aws-xray-sdk-go/awsplugins/" that have an explicit `Init()` function customer must call to load the plugin:
+Plugins can be loaded conditionally at runtime. For this purpose, plugins under "github.com/aws/aws-xray-sdk-go/awsplugins/" have an explicit `Init()` function. Customer must call this method to load the plugin:
 
 ```go
 import (
