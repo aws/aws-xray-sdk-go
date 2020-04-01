@@ -1,15 +1,15 @@
 Release v1.0.0 (2020-04-07)
 ================================
 ### SDK Breaking Changes
-* Removed plugins under "github.com/aws/aws-xray-sdk-go/plugins/“ and removed deprecated xray.SQL API (sql.go file). [PR #215](https://github.com/aws/aws-xray-sdk-go/pull/215)
+* Removed plugins under "github.com/aws/aws-xray-sdk-go/plugins/“ directory and removed deprecated xray.SQL API (sql.go file). [PR #215](https://github.com/aws/aws-xray-sdk-go/pull/215)
 
 ### SDK Enhancements
-* Benchmark improvements to remove error logs. [PR #210] (https://github.com/aws/aws-xray-sdk-go/pull/210)
-* Updates golangci-lint version. [PR #213] (https://github.com/aws/aws-xray-sdk-go/pull/213)
-* Benchmark instructions to run benchamrk suite, cpu profiling and memory profiling of SDK. [PR #214] (https://github.com/aws/aws-xray-sdk-go/pull/214)
+* Benchmark improvements to remove error logs. [PR #210](https://github.com/aws/aws-xray-sdk-go/pull/210)
+* Updates golangci-lint version. [PR #213](https://github.com/aws/aws-xray-sdk-go/pull/213)
+* Benchmark instructions to run benchamrk suite, cpu profiling and memory profiling of SDK. [PR #214](https://github.com/aws/aws-xray-sdk-go/pull/214)
 
 ### SDK Bugs
-* Fixes bug in reservoir test cases. [PR #212] (https://github.com/aws/aws-xray-sdk-go/pull/212)
+* Fixes bug in reservoir test cases. [PR #212](https://github.com/aws/aws-xray-sdk-go/pull/212)
 
 Release v1.0.0-rc.15 (2020-03-11)
 ================================
