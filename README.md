@@ -76,17 +76,7 @@ The [developer guide](https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-
 **Configuration**
 
 ```go
-import (
-  "context"
-
-  "github.com/aws/aws-xray-sdk-go/xray"
-
-  // Importing the plugins enables collection of AWS resource information at runtime.
-  // Every plugin should be imported after "github.com/aws/aws-xray-sdk-go/xray" library.
-  _ "github.com/aws/aws-xray-sdk-go/plugins/ec2"
-  _ "github.com/aws/aws-xray-sdk-go/plugins/beanstalk"
-  _ "github.com/aws/aws-xray-sdk-go/plugins/ecs"
-)
+import "github.com/aws/aws-xray-sdk-go/xray"
 
 func init() {
   xray.Configure(xray.Config{
@@ -230,8 +220,6 @@ func main() {
   row, err := db.QueryRowContext(ctx, "SELECT 1") // Use as normal
 }
 ```
-
-Note that the `xray.SQL` are deprecated and will be remove when the SDK becomes GA (in the SDK relase of v1.0.0).
 
 **Lambda**
 
