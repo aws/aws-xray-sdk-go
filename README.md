@@ -27,7 +27,7 @@ If you also want to install SDK's testing dependencies. They can be installed us
 go get -u -t github.com/aws/aws-xray-sdk-go/...
 ```
 
-## Installing using Go Modules````
+## Installing using Go Modules
 
 The X-Ray SDK for Go is currently in release candidate (RC) stage. The latest RC of the SDK is the recommended version and will be supported before the GA release of v1, which is tracked in this [issue](https://github.com/aws/aws-xray-sdk-go/issues/205).
 
