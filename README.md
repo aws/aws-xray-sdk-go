@@ -27,7 +27,7 @@ If you also want to install SDK's testing dependencies. They can be installed us
 go get -u -t github.com/aws/aws-xray-sdk-go/...
 ```
 
-## Installing using Go Modules
+## Installing using Go Modules````
 
 The X-Ray SDK for Go is currently in release candidate (RC) stage. The latest RC of the SDK is the recommended version and will be supported before the GA release of v1, which is tracked in this [issue](https://github.com/aws/aws-xray-sdk-go/issues/205).
 
@@ -118,7 +118,7 @@ Note that the `xray.Config{}` fields `LogLevel` and `LogFormat` are deprecated s
 
 ***Plugins***
 
-The plugins under "github.com/aws/aws-xray-sdk-go/plugins/" are activated at package load time. This can be convenient in some cases, but often you want to load them conditionally at runtime (e.g. don't load in tests). For this purpose, there is a new set of plugins under "github.com/aws/aws-xray-sdk-go/awsplugins/" that have an explicit `Init()` function you must call to load the plugin:
+Customers have to load plugins conditionally at runtime. For this purpose, plugins under "github.com/aws/aws-xray-sdk-go/awsplugins/" that have an explicit `Init()` function customer must call to load the plugin:
 
 ```go
 import (
@@ -226,9 +226,6 @@ func main() {
   row, err := db.QueryRowContext(ctx, "SELECT 1") // Use as normal
 }
 ```
-
-Note that the `xray.SQL` are deprecated and will be remove when the SDK becomes GA.
-
 **Lambda**
 
 ```
