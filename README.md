@@ -143,7 +143,6 @@ func init() {
   })
 }
 ```
-Note that the plugins under "github.com/aws/aws-xray-sdk-go/plugins/" are deprecated starting from version `1.0.0` and no longer have any effect. So, customers will have to load plugins conditionally at runtime.
 
 **Start a custom segment/subsegment**
 
