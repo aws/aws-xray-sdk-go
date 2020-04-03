@@ -17,12 +17,6 @@ import (
 	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
 )
 
-type SegmentImpl interface {
-	assignConfiguration(cfg *Config)
-	Close(err error)
-
-}
-
 // Segment provides the resource's name, details about the request, and details about the work done.
 type Segment struct {
 	sync.RWMutex
