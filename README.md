@@ -118,7 +118,7 @@ Note that the `xray.Config{}` fields `LogLevel` and `LogFormat` are deprecated s
 
 ***Plugins***
 
-The plugins under "github.com/aws/aws-xray-sdk-go/plugins/" are activated at package load time. This can be convenient in some cases, but often you want to load them conditionally at runtime (e.g. don't load in tests). For this purpose, there is a new set of plugins under "github.com/aws/aws-xray-sdk-go/awsplugins/" that have an explicit `Init()` function you must call to load the plugin:
+Plugins can be loaded conditionally at runtime. For this purpose, plugins under "github.com/aws/aws-xray-sdk-go/awsplugins/" have an explicit `Init()` function. Customer must call this method to load the plugin:
 
 ```go
 import (
@@ -226,9 +226,6 @@ func main() {
   row, err := db.QueryRowContext(ctx, "SELECT 1") // Use as normal
 }
 ```
-
-Note that the `xray.SQL` are deprecated and will be remove when the SDK becomes GA.
-
 **Lambda**
 
 ```
