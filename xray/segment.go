@@ -54,25 +54,6 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
-// Begin DummySegment creates a segment in the case of no sampling to reduce memory footprint
-func BeginDummySegment(ctx context.Context, name string) (context.Context, *Segment) {
-	dummySeg := &Segment{parent: nil}
-	dummySeg.ParentSegment = dummySeg
-	logger.Debugf("Beginning dummy segment named %s", name)
-
-	cfg := GetRecorder(ctx)
-	dummySeg.assignConfiguration(cfg)
-
-	dummySeg.Lock()
-	defer dummySeg.Unlock()
-
-	dummySeg.Name = name
-	dummySeg.TraceID = NewTraceID()
-	dummySeg.Sampled = false
-
-	return context.WithValue(ctx, ContextKey, dummySeg), dummySeg
-}
-
 // BeginSegment creates a Segment for a given name and context.
 func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) {
 
@@ -133,11 +114,10 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 		}()
 	}
 
-	if seg.Sampled {
-		return context.WithValue(ctx, ContextKey, seg), seg
-	}
+	// check whether segment is dummy or not based on sampling decision
+	seg.isDummy()
 
-	return BeginDummySegment(ctx, "DummySegment")
+	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
 func basicSegment(name string, h *header.Header) *Segment {
@@ -154,6 +134,7 @@ func basicSegment(name string, h *header.Header) *Segment {
 	seg.Name = name
 	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = true
+	seg.Dummy = false
 
 	if h == nil {
 		seg.TraceID = NewTraceID()
@@ -219,32 +200,6 @@ func (seg *Segment) assignConfiguration(cfg *Config) {
 	seg.Unlock()
 }
 
-// Begin DummySubSegment creates a subsegment in the case of no sampling to reduce memory footprint
-func BeginDummySubSegment(ctx context.Context, name string) (context.Context, *Segment) {
-	parent := GetSegment(ctx)
-	if parent == nil {
-		cfg := GetRecorder(ctx)
-		failedMessage := fmt.Sprintf("failed to begin subsegment named '%v': segment cannot be found.", name)
-		if cfg != nil && cfg.ContextMissingStrategy != nil {
-			cfg.ContextMissingStrategy.ContextMissing(failedMessage)
-		} else {
-			globalCfg.ContextMissingStrategy().ContextMissing(failedMessage)
-		}
-		return ctx, nil
-	}
-
-	dummySubSeg := &Segment{parent: parent}
-	logger.Debugf("Beginning dummy subsegment named %s", name)
-
-	dummySubSeg.Lock()
-	defer dummySubSeg.Unlock()
-
-	dummySubSeg.ParentSegment = parent.ParentSegment
-	dummySubSeg.Name = name
-
-	return context.WithValue(ctx, ContextKey, dummySubSeg), dummySubSeg
-}
-
 // BeginSubsegment creates a subsegment for a given name and context.
 func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segment) {
 	if len(name) > 200 {
@@ -289,11 +244,10 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = true
 
-	if seg.ParentSegment.Sampled {
-		return context.WithValue(ctx, ContextKey, seg), seg
-	}
+	// check whether segment is dummy or not based on sampling decision
+	seg.isDummy()
 
-	return BeginDummySegment(ctx, "DummySubSegment")
+	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
 // NewSegmentFromHeader creates a segment for downstream call and add information to the segment that gets from HTTP header.
@@ -316,6 +270,12 @@ func NewSegmentFromHeader(ctx context.Context, name string, r *http.Request, h *
 // Close a segment.
 func (seg *Segment) Close(err error) {
 	seg.Lock()
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return
+	}
+
 	if seg.parent != nil {
 		logger.Debugf("Closing subsegment named %s", seg.Name)
 	} else {
@@ -335,6 +295,11 @@ func (seg *Segment) Close(err error) {
 func (seg *Segment) CloseAndStream(err error) {
 	seg.Lock()
 	defer seg.Unlock()
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return
+	}
 
 	if seg.parent != nil {
 		logger.Debugf("Ending subsegment named: %s", seg.Name)
@@ -462,6 +427,16 @@ func (seg *Segment) root() *Segment {
 	return seg.parent.root()
 }
 
+// check the segment is dummy segment or not
+func (seg *Segment) isDummy() *Segment {
+	if !seg.ParentSegment.Sampled {
+		seg.Dummy = true
+		return seg
+	}
+
+	return seg
+}
+
 func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
 	// Only called within a seg locked code block
 	if metadata == nil {
@@ -502,14 +477,19 @@ func (seg *Segment) beforeEmitSubsegment(s *Segment) {
 
 // AddAnnotation allows adding an annotation to the segment.
 func (seg *Segment) AddAnnotation(key string, value interface{}) error {
+	seg.Lock()
+	defer seg.Unlock()
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return nil
+	}
+
 	switch value.(type) {
 	case bool, int, uint, float32, float64, string:
 	default:
 		return fmt.Errorf("failed to add annotation key: %q value: %q to subsegment %q. value must be of type string, number or boolean", key, value, seg.Name)
 	}
-
-	seg.Lock()
-	defer seg.Unlock()
 
 	if seg.Annotations == nil {
 		seg.Annotations = map[string]interface{}{}
@@ -522,6 +502,11 @@ func (seg *Segment) AddAnnotation(key string, value interface{}) error {
 func (seg *Segment) AddMetadata(key string, value interface{}) error {
 	seg.Lock()
 	defer seg.Unlock()
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return nil
+	}
 
 	if seg.Metadata == nil {
 		seg.Metadata = map[string]map[string]interface{}{}
@@ -537,6 +522,11 @@ func (seg *Segment) AddMetadata(key string, value interface{}) error {
 func (seg *Segment) AddMetadataToNamespace(namespace string, key string, value interface{}) error {
 	seg.Lock()
 	defer seg.Unlock()
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return nil
+	}
 
 	if seg.Metadata == nil {
 		seg.Metadata = map[string]map[string]interface{}{}

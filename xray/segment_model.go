@@ -17,6 +17,12 @@ import (
 	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
 )
 
+type SegmentImpl interface {
+	assignConfiguration(cfg *Config)
+	Close(err error)
+
+}
+
 // Segment provides the resource's name, details about the request, and details about the work done.
 type Segment struct {
 	sync.RWMutex
@@ -73,6 +79,9 @@ type Segment struct {
 
 	// Lambda
 	Facade bool `json:"-"`
+
+	// Dummy Segment flag
+	Dummy bool
 }
 
 // CauseData provides the shape for unmarshalling data that records exception.
