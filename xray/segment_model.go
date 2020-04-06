@@ -73,6 +73,9 @@ type Segment struct {
 
 	// Lambda
 	Facade bool `json:"-"`
+
+	// Dummy Segment flag
+	Dummy bool
 }
 
 // CauseData provides the shape for unmarshalling data that records exception.

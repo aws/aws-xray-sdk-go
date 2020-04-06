@@ -114,6 +114,11 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 		}()
 	}
 
+	// check whether segment is dummy or not based on sampling decision
+	if !seg.ParentSegment.Sampled {
+		seg.Dummy = true
+	}
+
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
@@ -131,6 +136,7 @@ func basicSegment(name string, h *header.Header) *Segment {
 	seg.Name = name
 	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = true
+	seg.Dummy = false
 
 	if h == nil {
 		seg.TraceID = NewTraceID()
@@ -228,6 +234,11 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 
 	seg.ParentSegment = parent.ParentSegment
 
+	// check whether segment is dummy or not based on sampling decision
+	if !seg.ParentSegment.Sampled {
+		seg.Dummy = true
+	}
+
 	atomic.AddUint32(&seg.ParentSegment.totalSubSegments, 1)
 
 	parent.Lock()
@@ -274,6 +285,12 @@ func (seg *Segment) Close(err error) {
 	if err != nil {
 		seg.addError(err)
 	}
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return
+	}
+
 	seg.Unlock()
 	seg.send()
 }
@@ -295,6 +312,11 @@ func (seg *Segment) CloseAndStream(err error) {
 
 	if err != nil {
 		seg.addError(err)
+	}
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return
 	}
 
 	seg.beforeEmitSubsegment(seg.parent)
@@ -449,14 +471,19 @@ func (seg *Segment) beforeEmitSubsegment(s *Segment) {
 
 // AddAnnotation allows adding an annotation to the segment.
 func (seg *Segment) AddAnnotation(key string, value interface{}) error {
+	seg.Lock()
+	defer seg.Unlock()
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return nil
+	}
+
 	switch value.(type) {
 	case bool, int, uint, float32, float64, string:
 	default:
 		return fmt.Errorf("failed to add annotation key: %q value: %q to subsegment %q. value must be of type string, number or boolean", key, value, seg.Name)
 	}
-
-	seg.Lock()
-	defer seg.Unlock()
 
 	if seg.Annotations == nil {
 		seg.Annotations = map[string]interface{}{}
@@ -469,6 +496,11 @@ func (seg *Segment) AddAnnotation(key string, value interface{}) error {
 func (seg *Segment) AddMetadata(key string, value interface{}) error {
 	seg.Lock()
 	defer seg.Unlock()
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return nil
+	}
 
 	if seg.Metadata == nil {
 		seg.Metadata = map[string]map[string]interface{}{}
@@ -484,6 +516,11 @@ func (seg *Segment) AddMetadata(key string, value interface{}) error {
 func (seg *Segment) AddMetadataToNamespace(namespace string, key string, value interface{}) error {
 	seg.Lock()
 	defer seg.Unlock()
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return nil
+	}
 
 	if seg.Metadata == nil {
 		seg.Metadata = map[string]map[string]interface{}{}
