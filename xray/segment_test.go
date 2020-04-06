@@ -144,6 +144,19 @@ func TestParentSegmentTotalCount(t *testing.T) {
 	assert.Equal(t, 4*uint32(n), seg.ParentSegment.totalSubSegments, "totalSubSegments count should be correctly registered on the parent segment")
 }
 
+func TestSegment_isDummy(t *testing.T) {
+	ctx, root := BeginSegment(context.Background(), "Segment")
+	ctxSubSeg1, subSeg1 := BeginSubsegment(ctx, "Subegment1")
+	_, subSeg2 := BeginSubsegment(ctxSubSeg1, "Subsegment2")
+	subSeg2.Close(nil)
+	subSeg1.Close(nil)
+	root.Close(nil)
+
+	assert.False(t, root.Dummy)
+	assert.False(t, subSeg1.Dummy)
+	assert.False(t, subSeg2.Dummy)
+}
+
 // Benchmarks
 func BenchmarkBeginSegment(b *testing.B) {
 	ctx, td := NewTestDaemon()
