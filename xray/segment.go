@@ -115,7 +115,9 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 	}
 
 	// check whether segment is dummy or not based on sampling decision
-	seg.isDummy()
+	if !seg.ParentSegment.Sampled {
+		seg.Dummy = true
+	}
 
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
@@ -233,7 +235,9 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	seg.ParentSegment = parent.ParentSegment
 
 	// check whether segment is dummy or not based on sampling decision
-	seg.isDummy()
+	if !seg.ParentSegment.Sampled {
+		seg.Dummy = true
+	}
 
 	atomic.AddUint32(&seg.ParentSegment.totalSubSegments, 1)
 
@@ -426,16 +430,6 @@ func (seg *Segment) root() *Segment {
 		return seg
 	}
 	return seg.parent.root()
-}
-
-// check the segment is dummy segment or not
-func (seg *Segment) isDummy() *Segment {
-	if !seg.ParentSegment.Sampled {
-		seg.Dummy = true
-		return seg
-	}
-
-	return seg
 }
 
 func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
