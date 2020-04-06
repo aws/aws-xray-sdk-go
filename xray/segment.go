@@ -274,13 +274,6 @@ func NewSegmentFromHeader(ctx context.Context, name string, r *http.Request, h *
 // Close a segment.
 func (seg *Segment) Close(err error) {
 	seg.Lock()
-
-	// If segment is dummy we return
-	if seg.Dummy {
-		seg.Unlock()
-		return
-	}
-
 	if seg.parent != nil {
 		logger.Debugf("Closing subsegment named %s", seg.Name)
 	} else {
@@ -292,6 +285,12 @@ func (seg *Segment) Close(err error) {
 	if err != nil {
 		seg.addError(err)
 	}
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return
+	}
+
 	seg.Unlock()
 	seg.send()
 }
@@ -300,11 +299,6 @@ func (seg *Segment) Close(err error) {
 func (seg *Segment) CloseAndStream(err error) {
 	seg.Lock()
 	defer seg.Unlock()
-
-	// If segment is dummy we return
-	if seg.Dummy {
-		return
-	}
 
 	if seg.parent != nil {
 		logger.Debugf("Ending subsegment named: %s", seg.Name)
@@ -318,6 +312,11 @@ func (seg *Segment) CloseAndStream(err error) {
 
 	if err != nil {
 		seg.addError(err)
+	}
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return
 	}
 
 	seg.beforeEmitSubsegment(seg.parent)
