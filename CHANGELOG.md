@@ -2,6 +2,7 @@ Release v1.0.0 (2020-04-07)
 ================================
 ### SDK Breaking Changes
 * Removed plugins under "github.com/aws/aws-xray-sdk-go/plugins/“ directory and removed deprecated xray.SQL API (sql.go file). [PR #215](https://github.com/aws/aws-xray-sdk-go/pull/215)
+* Added Dummy flag support to reduce operation of non sampled traces. [PR #194](https://github.com/aws/aws-xray-sdk-go/pull/194)
 
 ### SDK Enhancements
 * Benchmark improvements to remove error logs. [PR #210](https://github.com/aws/aws-xray-sdk-go/pull/210)
