@@ -232,6 +232,9 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 
 	seg.ParentSegment = parent.ParentSegment
 
+	// check whether segment is dummy or not based on sampling decision
+	seg.isDummy()
+
 	atomic.AddUint32(&seg.ParentSegment.totalSubSegments, 1)
 
 	parent.Lock()
@@ -243,9 +246,6 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	seg.Name = name
 	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = true
-
-	// check whether segment is dummy or not based on sampling decision
-	seg.isDummy()
 
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
@@ -273,6 +273,7 @@ func (seg *Segment) Close(err error) {
 
 	// If segment is dummy we return
 	if seg.Dummy {
+		seg.Unlock()
 		return
 	}
 
