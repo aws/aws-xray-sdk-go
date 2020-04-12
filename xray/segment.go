@@ -504,7 +504,7 @@ func (seg *Segment) AddAnnotation(key string, value interface{}) error {
 		return nil
 	}
 
-	seg.Lock()
+  seg.Lock()
 	defer seg.Unlock()
 
 	// If segment is dummy we return
