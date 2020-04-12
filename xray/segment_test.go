@@ -160,7 +160,9 @@ func TestSegment_isDummy(t *testing.T) {
 
 func TestSDKDisable_inOrder(t *testing.T) {
 	os.Setenv("AWS_XRAY_SDK_DISABLED", "TRue")
-	ctx, root := BeginSegment(context.Background(), "Segment")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, root := BeginSegment(ctx, "Segment")
 	ctxSubSeg1, subSeg1 := BeginSubsegment(ctx, "Subegment1")
 	_, subSeg2 := BeginSubsegment(ctxSubSeg1, "Subsegment2")
 	subSeg2.Close(nil)
@@ -170,11 +172,15 @@ func TestSDKDisable_inOrder(t *testing.T) {
 	assert.Equal(t, root, &Segment{})
 	assert.Equal(t, subSeg1, &Segment{})
 	assert.Equal(t, subSeg2, &Segment{})
+
+	os.Setenv("AWS_XRAY_SDK_DISABLED", "FALSE")
 }
 
 func TestSDKDisable_outOrder(t *testing.T) {
 	os.Setenv("AWS_XRAY_SDK_DISABLED", "TRUE")
-	_, subSeg := BeginSubsegment(context.Background(), "Subegment1")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	_, subSeg := BeginSubsegment(ctx, "Subegment1")
 	_, seg := BeginSegment(context.Background(), "Segment")
 
 	subSeg.Close(nil)
@@ -182,11 +188,14 @@ func TestSDKDisable_outOrder(t *testing.T) {
 
 	assert.Equal(t, subSeg, &Segment{})
 	assert.Equal(t, seg, &Segment{})
+	os.Setenv("AWS_XRAY_SDK_DISABLED", "FALSE")
 }
 
 func TestSDKDisable_otherMethods(t *testing.T) {
 	os.Setenv("AWS_XRAY_SDK_DISABLED", "true")
-	ctx, seg := BeginSegment(context.Background(), "Segment")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "Segment")
 	_, subSeg := BeginSubsegment(ctx, "Subegment1")
 
 	seg.AddAnnotation("key", "value")
@@ -197,6 +206,7 @@ func TestSDKDisable_otherMethods(t *testing.T) {
 
 	assert.Equal(t, seg, &Segment{})
 	assert.Equal(t, subSeg, &Segment{})
+	os.Setenv("AWS_XRAY_SDK_DISABLED", "FALSE")
 }
 
 // Benchmarks
