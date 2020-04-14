@@ -71,6 +71,8 @@ The GitHub issues are intended for bug reports and feature requests. For help an
 
 The [developer guide](https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-go.html) provides in-depth guidance on using the AWS X-Ray service and the AWS X-Ray SDK for Go.
 
+See [aws-xray-sdk-go-sample](https://github.com/aws-samples/aws-xray-sdk-go-sample) for a sample application that provides example of tracing SQL queries, incoming and outgoing request. Follow [README instructions](https://github.com/aws-samples/aws-xray-sdk-go-sample/blob/master/README.md) in that repository to get started with sample application.
+
 ## Quick Start
 
 **Configuration**
