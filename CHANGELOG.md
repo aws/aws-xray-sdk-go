@@ -1,4 +1,4 @@
-Release v1.0.0 (2020-04-07)
+Release v1.0.0 (2020-04-16)
 ================================
 ### SDK Breaking Changes
 * Removed plugins under "github.com/aws/aws-xray-sdk-go/plugins/“ directory and removed deprecated xray.SQL API (sql.go file). [PR #215](https://github.com/aws/aws-xray-sdk-go/pull/215)
