@@ -12,16 +12,16 @@ import (
 	"time"
 )
 
-type timer struct {
+type Timer struct {
 	t      *time.Timer
 	d      time.Duration
 	jitter time.Duration
 }
 
-func NewTimer(d, jitter time.Duration) *timer {
+func NewTimer(d, jitter time.Duration) *Timer {
 	t := time.NewTimer(d - time.Duration(globalRand.Int63n(int64(jitter))))
 
-	jitteredTimer := timer{
+	jitteredTimer := Timer{
 		t:      t,
 		d:      d,
 		jitter: jitter,
@@ -30,10 +30,11 @@ func NewTimer(d, jitter time.Duration) *timer {
 	return &jitteredTimer
 }
 
-func (j *timer) C() <-chan time.Time {
+// C is channel.
+func (j *Timer) C() <-chan time.Time {
 	return j.t.C
 }
 
-func (j *timer) Reset() {
+func (j *Timer) Reset() {
 	j.t.Reset(j.d - time.Duration(globalRand.Int63n(int64(j.jitter))))
 }

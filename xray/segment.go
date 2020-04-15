@@ -12,6 +12,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"net/http"
 	"os"
 	"runtime"
 	"sync/atomic"
@@ -20,6 +21,7 @@ import (
 	"github.com/aws/aws-xray-sdk-go/header"
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
+	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
 )
 
 // NewTraceID generates a string format of random trace ID.
@@ -54,6 +56,11 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 
 // BeginSegment creates a Segment for a given name and context.
 func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) {
+
+	return BeginSegmentWithSampling(ctx, name, nil, nil)
+}
+
+func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request, traceHeader *header.Header) (context.Context, *Segment) {
 	seg := basicSegment(name, nil)
 
 	cfg := GetRecorder(ctx)
@@ -68,14 +75,50 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 		seg.GetService().Version = seg.ParentSegment.GetConfiguration().ServiceVersion
 	}
 
+	if r == nil || traceHeader == nil {
+		// Sampling strategy fallbacks to default sampling in the case of directly using BeginSegment API without any instrumentation
+		sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(&sampling.Request{})
+		seg.Sampled = sd.Sample
+		logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
+		seg.AddRuleName(sd)
+	} else {
+		// Sampling strategy for http calls
+		seg.Sampled = traceHeader.SamplingDecision == header.Sampled
+
+		switch traceHeader.SamplingDecision {
+		case header.Sampled:
+			logger.Debug("Incoming header decided: Sampled=true")
+		case header.NotSampled:
+			logger.Debug("Incoming header decided: Sampled=false")
+		}
+
+		if traceHeader.SamplingDecision != header.Sampled && traceHeader.SamplingDecision != header.NotSampled {
+			samplingRequest := &sampling.Request{
+				Host:        r.Host,
+				URL:         r.URL.Path,
+				Method:      r.Method,
+				ServiceName: seg.Name,
+				ServiceType: plugins.InstancePluginMetadata.Origin,
+			}
+			sd := seg.ParentSegment.GetConfiguration().SamplingStrategy.ShouldTrace(samplingRequest)
+			seg.Sampled = sd.Sample
+			logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
+			seg.AddRuleName(sd)
+		}
+	}
+
 	if ctx.Done() != nil {
 		go func() {
-			select {
-			case <-ctx.Done():
-				seg.handleContextDone()
-			}
+			<-ctx.Done()
+			seg.handleContextDone()
 		}()
 	}
+
+	// check whether segment is dummy or not based on sampling decision
+	if !seg.ParentSegment.Sampled {
+		seg.Dummy = true
+	}
+
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
 
@@ -93,6 +136,7 @@ func basicSegment(name string, h *header.Header) *Segment {
 	seg.Name = name
 	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = true
+	seg.Dummy = false
 
 	if h == nil {
 		seg.TraceID = NewTraceID()
@@ -190,6 +234,11 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 
 	seg.ParentSegment = parent.ParentSegment
 
+	// check whether segment is dummy or not based on sampling decision
+	if !seg.ParentSegment.Sampled {
+		seg.Dummy = true
+	}
+
 	atomic.AddUint32(&seg.ParentSegment.totalSubSegments, 1)
 
 	parent.Lock()
@@ -206,22 +255,14 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 }
 
 // NewSegmentFromHeader creates a segment for downstream call and add information to the segment that gets from HTTP header.
-func NewSegmentFromHeader(ctx context.Context, name string, h *header.Header) (context.Context, *Segment) {
-	con, seg := BeginSegment(ctx, name)
+func NewSegmentFromHeader(ctx context.Context, name string, r *http.Request, h *header.Header) (context.Context, *Segment) {
+	con, seg := BeginSegmentWithSampling(ctx, name, r, h)
 
 	if h.TraceID != "" {
 		seg.TraceID = h.TraceID
 	}
 	if h.ParentID != "" {
 		seg.ParentID = h.ParentID
-	}
-
-	seg.Sampled = h.SamplingDecision == header.Sampled
-	switch h.SamplingDecision {
-	case header.Sampled:
-		logger.Debug("Incoming header decided: Sampled=true")
-	case header.NotSampled:
-		logger.Debug("Incoming header decided: Sampled=false")
 	}
 
 	seg.IncomingHeader = h
@@ -244,31 +285,42 @@ func (seg *Segment) Close(err error) {
 	if err != nil {
 		seg.addError(err)
 	}
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return
+	}
+
 	seg.Unlock()
 	seg.send()
 }
 
 // CloseAndStream closes a subsegment and sends it.
-func (subseg *Segment) CloseAndStream(err error) {
-	subseg.Lock()
-	defer subseg.Unlock()
+func (seg *Segment) CloseAndStream(err error) {
+	seg.Lock()
+	defer seg.Unlock()
 
-	if subseg.parent != nil {
-		logger.Debugf("Ending subsegment named: %s", subseg.Name)
-		subseg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
-		subseg.InProgress = false
-		subseg.Emitted = true
-		if subseg.parent.RemoveSubsegment(subseg) {
-			logger.Debugf("Removing subsegment named: %s", subseg.Name)
+	if seg.parent != nil {
+		logger.Debugf("Ending subsegment named: %s", seg.Name)
+		seg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
+		seg.InProgress = false
+		seg.Emitted = true
+		if seg.parent.RemoveSubsegment(seg) {
+			logger.Debugf("Removing subsegment named: %s", seg.Name)
 		}
 	}
 
 	if err != nil {
-		subseg.addError(err)
+		seg.addError(err)
 	}
 
-	subseg.beforeEmitSubsegment(subseg.parent)
-	subseg.emit()
+	// If segment is dummy we return
+	if seg.Dummy {
+		return
+	}
+
+	seg.beforeEmitSubsegment(seg.parent)
+	seg.emit()
 }
 
 // RemoveSubsegment removes a subsegment child from a segment or subsegment.
@@ -409,24 +461,29 @@ func (seg *Segment) addSDKAndServiceInformation() {
 	seg.GetService().CompilerVersion = runtime.Version()
 }
 
-func (sub *Segment) beforeEmitSubsegment(seg *Segment) {
+func (seg *Segment) beforeEmitSubsegment(s *Segment) {
 	// Only called within a subsegment locked code block
-	sub.TraceID = seg.root().TraceID
-	sub.ParentID = seg.ID
-	sub.Type = "subsegment"
-	sub.RequestWasTraced = seg.RequestWasTraced
+	seg.TraceID = s.root().TraceID
+	seg.ParentID = s.ID
+	seg.Type = "subsegment"
+	seg.RequestWasTraced = s.RequestWasTraced
 }
 
 // AddAnnotation allows adding an annotation to the segment.
 func (seg *Segment) AddAnnotation(key string, value interface{}) error {
+	seg.Lock()
+	defer seg.Unlock()
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return nil
+	}
+
 	switch value.(type) {
 	case bool, int, uint, float32, float64, string:
 	default:
 		return fmt.Errorf("failed to add annotation key: %q value: %q to subsegment %q. value must be of type string, number or boolean", key, value, seg.Name)
 	}
-
-	seg.Lock()
-	defer seg.Unlock()
 
 	if seg.Annotations == nil {
 		seg.Annotations = map[string]interface{}{}
@@ -439,6 +496,11 @@ func (seg *Segment) AddAnnotation(key string, value interface{}) error {
 func (seg *Segment) AddMetadata(key string, value interface{}) error {
 	seg.Lock()
 	defer seg.Unlock()
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return nil
+	}
 
 	if seg.Metadata == nil {
 		seg.Metadata = map[string]map[string]interface{}{}
@@ -454,6 +516,11 @@ func (seg *Segment) AddMetadata(key string, value interface{}) error {
 func (seg *Segment) AddMetadataToNamespace(namespace string, key string, value interface{}) error {
 	seg.Lock()
 	defer seg.Unlock()
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return nil
+	}
 
 	if seg.Metadata == nil {
 		seg.Metadata = map[string]map[string]interface{}{}

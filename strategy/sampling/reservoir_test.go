@@ -11,7 +11,6 @@ package sampling
 import (
 	"math"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-xray-sdk-go/utils"
 	"github.com/stretchr/testify/assert"
@@ -25,15 +24,16 @@ func takeOverTime(r *Reservoir, millis int) int {
 		if r.Take() {
 			taken++
 		}
-		time.Sleep(Interval * time.Millisecond)
+		r.clock.Increment(0, 1e6*Interval)
 	}
 	return taken
 }
 
 const TestDuration = 1500
 
+// Asserts consumption from reservoir once per second
 func TestOnePerSecond(t *testing.T) {
-	clock := &utils.DefaultClock{}
+	clock := &utils.MockClock{}
 	cap := 1
 	res := &Reservoir{
 		clock: clock,
@@ -42,12 +42,12 @@ func TestOnePerSecond(t *testing.T) {
 		},
 	}
 	taken := takeOverTime(res, TestDuration)
-	assert.True(t, int(math.Ceil(TestDuration/1000.0)) <= taken)
-	assert.True(t, int(math.Ceil(TestDuration/1000.0))+cap >= taken)
+	assert.True(t, int(math.Ceil(TestDuration/1000.0)) == taken)
 }
 
+// Asserts consumption from reservoir ten times per second
 func TestTenPerSecond(t *testing.T) {
-	clock := &utils.DefaultClock{}
+	clock := &utils.MockClock{}
 	cap := 10
 	res := &Reservoir{
 		clock: clock,
@@ -56,8 +56,7 @@ func TestTenPerSecond(t *testing.T) {
 		},
 	}
 	taken := takeOverTime(res, TestDuration)
-	assert.True(t, int(math.Ceil(float64(TestDuration*cap)/1000.0)) <= taken)
-	assert.True(t, int(math.Ceil(float64(TestDuration*cap)/1000.0))+cap >= taken)
+	assert.True(t, int(math.Ceil(float64(TestDuration*cap)/1000.0)) == taken)
 }
 
 func TestTakeQuotaAvailable(t *testing.T) {

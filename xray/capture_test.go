@@ -20,64 +20,58 @@ import (
 )
 
 func TestSimpleCapture(t *testing.T) {
-	TestDaemon.Reset()
-	ctx, root := BeginSegment(context.Background(), "Test")
-	err := Capture(ctx, "TestService", func(ctx1 context.Context) error {
-		ctx = ctx1
-		defer root.Close(nil)
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	ctx, root := BeginSegment(ctx, "Test")
+	err := Capture(ctx, "TestService", func(context.Context) error {
+		root.Close(nil)
 		return nil
 	})
 	assert.NoError(t, err)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
-	assert.Equal(t, "Test", s.Name)
-	assert.Equal(t, root.TraceID, s.TraceID)
-	assert.Equal(t, root.ID, s.ID)
-	assert.Equal(t, root.StartTime, s.StartTime)
-	assert.Equal(t, root.EndTime, s.EndTime)
-	assert.NotNil(t, s.Subsegments)
-	subseg := &Segment{}
-	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
-	assert.Equal(t, "TestService", subseg.Name)
-}
-
-func TestCaptureAysnc(t *testing.T) {
-	TestDaemon.Reset()
-	ctx, root := BeginSegment(context.Background(), "Test")
-	CaptureAsync(ctx, "TestService", func(ctx1 context.Context) error {
-		ctx = ctx1
-		return nil
-	})
-	root.Close(nil)
-
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
-	assert.Equal(t, "Test", s.Name)
-	assert.Equal(t, root.TraceID, s.TraceID)
-	assert.Equal(t, root.ID, s.ID)
-	assert.Equal(t, root.StartTime, s.StartTime)
-	assert.Equal(t, root.EndTime, s.EndTime)
-	assert.NotNil(t, s.Subsegments)
-	subseg := &Segment{}
-	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
-	assert.Equal(t, "TestService", subseg.Name)
+	seg, err := td.Recv()
+	if !assert.NoError(t, err) {
+		return
+	}
+	assert.Equal(t, "Test", seg.Name)
+	assert.Equal(t, root.TraceID, seg.TraceID)
+	assert.Equal(t, root.ID, seg.ID)
+	assert.Equal(t, root.StartTime, seg.StartTime)
+	assert.Equal(t, root.EndTime, seg.EndTime)
+	assert.NotNil(t, seg.Subsegments)
+	var subseg *Segment
+	if assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg)) {
+		assert.Equal(t, "TestService", subseg.Name)
+	}
 }
 
 func TestErrorCapture(t *testing.T) {
-	TestDaemon.Reset()
-	ctx, root := BeginSegment(context.Background(), "Test")
-	defaultStrategy, _ := exception.NewDefaultFormattingStrategy()
-	err := Capture(ctx, "ErrorService", func(ctx1 context.Context) error {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	ctx, root := BeginSegment(ctx, "Test")
+	defaultStrategy, err := exception.NewDefaultFormattingStrategy()
+	if !assert.NoError(t, err) {
+		return
+	}
+	captureErr := Capture(ctx, "ErrorService", func(context.Context) error {
 		defer root.Close(nil)
 		return defaultStrategy.Error("MyError")
 	})
+	if !assert.Error(t, captureErr) {
+		return
+	}
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
-	subseg := &Segment{}
-	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
-	assert.Equal(t, err.Error(), subseg.Cause.Exceptions[0].Message)
+	seg, err := td.Recv()
+	if !assert.NoError(t, err) {
+		return
+	}
+	var subseg *Segment
+	if !assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg)) {
+		return
+	}
+	assert.Equal(t, captureErr.Error(), subseg.Cause.Exceptions[0].Message)
 	assert.Equal(t, true, subseg.Fault)
 	assert.Equal(t, "error", subseg.Cause.Exceptions[0].Type)
 	assert.Equal(t, "TestErrorCapture.func1", subseg.Cause.Exceptions[0].Stack[0].Label)
@@ -85,26 +79,32 @@ func TestErrorCapture(t *testing.T) {
 }
 
 func TestPanicCapture(t *testing.T) {
-	TestDaemon.Reset()
-	ctx, root := BeginSegment(context.Background(), "Test")
-	var err error
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	ctx, root := BeginSegment(ctx, "Test")
+	var captureErr error
 	func() {
 		defer func() {
 			if p := recover(); p != nil {
-				err = errors.New(p.(string))
+				captureErr = errors.New(p.(string))
 			}
-			root.Close(err)
+			root.Close(captureErr)
 		}()
-		Capture(ctx, "PanicService", func(ctx1 context.Context) error {
+		_ = Capture(ctx, "PanicService", func(context.Context) error {
 			panic("MyPanic")
 		})
 	}()
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
-	subseg := &Segment{}
-	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
-	assert.Equal(t, err.Error(), subseg.Cause.Exceptions[0].Message)
+	seg, err := td.Recv()
+	if !assert.NoError(t, err) {
+		return
+	}
+	var subseg *Segment
+	if !assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg)) {
+		return
+	}
+	assert.Equal(t, captureErr.Error(), subseg.Cause.Exceptions[0].Message)
 	assert.Equal(t, "panic", subseg.Cause.Exceptions[0].Type)
 	assert.Equal(t, "TestPanicCapture.func1.2", subseg.Cause.Exceptions[0].Stack[0].Label)
 	assert.Equal(t, "Capture", subseg.Cause.Exceptions[0].Stack[1].Label)
@@ -120,7 +120,7 @@ func TestNoSegmentCapture(t *testing.T) {
 				err = errors.New(p.(string))
 			}
 		}()
-		Capture(context.Background(), "PanicService", func(ctx1 context.Context) error {
+		_ = Capture(context.Background(), "PanicService", func(context.Context) error {
 			panic("MyPanic")
 		})
 	}()
@@ -130,28 +130,43 @@ func TestNoSegmentCapture(t *testing.T) {
 }
 
 func TestCaptureAsync(t *testing.T) {
-	var mu sync.Mutex
-	TestDaemon.Reset()
-	ctx, root := BeginSegment(context.Background(), "Test")
-	CaptureAsync(ctx, "TestService", func(ctx1 context.Context) error {
-		mu.Lock()
-		defer mu.Unlock()
-		ctx = ctx1
-		defer root.Close(nil)
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	ctx, root := BeginSegment(ctx, "Test")
+	CaptureAsync(ctx, "TestService", func(context.Context) error {
+		defer wg.Done()
+		root.Close(nil)
 		return nil
 	})
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
-	mu.Lock() // avoid race detection
-	defer mu.Unlock()
-	assert.Equal(t, "Test", s.Name)
-	assert.Equal(t, root.TraceID, s.TraceID)
-	assert.Equal(t, root.ID, s.ID)
-	assert.Equal(t, root.StartTime, s.StartTime)
-	assert.Equal(t, root.EndTime, s.EndTime)
-	assert.NotNil(t, s.Subsegments)
-	subseg := &Segment{}
-	assert.NoError(t, json.Unmarshal(s.Subsegments[0], &subseg))
-	assert.Equal(t, "TestService", subseg.Name)
+	seg, err := td.Recv()
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	wg.Wait()
+	assert.Equal(t, "Test", seg.Name)
+	assert.Equal(t, root.TraceID, seg.TraceID)
+	assert.Equal(t, root.ID, seg.ID)
+	assert.Equal(t, root.StartTime, seg.StartTime)
+	assert.Equal(t, root.EndTime, seg.EndTime)
+	assert.NotNil(t, seg.Subsegments)
+	var subseg *Segment
+	if assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg)) {
+		assert.Equal(t, "TestService", subseg.Name)
+	}
+}
+
+// Benchmarks
+func BenchmarkCapture(b *testing.B) {
+	ctx, seg:= BeginSegment(context.Background(), "TestCaptureSeg")
+	for i:=0; i<b.N; i++ {
+		Capture(ctx, "TestCaptureSubSeg", func(ctx context.Context) error {
+			return nil
+		})
+	}
+	seg.Close(nil)
 }

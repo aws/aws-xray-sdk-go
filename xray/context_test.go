@@ -18,7 +18,11 @@ import (
 )
 
 func TestTraceID(t *testing.T) {
-	ctx, seg := BeginSegment(context.Background(), "test")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	ctx, seg := BeginSegment(ctx, "test")
+	defer seg.Close(nil)
 	traceID := TraceID(ctx)
 	assert.Equal(t, seg.TraceID, traceID)
 }
@@ -29,19 +33,41 @@ func TestEmptyTraceID(t *testing.T) {
 }
 
 func TestRequestWasNotTraced(t *testing.T) {
-	ctx, seg := BeginSegment(context.Background(), "test")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	ctx, seg := BeginSegment(ctx, "test")
+	defer seg.Close(nil)
 	assert.Equal(t, seg.RequestWasTraced, RequestWasTraced(ctx))
 }
 
 func TestDetachContext(t *testing.T) {
-	ctx := context.Background()
-	nctx := DetachContext(ctx)
-	assert.NotEqual(t, ctx, nctx)
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	ctx1, seg := BeginSegment(ctx, "test")
+	defer seg.Close(nil)
+	ctx2 := DetachContext(ctx1)
+	cancel()
+
+	assert.Equal(t, seg, GetSegment(ctx2))
+	select {
+	case <-ctx2.Done():
+		assert.Error(t, ctx2.Err())
+	default:
+		// ctx1 is canceled, but ctx2 is not.
+	}
 }
 
 func TestValidAnnotations(t *testing.T) {
-	TestDaemon.Reset()
-	ctx, root := BeginSegment(context.Background(), "Test")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	ctx, root := BeginSegment(ctx, "Test")
+
 	var err exception.MultiError
 	if e := AddAnnotation(ctx, "string", "str"); e != nil {
 		err = append(err, e)
@@ -57,31 +83,39 @@ func TestValidAnnotations(t *testing.T) {
 	}
 	root.Close(err)
 
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	seg, e := td.Recv()
+	if !assert.NoError(t, e) {
+		return
+	}
 
-	assert.Equal(t, "str", s.Annotations["string"])
-	assert.Equal(t, 1.0, s.Annotations["int"]) //json encoder turns this into a float64
-	assert.Equal(t, 1.1, s.Annotations["float"])
-	assert.Equal(t, true, s.Annotations["bool"])
+	assert.Equal(t, "str", seg.Annotations["string"])
+	assert.Equal(t, 1.0, seg.Annotations["int"]) //json encoder turns this into a float64
+	assert.Equal(t, 1.1, seg.Annotations["float"])
+	assert.Equal(t, true, seg.Annotations["bool"])
 }
 
 func TestInvalidAnnotations(t *testing.T) {
-	TestDaemon.Reset()
-	ctx, root := BeginSegment(context.Background(), "Test")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	ctx, root := BeginSegment(ctx, "Test")
 	type MyObject struct{}
 
 	err := AddAnnotation(ctx, "Object", &MyObject{})
 	root.Close(err)
 	assert.Error(t, err)
 
-	_, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	seg, err := td.Recv()
+	if assert.NoError(t, err) {
+		assert.NotContains(t, seg.Annotations, "Object")
+	}
 }
 
 func TestSimpleMetadata(t *testing.T) {
-	TestDaemon.Reset()
-	ctx, root := BeginSegment(context.Background(), "Test")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	ctx, root := BeginSegment(ctx, "Test")
 	var err exception.MultiError
 	if e := AddMetadata(ctx, "string", "str"); e != nil {
 		err = append(err, e)
@@ -97,24 +131,87 @@ func TestSimpleMetadata(t *testing.T) {
 	}
 	assert.Nil(t, err)
 	root.Close(err)
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
 
-	assert.Equal(t, "str", s.Metadata["default"]["string"])
-	assert.Equal(t, 1.0, s.Metadata["default"]["int"])
-	assert.Equal(t, 1.1, s.Metadata["default"]["float"])
-	assert.Equal(t, true, s.Metadata["default"]["bool"])
+	seg, e := td.Recv()
+	if !assert.NoError(t, e) {
+		return
+	}
+	assert.Equal(t, "str", seg.Metadata["default"]["string"])
+	assert.Equal(t, 1.0, seg.Metadata["default"]["int"]) //json encoder turns this into a float64
+	assert.Equal(t, 1.1, seg.Metadata["default"]["float"])
+	assert.Equal(t, true, seg.Metadata["default"]["bool"])
 }
 
 func TestAddError(t *testing.T) {
-	TestDaemon.Reset()
-	ctx, root := BeginSegment(context.Background(), "Test")
-	err := AddError(ctx, errors.New("New Error"))
-	assert.Nil(t, err)
-	root.Close(err)
-	s, e := TestDaemon.Recv()
-	assert.NoError(t, e)
+	ctx, td := NewTestDaemon()
+	defer td.Close()
 
-	assert.Equal(t, "New Error", s.Cause.Exceptions[0].Message)
-	assert.Equal(t, "error", s.Cause.Exceptions[0].Type)
+	ctx, root := BeginSegment(ctx, "Test")
+	err := AddError(ctx, errors.New("New Error"))
+	assert.NoError(t, err)
+	root.Close(err)
+
+	seg, err := td.Recv()
+	if !assert.NoError(t, err) {
+		return
+	}
+	assert.Equal(t, "New Error", seg.Cause.Exceptions[0].Message)
+	assert.Equal(t, "errors.errorString", seg.Cause.Exceptions[0].Type)
+}
+
+// Benchmarks
+func BenchmarkGetRecorder(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
+	for i := 0; i < b.N; i++ {
+		GetRecorder(ctx)
+	}
+	seg.Close(nil)
+}
+
+func BenchmarkGetSegment(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
+	for i := 0; i < b.N; i++ {
+		GetSegment(ctx)
+	}
+	seg.Close(nil)
+}
+
+func BenchmarkDetachContext(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
+	for i := 0; i < b.N; i++ {
+		DetachContext(ctx)
+	}
+	seg.Close(nil)
+}
+
+func BenchmarkAddAnnotation(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
+	for i := 0; i < b.N; i++ {
+		err := AddAnnotation(ctx, "key", "value")
+		if err != nil {
+			return
+		}
+	}
+	seg.Close(nil)
+}
+
+func BenchmarkAddMetadata(b *testing.B) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "TestSeg")
+	for i := 0; i < b.N; i++ {
+		err := AddMetadata(ctx, "key", "value")
+		if err != nil {
+			return
+		}
+	}
+	seg.Close(nil)
 }
