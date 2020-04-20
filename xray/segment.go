@@ -286,12 +286,13 @@ func (seg *Segment) Close(err error) {
 		seg.addError(err)
 	}
 
+	seg.Unlock()
+
 	// If segment is dummy we return
 	if seg.Dummy {
 		return
 	}
 
-	seg.Unlock()
 	seg.send()
 }
 
