@@ -200,6 +200,7 @@ func TestSDKDisable_otherMethods(t *testing.T) {
 
 	seg.AddAnnotation("key", "value")
 	seg.AddMetadata("key", "value")
+	seg.DownstreamHeader()
 
 	subSeg.Close(nil)
 	seg.Close(nil)
