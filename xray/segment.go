@@ -307,6 +307,7 @@ func (seg *Segment) Close(err error) {
 
 	// If segment is dummy we return
 	if seg.Dummy {
+		seg.Unlock()
 		return
 	}
 

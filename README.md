@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/aws/aws-xray-sdk-go.svg?branch=master)](https://travis-ci.org/aws/aws-xray-sdk-go)
 
-# AWS X-Ray SDK for Go <sup><sup><sup>(RC)</sup></sup></sup>
+# AWS X-Ray SDK for Go
 
 ![Screenshot of the AWS X-Ray console](/images/example.png?raw=true)
 
@@ -29,15 +29,19 @@ go get -u -t github.com/aws/aws-xray-sdk-go/...
 
 ## Installing using Go Modules
 
-The X-Ray SDK for Go is currently in release candidate (RC) stage. The latest RC of the SDK is the recommended version and will be supported before the GA release of v1, which is tracked in this [issue](https://github.com/aws/aws-xray-sdk-go/issues/205).
+The latest version of the SDK is the recommended version.
 
-If you are using Go 1.11 and above, you can install the SDK using Go Modules. You must specify the latest RC version when installing the SDK, like so: 
+If you are using Go 1.11 and above, you can install the SDK using Go Modules (in project's go.mod), like so: 
 
 ```
-go get github.com/aws/aws-xray-sdk-go@v1.0.0-rc.15
+go get github.com/aws/aws-xray-sdk-go
 ```
 
-To get a different specific release version of the SDK use `@<tag>` in your `go get` command.
+To get a different specific release version of the SDK use `@<tag>` in your `go get` command. Also, to get the rc version use this command with the specific version.
+
+```
+go get github.com/aws/aws-xray-sdk-go@v1.0.0
+```
 
 ## Installing using Dep
 If you are using Go 1.9 and above, you can also use [Dep](https://github.com/golang/dep) to add the SDK to your application's dependencies.
@@ -67,22 +71,14 @@ The GitHub issues are intended for bug reports and feature requests. For help an
 
 The [developer guide](https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-go.html) provides in-depth guidance on using the AWS X-Ray service and the AWS X-Ray SDK for Go.
 
+See [aws-xray-sdk-go-sample](https://github.com/aws-samples/aws-xray-sdk-go-sample) for a sample application that provides example of tracing SQL queries, incoming and outgoing request. Follow [README instructions](https://github.com/aws-samples/aws-xray-sdk-go-sample/blob/master/README.md) in that repository to get started with sample application.
+
 ## Quick Start
 
 **Configuration**
 
 ```go
-import (
-  "context"
-
-  "github.com/aws/aws-xray-sdk-go/xray"
-
-  // Importing the plugins enables collection of AWS resource information at runtime.
-  // Every plugin should be imported after "github.com/aws/aws-xray-sdk-go/xray" library.
-  _ "github.com/aws/aws-xray-sdk-go/plugins/ec2"
-  _ "github.com/aws/aws-xray-sdk-go/plugins/beanstalk"
-  _ "github.com/aws/aws-xray-sdk-go/plugins/ecs"
-)
+import "github.com/aws/aws-xray-sdk-go/xray"
 
 func init() {
   xray.Configure(xray.Config{
@@ -237,6 +233,7 @@ func main() {
   row, err := db.QueryRowContext(ctx, "SELECT 1") // Use as normal
 }
 ```
+
 **Lambda**
 
 ```
@@ -271,7 +268,7 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
     _, subseg := xray.BeginSubsegment(ctx, "subsegment-name")
     subseg.Close(nil)
     
-    db := xray.SQL("postgres", "postgres://user:password@host:port/db")
+    db := xray.SQLContext("postgres", "postgres://user:password@host:port/db")
     row, _ := db.QueryRow(ctx, "SELECT 1")
     
     return fmt.Sprintf("Hello %s!", name), nil
