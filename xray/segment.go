@@ -62,14 +62,13 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 }
 
 func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request, traceHeader *header.Header) (context.Context, *Segment) {
-	// If SDK is disabled then return with an empty segment
+	seg := basicSegment(name, nil)
+
+	// If SDK is disabled then return
 	disableKey := os.Getenv("AWS_XRAY_SDK_DISABLED")
 	if strings.ToLower(disableKey) == "true" {
-		seg := &Segment{}
 		return context.WithValue(ctx, ContextKey, seg), seg
 	}
-
-	seg := basicSegment(name, nil)
 
 	cfg := GetRecorder(ctx)
 	seg.assignConfiguration(cfg)
@@ -212,13 +211,6 @@ func (seg *Segment) assignConfiguration(cfg *Config) {
 
 // BeginSubsegment creates a subsegment for a given name and context.
 func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segment) {
-	// If SDK is disabled then return with an empty segment
-	disableKey := os.Getenv("AWS_XRAY_SDK_DISABLED")
-	if strings.ToLower(disableKey) == "true" {
-		seg := &Segment{}
-		return context.WithValue(ctx, ContextKey, seg), seg
-	}
-
 	if len(name) > 200 {
 		name = name[:200]
 	}
@@ -248,6 +240,12 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	defer seg.Unlock()
 
 	seg.ParentSegment = parent.ParentSegment
+
+	// If SDK is disabled then return
+	disableKey := os.Getenv("AWS_XRAY_SDK_DISABLED")
+	if strings.ToLower(disableKey) == "true" {
+		return context.WithValue(ctx, ContextKey, seg), seg
+	}
 
 	// check whether segment is dummy or not based on sampling decision
 	if !seg.ParentSegment.Sampled {

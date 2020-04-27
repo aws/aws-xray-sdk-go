@@ -10,8 +10,6 @@ package xray
 
 import (
 	"encoding/json"
-	"os"
-	"strings"
 	"sync"
 
 	"github.com/aws/aws-xray-sdk-go/header"
@@ -131,12 +129,6 @@ type SQLData struct {
 // DownstreamHeader returns a header for passing to downstream calls.
 func (s *Segment) DownstreamHeader() *header.Header {
 	r := &header.Header{}
-
-	// If SDK is disabled then return with an empty segment
-	disableKey := os.Getenv("AWS_XRAY_SDK_DISABLED")
-	if strings.ToLower(disableKey) == "true" {
-		return r
-	}
 
 	if parent := s.ParentSegment.IncomingHeader; parent != nil {
 		*r = *parent // copy parent incoming header
