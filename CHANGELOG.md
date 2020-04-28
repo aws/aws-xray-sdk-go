@@ -1,3 +1,11 @@
+Release v1.0.1 (2020-04-28)
+================================
+### SDK Enhancements
+* Random value generator only used by SDK. [PR #183](https://github.com/aws/aws-xray-sdk-go/pull/183)
+
+### SDK Bugs
+* Fixed deadlock issue for non reported segments. [PR #223](https://github.com/aws/aws-xray-sdk-go/pull/223)
+
 Release v1.0.0 (2020-04-16)
 ================================
 ### SDK Breaking Changes
