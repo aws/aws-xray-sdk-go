@@ -1,4 +1,4 @@
-Release v1.1.0 (2020-04-28)
+Release v1.0.1 (2020-04-28)
 ================================
 ### SDK Enhancements
 * Random value generator only used by SDK. [PR #183](https://github.com/aws/aws-xray-sdk-go/pull/183)
