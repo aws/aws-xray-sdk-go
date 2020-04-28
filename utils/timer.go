@@ -9,13 +9,8 @@
 package utils
 
 import (
-	"math/rand"
 	"time"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 // Timer is the same as time.Timer except that it has jitters.
 // A Timer must be created with NewTimer.
@@ -27,7 +22,7 @@ type Timer struct {
 
 // NewTimer creates a new Timer that will send the current time on its channel.
 func NewTimer(d, jitter time.Duration) *Timer {
-	t := time.NewTimer(d - time.Duration(rand.Int63n(int64(jitter))))
+	t := time.NewTimer(d - time.Duration(globalRand.Int63n(int64(jitter))))
 
 	jitteredTimer := Timer{
 		t:      t,
@@ -46,5 +41,5 @@ func (j *Timer) C() <-chan time.Time {
 // Reset resets the timer.
 // Reset should be invoked only on stopped or expired timers with drained channels.
 func (j *Timer) Reset() {
-	j.t.Reset(j.d - time.Duration(rand.Int63n(int64(j.jitter))))
+	j.t.Reset(j.d - time.Duration(globalRand.Int63n(int64(j.jitter))))
 }
