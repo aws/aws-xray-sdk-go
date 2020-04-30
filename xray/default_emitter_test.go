@@ -164,7 +164,7 @@ func BenchmarkDefaultEmitter_packSegments(b *testing.B) {
 func BenchmarkDefaultEmitter(b *testing.B) {
 	seg := &Segment{
 		ParentSegment: &Segment{
-			Sampled: true,
+			Sampled: false,
 		},
 	}
 	b.RunParallel(func(pb *testing.PB) {
