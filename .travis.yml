@@ -54,6 +54,7 @@ script:
   # and resolve to clean these up.
   - if [ $TRAVIS_GO_VERSION == "1.14" ]; then
       make golangci-lint || true;
+      make benchmark_sdk
     fi
 
 matrix:
