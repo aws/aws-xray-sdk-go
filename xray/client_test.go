@@ -140,7 +140,6 @@ func TestRoundTripWithQueryParameter(t *testing.T) {
 	const responseContentLength = len(content)
 	const queryParam = `?key=value`
 
-
 	ch := make(chan XRayHeaders, 1)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Contains(t, r.URL.String(), queryParam)
@@ -154,7 +153,7 @@ func TestRoundTripWithQueryParameter(t *testing.T) {
 
 	client := Client(nil)
 
-	err := httpDoTest(ctx, client, http.MethodGet, ts.URL + queryParam, nil)
+	err := httpDoTest(ctx, client, http.MethodGet, ts.URL+queryParam, nil)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -457,7 +456,7 @@ func TestRoundTripReuseHTTP2Datarace(t *testing.T) {
 
 // Benchmarks
 func BenchmarkClient(b *testing.B) {
-	for i:=0; i<b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		Client(nil)
 	}
 }
