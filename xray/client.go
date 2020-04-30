@@ -87,7 +87,7 @@ func (rt *roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
 		}
 
 		seg.GetHTTP().GetRequest().Method = r.Method
-		seg.GetHTTP().GetRequest().URL = getURLMinusQuery(*r.URL)
+		seg.GetHTTP().GetRequest().URL = stripQueryFromURL(*r.URL)
 
 		r.Header.Set(TraceIDHeaderKey, seg.DownstreamHeader().String())
 		seg.Unlock()
@@ -119,7 +119,7 @@ func (rt *roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	return resp, err
 }
 
-func getURLMinusQuery (u url.URL) string {
+func stripQueryFromURL(u url.URL) string {
 	u.RawQuery = ""
 	return u.String()
 }
