@@ -124,6 +124,8 @@ jobs:
         with:
           path: ./cache
           key: ${{ runner.os }}-benchmark
+        shell: bash
+        working-directory: src/github.com/aws/aws-xray-sdk-go
 
       # Run `github-action-benchmark` action
       - name: Store benchmark result
@@ -137,4 +139,6 @@ jobs:
           external-data-json-path: ./cache/benchmark-data.json
           # Workflow will fail when an alert happens
           fail-on-alert: true
-          # Upload the updated cache file for the next job by actions/cache
+
+        shell: bash
+        working-directory: src/github.com/aws/aws-xray-sdk-go
