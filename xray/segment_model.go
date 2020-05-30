@@ -10,8 +10,6 @@ package xray
 
 import (
 	"encoding/json"
-	"os"
-	"strings"
 	"sync"
 
 	"github.com/aws/aws-xray-sdk-go/header"
@@ -133,8 +131,8 @@ func (s *Segment) DownstreamHeader() *header.Header {
 	r := &header.Header{}
 
 	// If SDK is disabled then return with an empty header
-	disableKey := os.Getenv("AWS_XRAY_SDK_DISABLED")
-	if strings.ToLower(disableKey) == "true" {
+	sdkDisable := Disabled()
+	if sdkDisable {
 		return r
 	}
 

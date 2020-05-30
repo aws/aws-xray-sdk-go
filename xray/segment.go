@@ -63,8 +63,8 @@ func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) 
 
 func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request, traceHeader *header.Header) (context.Context, *Segment) {
 	// If SDK is disabled then return with an empty segment
-	disableKey := os.Getenv("AWS_XRAY_SDK_DISABLED")
-	if strings.ToLower(disableKey) == "true" {
+	sdkDisable := Disabled()
+	if sdkDisable {
 		seg := &Segment{}
 		return context.WithValue(ctx, ContextKey, seg), seg
 	}
@@ -286,11 +286,20 @@ func NewSegmentFromHeader(ctx context.Context, name string, r *http.Request, h *
 	return con, seg
 }
 
-// Close a segment.
-func (seg *Segment) Close(err error) {
-	// If SDK is disabled then return with an empty segment
+// Check if SDK is disabled
+func Disabled() bool {
 	disableKey := os.Getenv("AWS_XRAY_SDK_DISABLED")
 	if strings.ToLower(disableKey) == "true" {
+		return true
+	}
+	return false
+}
+
+// Close a segment.
+func (seg *Segment) Close(err error) {
+	// If SDK is disabled then return
+	sdkDisabled := Disabled()
+	if sdkDisabled {
 		return
 	}
 
@@ -319,9 +328,9 @@ func (seg *Segment) Close(err error) {
 
 // CloseAndStream closes a subsegment and sends it.
 func (seg *Segment) CloseAndStream(err error) {
-	// If SDK is disabled then return with an empty segment
-	disableKey := os.Getenv("AWS_XRAY_SDK_DISABLED")
-	if strings.ToLower(disableKey) == "true" {
+	// If SDK is disabled then return
+	sdkDisable := Disabled()
+	if sdkDisable {
 		return
 	}
 
@@ -499,9 +508,9 @@ func (seg *Segment) beforeEmitSubsegment(s *Segment) {
 
 // AddAnnotation allows adding an annotation to the segment.
 func (seg *Segment) AddAnnotation(key string, value interface{}) error {
-	// If SDK is disabled then return with an empty segment
-	disableKey := os.Getenv("AWS_XRAY_SDK_DISABLED")
-	if strings.ToLower(disableKey) == "true" {
+	// If SDK is disabled then return
+	sdkDisable := Disabled()
+	if sdkDisable {
 		return nil
 	}
 
@@ -528,9 +537,9 @@ func (seg *Segment) AddAnnotation(key string, value interface{}) error {
 
 // AddMetadata allows adding metadata to the segment.
 func (seg *Segment) AddMetadata(key string, value interface{}) error {
-	// If SDK is disabled then return with an empty segment
-	disableKey := os.Getenv("AWS_XRAY_SDK_DISABLED")
-	if strings.ToLower(disableKey) == "true" {
+	// If SDK is disabled then return
+	sdkDisable := Disabled()
+	if sdkDisable {
 		return nil
 	}
 
@@ -554,9 +563,9 @@ func (seg *Segment) AddMetadata(key string, value interface{}) error {
 
 // AddMetadataToNamespace allows adding a namespace into metadata for the segment.
 func (seg *Segment) AddMetadataToNamespace(namespace string, key string, value interface{}) error {
-	// If SDK is disabled then return with an empty segment
-	disableKey := os.Getenv("AWS_XRAY_SDK_DISABLED")
-	if strings.ToLower(disableKey) == "true" {
+	// If SDK is disabled then return
+	sdkDisable := Disabled()
+	if sdkDisable {
 		return nil
 	}
 
