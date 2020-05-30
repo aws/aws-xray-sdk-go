@@ -213,8 +213,8 @@ func (seg *Segment) assignConfiguration(cfg *Config) {
 // BeginSubsegment creates a subsegment for a given name and context.
 func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segment) {
 	// If SDK is disabled then return with an empty segment
-	disableKey := os.Getenv("AWS_XRAY_SDK_DISABLED")
-	if strings.ToLower(disableKey) == "true" {
+	sdkDisable := Disabled()
+	if sdkDisable {
 		seg := &Segment{}
 		return context.WithValue(ctx, ContextKey, seg), seg
 	}
