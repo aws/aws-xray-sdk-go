@@ -131,8 +131,7 @@ func (s *Segment) DownstreamHeader() *header.Header {
 	r := &header.Header{}
 
 	// If SDK is disabled then return with an empty header
-	sdkDisable := Disabled()
-	if sdkDisable {
+	if SdkDisabled() {
 		return r
 	}
 

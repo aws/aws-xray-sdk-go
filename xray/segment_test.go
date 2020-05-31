@@ -198,8 +198,12 @@ func TestSDKDisable_otherMethods(t *testing.T) {
 	ctx, seg := BeginSegment(ctx, "Segment")
 	_, subSeg := BeginSubsegment(ctx, "Subegment1")
 
-	seg.AddAnnotation("key", "value")
-	seg.AddMetadata("key", "value")
+	if err := seg.AddAnnotation("key", "value"); err != nil {
+		return
+	}
+	if err := seg.AddMetadata("key", "value"); err != nil {
+		return
+	}
 	seg.DownstreamHeader()
 
 	subSeg.Close(nil)
