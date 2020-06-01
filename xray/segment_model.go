@@ -129,6 +129,12 @@ type SQLData struct {
 // DownstreamHeader returns a header for passing to downstream calls.
 func (s *Segment) DownstreamHeader() *header.Header {
 	r := &header.Header{}
+
+	// If SDK is disabled then return with an empty header
+	if SdkDisabled() {
+		return r
+	}
+
 	if parent := s.ParentSegment.IncomingHeader; parent != nil {
 		*r = *parent // copy parent incoming header
 	}

@@ -151,6 +151,17 @@ func init() {
   seg.Close(nil)
 ```
 
+**Disabling XRay Tracing**
+
+XRay tracing can be disabled by setting up environment variable `AWS_XRAY_SDK_DISABLED` . Disabling XRay can be useful for specific use case like if customer wants to stop tracing in their test environment they can do so just by setting up the environment variable.
+
+
+
+```go
+  // Set environment variable TRUE to disable XRay
+  os.Setenv("AWS_XRAY_SDK_DISABLED", "TRUE")
+```
+
 **Capture**
 
 ```go

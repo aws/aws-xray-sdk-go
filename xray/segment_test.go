@@ -13,6 +13,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -155,6 +156,62 @@ func TestSegment_isDummy(t *testing.T) {
 	assert.False(t, root.Dummy)
 	assert.False(t, subSeg1.Dummy)
 	assert.False(t, subSeg2.Dummy)
+}
+
+func TestSDKDisable_inOrder(t *testing.T) {
+	os.Setenv("AWS_XRAY_SDK_DISABLED", "TRue")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, root := BeginSegment(ctx, "Segment")
+	ctxSubSeg1, subSeg1 := BeginSubsegment(ctx, "Subegment1")
+	_, subSeg2 := BeginSubsegment(ctxSubSeg1, "Subsegment2")
+	subSeg2.Close(nil)
+	subSeg1.Close(nil)
+	root.Close(nil)
+
+	assert.Equal(t, root, &Segment{})
+	assert.Equal(t, subSeg1, &Segment{})
+	assert.Equal(t, subSeg2, &Segment{})
+
+	os.Setenv("AWS_XRAY_SDK_DISABLED", "FALSE")
+}
+
+func TestSDKDisable_outOrder(t *testing.T) {
+	os.Setenv("AWS_XRAY_SDK_DISABLED", "TRUE")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	_, subSeg := BeginSubsegment(ctx, "Subegment1")
+	_, seg := BeginSegment(context.Background(), "Segment")
+
+	subSeg.Close(nil)
+	seg.Close(nil)
+
+	assert.Equal(t, subSeg, &Segment{})
+	assert.Equal(t, seg, &Segment{})
+	os.Setenv("AWS_XRAY_SDK_DISABLED", "FALSE")
+}
+
+func TestSDKDisable_otherMethods(t *testing.T) {
+	os.Setenv("AWS_XRAY_SDK_DISABLED", "true")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "Segment")
+	_, subSeg := BeginSubsegment(ctx, "Subegment1")
+
+	if err := seg.AddAnnotation("key", "value"); err != nil {
+		return
+	}
+	if err := seg.AddMetadata("key", "value"); err != nil {
+		return
+	}
+	seg.DownstreamHeader()
+
+	subSeg.Close(nil)
+	seg.Close(nil)
+
+	assert.Equal(t, seg, &Segment{})
+	assert.Equal(t, subSeg, &Segment{})
+	os.Setenv("AWS_XRAY_SDK_DISABLED", "FALSE")
 }
 
 // Benchmarks
