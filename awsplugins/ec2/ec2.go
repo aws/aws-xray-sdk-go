@@ -21,21 +21,10 @@ import (
 const Origin = "AWS::EC2::Instance"
 
 type Metdata struct {
-	AccountID               string
-	Architecture            string
-	AvailabilityZone        string
-	BillingProducts         string
-	DevpayProductCodes      string
-	MarketplaceProductCodes string
-	ImageID                 string
-	InstanceID              string
-	InstanceType            string
-	KernelID                string
-	PendingTime             string
-	PrivateIP               string
-	RamdiskID               string
-	Region                  string
-	Version                 string
+	AvailabilityZone string
+	ImageID          string
+	InstanceID       string
+	InstanceType     string
 }
 
 //Init activates EC2Plugin at runtime.
@@ -55,7 +44,7 @@ func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
 
 	token, err := getToken(imdsURL, client)
 	if err != nil {
-		logger.Errorf("Unable to fetch EC2 instance metadata token fallback to IMDS V1: %v", err)
+		logger.Debugf("Unable to fetch EC2 instance metadata token fallback to IMDS V1: %v", err)
 	}
 
 	resp, err := getMetadata(imdsURL, client, token)
@@ -67,11 +56,13 @@ func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
 	buf := new(bytes.Buffer)
 	if _, err := buf.ReadFrom(resp.Body); err != nil {
 		logger.Errorf("Error while reading data from response buffer: %v", err)
+		return
 	}
 	metadata := buf.String()
 
 	if err := json.Unmarshal([]byte(metadata), &instanceData); err != nil {
 		logger.Errorf("Error while unmarshal operation: %v", err)
+		return
 	}
 
 	pluginmd.EC2Metadata = &plugins.EC2Metadata{InstanceID: instanceData.InstanceID, AvailabilityZone: instanceData.AvailabilityZone}
@@ -105,19 +96,11 @@ func getMetadata(imdsURL string, client *http.Client, token string) (*http.Respo
 	var metadataHeader string
 	metadataURL := imdsURL + "dynamic/instance-identity/document"
 
-	if token != "fallback" {
-		metadataHeader = "X-aws-ec2-metadata-token"
-	}
-
 	req, _ := http.NewRequest("GET", metadataURL, nil)
 	if token != "fallback" {
+		metadataHeader = "X-aws-ec2-metadata-token"
 		req.Header.Add(metadataHeader, token)
 	}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return resp, err
-	}
-
-	return resp, err
+	return client.Do(req)
 }
