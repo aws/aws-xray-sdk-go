@@ -11,9 +11,10 @@ package ec2
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
+
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
-	"net/http"
 )
 
 // Origin is the type of AWS resource that runs your application.
