@@ -28,8 +28,8 @@ const metadata = `{
 
 const (
 	documentPath = "/dynamic/instance-identity/document"
-	tokenPath = "/api/token"
-	ec2Endpoint = "http://169.254.169.254/latest"
+	tokenPath    = "/api/token"
+	ec2Endpoint  = "http://169.254.169.254/latest"
 )
 
 func TestEndpoint(t *testing.T) {
@@ -58,15 +58,15 @@ func TestIMDSv2Success(t *testing.T) {
 	defer serverMetadata.Close()
 
 	client := &http.Client{
-		Transport:     http.DefaultTransport,
+		Transport: http.DefaultTransport,
 	}
 
 	// token fetch success
-	respToken, _ := getToken(serverToken.URL + "/", client)
+	respToken, _ := getToken(serverToken.URL+"/", client)
 	assert.NotEqual(t, respToken, "fallback")
 
 	// successfully metadata fetch using IMDS v2
-	respMetadata, _ := getMetadata(serverMetadata.URL + "/", client, respToken)
+	respMetadata, _ := getMetadata(serverMetadata.URL+"/", client, respToken)
 	ec2Metadata, _ := ioutil.ReadAll(respMetadata.Body)
 	assert.Equal(t, []byte(metadata), ec2Metadata)
 }
@@ -89,15 +89,15 @@ func TestIMDSv2Failv1Success(t *testing.T) {
 	defer serverMetadata.Close()
 
 	client := &http.Client{
-		Transport:     http.DefaultTransport,
+		Transport: http.DefaultTransport,
 	}
 
 	// token fetch fail
-	respToken, _ := getToken("/" , client)
+	respToken, _ := getToken("/", client)
 	assert.Equal(t, respToken, "fallback")
 
 	// fallback to IMDSv1 and successfully metadata fetch using IMDSv1
-	respMetadata, _ := getMetadata(serverMetadata.URL + "/", client, respToken)
+	respMetadata, _ := getMetadata(serverMetadata.URL+"/", client, respToken)
 	ec2Metadata, _ := ioutil.ReadAll(respMetadata.Body)
 	assert.Equal(t, []byte(metadata), ec2Metadata)
 }
@@ -119,17 +119,14 @@ func TestIMDSv2Failv1Fail(t *testing.T) {
 	defer serverMetadata.Close()
 
 	client := &http.Client{
-		Transport:     http.DefaultTransport,
+		Transport: http.DefaultTransport,
 	}
 
 	// token fetch fail
-	respToken, _ := getToken("/" , client)
+	respToken, _ := getToken("/", client)
 	assert.Equal(t, respToken, "fallback")
 
 	// fallback to IMDSv1 and fail metadata fetch using IMDSv1
 	_, err := getMetadata("/", client, respToken)
 	assert.Error(t, err)
 }
-
-
-
