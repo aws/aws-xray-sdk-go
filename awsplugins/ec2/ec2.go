@@ -9,16 +9,35 @@
 package ec2
 
 import (
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"bytes"
+	"encoding/json"
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
+	"net/http"
 )
 
 // Origin is the type of AWS resource that runs your application.
 const Origin = "AWS::EC2::Instance"
 
-// Init activates EC2Plugin at runtime.
+type Metdata struct {
+	AccountId string
+	Architecture string
+	AvailabilityZone string
+	BillingProducts string
+	DevpayProductCodes string
+	MarketplaceProductCodes string
+	ImageId string
+	InstanceId string
+	InstanceType string
+	KernelId string
+	PendingTime string
+	PrivateIp string
+	RamdiskId string
+	Region string
+	Version string
+}
+
+//Init activates EC2Plugin at runtime.
 func Init() {
 	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.EC2Metadata == nil {
 		addPluginMetadata(plugins.InstancePluginMetadata)
@@ -26,18 +45,80 @@ func Init() {
 }
 
 func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
-	session, e := session.NewSession()
-	if e != nil {
-		logger.Errorf("Unable to create a new ec2 session: %v", e)
-		return
+	var instanceData Metdata
+	ImdsURL := "http://169.254.169.254/latest/"
+
+	client := &http.Client{
+		Transport:     http.DefaultTransport,
 	}
-	client := ec2metadata.New(session)
-	doc, err := client.GetInstanceIdentityDocument()
+
+	token, err := getToken(ImdsURL, client)
+	if err != nil {
+		logger.Errorf("Unable to fetch EC2 instance metadata token fallback to IMDS V1: %v", err)
+	}
+
+	resp, err := getMetadata(ImdsURL, client, token)
 	if err != nil {
 		logger.Errorf("Unable to read EC2 instance metadata: %v", err)
 		return
 	}
 
-	pluginmd.EC2Metadata = &plugins.EC2Metadata{InstanceID: doc.InstanceID, AvailabilityZone: doc.AvailabilityZone}
+	buf := new(bytes.Buffer)
+	if _, err := buf.ReadFrom(resp.Body); err != nil {
+		logger.Errorf("Error while reading data from response buffer: %v", err)
+	}
+	metadata := buf.String()
+
+	if err := json.Unmarshal([]byte(metadata), &instanceData); err != nil {
+		logger.Errorf("Error while unmarshal operation: %v", err)
+	}
+
+	pluginmd.EC2Metadata = &plugins.EC2Metadata{InstanceID: instanceData.InstanceId, AvailabilityZone: instanceData.AvailabilityZone}
 	pluginmd.Origin = Origin
 }
+
+// getToken fetches token to fetch EC2 metadata
+func getToken(ImdsURL string, client *http.Client) (string, error) {
+	ttlHeader   := "X-aws-ec2-metadata-token-ttl-seconds"
+	defaultTTL := "60"
+	tokenURL := ImdsURL + "api/token"
+
+	req, _ := http.NewRequest("PUT", tokenURL, nil)
+	req.Header.Add(ttlHeader, defaultTTL)
+	resp, err := client.Do(req)
+	if err != nil {
+		return "fallback" , err
+	}
+
+	buf := new(bytes.Buffer)
+	if _, err := buf.ReadFrom(resp.Body); err != nil {
+		logger.Errorf("Error while reading data from response buffer: %v", err)
+	}
+	token := buf.String()
+
+	return token, err
+}
+
+// getMetadata fetches instance metadata
+func getMetadata(ImdsURL string, client *http.Client, token string) (*http.Response, error) {
+	var metadataHeader string
+	metadataURL := ImdsURL + "dynamic/instance-identity/document"
+
+	if token != "fallback" {
+		metadataHeader = "X-aws-ec2-metadata-token"
+	}
+
+	req, _ := http.NewRequest("GET", metadataURL, nil)
+	if token != "fallback" {
+		req.Header.Add(metadataHeader, token)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return resp, err
+	}
+
+	return resp, err
+}
+
+
