@@ -10,21 +10,10 @@ import (
 )
 
 const metadata = `{
-  "accountId" : "123367104812",
-  "architecture" : "x86_64",
   "availabilityZone" : "us-west-2a",
-  "billingProducts" : null,
-  "devpayProductCodes" : null,
-  "marketplaceProductCodes" : null,
   "imageId" : "ami-0fe02940a29f8239b",
   "instanceId" : "i-032fe2d42797fb9a1",
-  "instanceType" : "c5.xlarge",
-  "kernelId" : null,
-  "pendingTime" : "2020-04-21T21:16:47Z",
-  "privateIp" : "172.19.57.109",
-  "ramdiskId" : null,
-  "region" : "us-west-2",
-  "version" : "2017-09-30"
+  "instanceType" : "c5.xlarge"
 }`
 
 const (
