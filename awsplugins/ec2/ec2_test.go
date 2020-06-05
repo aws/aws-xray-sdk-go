@@ -64,7 +64,7 @@ func TestIMDSv2Success(t *testing.T) {
 
 	// token fetch success
 	respToken, _ := getToken(serverToken.URL+"/", client)
-	assert.NotEqual(t, respToken, "fallback")
+	assert.NotEqual(t, respToken, "")
 
 	// successfully metadata fetch using IMDS v2
 	respMetadata, _ := getMetadata(serverMetadata.URL+"/", client, respToken)
@@ -95,7 +95,7 @@ func TestIMDSv2Failv1Success(t *testing.T) {
 
 	// token fetch fail
 	respToken, _ := getToken("/", client)
-	assert.Equal(t, respToken, "fallback")
+	assert.Equal(t, respToken, "")
 
 	// fallback to IMDSv1 and successfully metadata fetch using IMDSv1
 	respMetadata, _ := getMetadata(serverMetadata.URL+"/", client, respToken)
@@ -125,7 +125,7 @@ func TestIMDSv2Failv1Fail(t *testing.T) {
 
 	// token fetch fail
 	respToken, _ := getToken("/", client)
-	assert.Equal(t, respToken, "fallback")
+	assert.Equal(t, respToken, "")
 
 	// fallback to IMDSv1 and fail metadata fetch using IMDSv1
 	_, err := getMetadata("/", client, respToken)

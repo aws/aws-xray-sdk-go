@@ -79,12 +79,13 @@ func getToken(imdsURL string, client *http.Client) (string, error) {
 	req.Header.Add(ttlHeader, defaultTTL)
 	resp, err := client.Do(req)
 	if err != nil {
-		return "fallback", err
+		return "", err
 	}
 
 	buf := new(bytes.Buffer)
 	if _, err := buf.ReadFrom(resp.Body); err != nil {
 		logger.Errorf("Error while reading data from response buffer: %v", err)
+		return "", err
 	}
 	token := buf.String()
 
@@ -97,7 +98,7 @@ func getMetadata(imdsURL string, client *http.Client, token string) (*http.Respo
 	metadataURL := imdsURL + "dynamic/instance-identity/document"
 
 	req, _ := http.NewRequest("GET", metadataURL, nil)
-	if token != "fallback" {
+	if token != "" {
 		metadataHeader = "X-aws-ec2-metadata-token"
 		req.Header.Add(metadataHeader, token)
 	}
