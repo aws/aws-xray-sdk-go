@@ -1,3 +1,12 @@
+Release v1.1.0 (2020-06-08)
+================================
+### SDK Breaking Changes
+* Added Disabling XRay SDK Support. [PR #219](https://github.com/aws/aws-xray-sdk-go/pull/219)
+
+### SDK Enhancements
+* Added IMDSv2 Support. [PR #235](https://github.com/aws/aws-xray-sdk-go/pull/235)
+* Sanitize query string from url in http client segment [PR #228](https://github.com/aws/aws-xray-sdk-go/pull/228)
+
 Release v1.0.1 (2020-04-28)
 ================================
 ### SDK Enhancements
