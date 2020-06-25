@@ -20,7 +20,7 @@ import (
 // Origin is the type of AWS resource that runs your application.
 const Origin = "AWS::EC2::Instance"
 
-type Metadata struct {
+type metadata struct {
 	AvailabilityZone string
 	ImageID          string
 	InstanceID       string
@@ -35,7 +35,7 @@ func Init() {
 }
 
 func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
-	var instanceData Metadata
+	var instanceData metadata
 	imdsURL := "http://169.254.169.254/latest/"
 
 	client := &http.Client{
