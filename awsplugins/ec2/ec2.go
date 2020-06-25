@@ -106,8 +106,9 @@ func getMetadata(imdsURL string, client *http.Client, token string) (*http.Respo
 	return client.Do(req)
 }
 
-// Metdata is deprecated.
-// It will be removed in the future but kept only for backward compatibility.
+// Metdata represents IMDS response.
+//
+// Deprecated: Metdata exists for only backward compatibility.
 type Metdata struct {
 	AvailabilityZone string
 	ImageID          string
