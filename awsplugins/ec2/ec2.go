@@ -20,7 +20,7 @@ import (
 // Origin is the type of AWS resource that runs your application.
 const Origin = "AWS::EC2::Instance"
 
-type Metdata struct {
+type metadata struct {
 	AvailabilityZone string
 	ImageID          string
 	InstanceID       string
@@ -35,7 +35,7 @@ func Init() {
 }
 
 func addPluginMetadata(pluginmd *plugins.PluginMetadata) {
-	var instanceData Metdata
+	var instanceData metadata
 	imdsURL := "http://169.254.169.254/latest/"
 
 	client := &http.Client{
@@ -104,4 +104,14 @@ func getMetadata(imdsURL string, client *http.Client, token string) (*http.Respo
 	}
 
 	return client.Do(req)
+}
+
+// Metdata represents IMDS response.
+//
+// Deprecated: Metdata exists only for backward compatibility.
+type Metdata struct {
+	AvailabilityZone string
+	ImageID          string
+	InstanceID       string
+	InstanceType     string
 }

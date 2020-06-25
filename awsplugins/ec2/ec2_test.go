@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const metadata = `{
+const testMetadata = `{
   "accountId" : "123367104812",
   "architecture" : "x86_64",
   "availabilityZone" : "us-west-2a",
@@ -52,7 +52,7 @@ func TestIMDSv2Success(t *testing.T) {
 
 		assert.Equal(t, req.URL.String(), documentPath)
 		assert.Equal(t, req.Header.Get("X-aws-ec2-metadata-token"), "success")
-		_, _ = rw.Write([]byte(metadata))
+		_, _ = rw.Write([]byte(testMetadata))
 	}))
 
 	defer serverToken.Close()
@@ -69,7 +69,7 @@ func TestIMDSv2Success(t *testing.T) {
 	// successfully metadata fetch using IMDS v2
 	respMetadata, _ := getMetadata(serverMetadata.URL+"/", client, respToken)
 	ec2Metadata, _ := ioutil.ReadAll(respMetadata.Body)
-	assert.Equal(t, []byte(metadata), ec2Metadata)
+	assert.Equal(t, []byte(testMetadata), ec2Metadata)
 }
 
 func TestIMDSv2Failv1Success(t *testing.T) {
@@ -83,7 +83,7 @@ func TestIMDSv2Failv1Success(t *testing.T) {
 	serverMetadata := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 
 		assert.Equal(t, req.URL.String(), documentPath)
-		_, _ = rw.Write([]byte(metadata))
+		_, _ = rw.Write([]byte(testMetadata))
 	}))
 
 	defer serverToken.Close()
@@ -100,7 +100,7 @@ func TestIMDSv2Failv1Success(t *testing.T) {
 	// fallback to IMDSv1 and successfully metadata fetch using IMDSv1
 	respMetadata, _ := getMetadata(serverMetadata.URL+"/", client, respToken)
 	ec2Metadata, _ := ioutil.ReadAll(respMetadata.Body)
-	assert.Equal(t, []byte(metadata), ec2Metadata)
+	assert.Equal(t, []byte(testMetadata), ec2Metadata)
 }
 
 func TestIMDSv2Failv1Fail(t *testing.T) {
@@ -113,7 +113,7 @@ func TestIMDSv2Failv1Fail(t *testing.T) {
 	serverMetadata := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 
 		assert.Equal(t, req.URL.String(), documentPath)
-		_, _ = rw.Write([]byte(metadata))
+		_, _ = rw.Write([]byte(testMetadata))
 	}))
 
 	defer serverToken.Close()
