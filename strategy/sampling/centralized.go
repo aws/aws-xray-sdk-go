@@ -221,7 +221,7 @@ func (ss *CentralizedStrategy) startRulePoller() {
 			if err := ss.refreshManifest(); err != nil {
 				logger.Debugf("Error occurred while refreshing sampling rules. %v", err)
 			} else {
-				logger.Info("Successfully fetched sampling rules")
+				logger.Debug("Successfully fetched sampling rules")
 			}
 		}
 	}()
@@ -413,7 +413,7 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 	if failed {
 		err = errors.New("error occurred updating sampling targets")
 	} else {
-		logger.Info("Successfully refreshed sampling targets")
+		logger.Debug("Successfully refreshed sampling targets")
 	}
 
 	// Set refresh flag if modifiedAt timestamp from remote is greater than ours.
