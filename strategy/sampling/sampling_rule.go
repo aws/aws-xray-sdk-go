@@ -31,19 +31,19 @@ type Properties struct {
 // AppliesTo returns true if the sampling rule matches against given parameters. False Otherwise.
 // Assumes lock is already held, if required.
 func (p *Properties) AppliesTo(host, path, method string) bool {
-	return (host == "" || pattern.WildcardMatchCaseInsensitive(p.Host, host)) &&
-		(path == "" || pattern.WildcardMatchCaseInsensitive(p.URLPath, path)) &&
-		(method == "" || pattern.WildcardMatchCaseInsensitive(p.HTTPMethod, method))
+	return pattern.WildcardMatchCaseInsensitive(p.Host, host) &&
+		pattern.WildcardMatchCaseInsensitive(p.URLPath, path) &&
+		pattern.WildcardMatchCaseInsensitive(p.HTTPMethod, method)
 }
 
 // AppliesTo returns true if the sampling rule matches against given sampling request. False Otherwise.
 // Assumes lock is already held, if required.
 func (r *CentralizedRule) AppliesTo(request *Request) bool {
-	return (request.Host == "" || pattern.WildcardMatchCaseInsensitive(r.Host, request.Host)) &&
-		(request.URL == "" || pattern.WildcardMatchCaseInsensitive(r.URLPath, request.URL)) &&
-		(request.Method == "" || pattern.WildcardMatchCaseInsensitive(r.HTTPMethod, request.Method)) &&
-		(request.ServiceName == "" || pattern.WildcardMatchCaseInsensitive(r.ServiceName, request.ServiceName)) &&
-		(request.ServiceType == "" || pattern.WildcardMatchCaseInsensitive(r.serviceType, request.ServiceType))
+	return pattern.WildcardMatchCaseInsensitive(r.Host, request.Host) &&
+		pattern.WildcardMatchCaseInsensitive(r.URLPath, request.URL) &&
+		pattern.WildcardMatchCaseInsensitive(r.HTTPMethod, request.Method) &&
+		pattern.WildcardMatchCaseInsensitive(r.ServiceName, request.ServiceName) &&
+		pattern.WildcardMatchCaseInsensitive(r.serviceType, request.ServiceType)
 }
 
 // CentralizedRule represents a centralized sampling rule

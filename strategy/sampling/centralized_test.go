@@ -159,9 +159,10 @@ func TestShouldTracePositive1(t *testing.T) {
 	assert.Equal(t, int64(9), csr1.reservoir.used)
 }
 
-// Assert request matches against the correct sampling rule and gets sampled
-// ServiceType set to nil since not configured or passed in the request.
-// r1 is matched because we do best effort matching
+// Assert request matches against the correct sampling rule and gets sampled.
+// ServiceType in the request is set to nil since not configured or passed in.
+// r1 is matched because we specified a ServiceType rule of * which is a
+// wildcard for any ServiceType.
 func TestShouldTracePositive2(t *testing.T) {
 	clock := &utils.MockClock{
 		NowTime: 1500000000,
@@ -175,7 +176,7 @@ func TestShouldTracePositive2(t *testing.T) {
 	method1 := "POST"
 	url1 := "/resource/bar"
 	serviceName1 := "localhost"
-	servType1 := "AWS::EC2::Instance"
+	servType1 := "*" // specifies wildcard for any service type
 
 	// serviceType missing
 	sr := &Request{

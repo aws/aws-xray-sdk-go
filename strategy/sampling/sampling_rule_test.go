@@ -343,3 +343,143 @@ func BenchmarkCentralizedRule_Sample(b *testing.B) {
 		}
 	})
 }
+
+func TestCentralizedRuleAppliesTo(t *testing.T) {
+	type testCase struct {
+		testName string
+		rule     *CentralizedRule
+		request  *Request
+		expected bool
+	}
+
+	testCases := []testCase{
+		{
+			testName: "if the request is empty and the rule has a specific ServiceName, AppliesTo should return false",
+			rule: &CentralizedRule{
+				Properties: &Properties{
+					ServiceName: "specific-service-name",
+				},
+			},
+			request:  &Request{},
+			expected: false,
+		},
+		{
+			testName: "if the request is empty and the rule has a specific URL, AppliesTo should return false",
+			rule: &CentralizedRule{
+				Properties: &Properties{
+					URLPath: "specific-url",
+				},
+			},
+			request:  &Request{},
+			expected: false,
+		},
+		{
+			testName: "if the request is empty and the rule has a specific http method, AppliesTo should return false",
+			rule: &CentralizedRule{
+				Properties: &Properties{
+					HTTPMethod: "POST",
+				},
+			},
+			request:  &Request{},
+			expected: false,
+		},
+		{
+			testName: "if the request is empty and the rule has a specific host, AppliesTo should return false",
+			rule: &CentralizedRule{
+				Properties: &Properties{
+					Host: "specific-host",
+				},
+			},
+			request:  &Request{},
+			expected: false,
+		},
+		{
+			testName: "if the request is empty and the rule has a specific service type, AppliesTo should return false",
+			rule: &CentralizedRule{
+				Properties:  &Properties{},
+				serviceType: "specific-service-type",
+			},
+			request:  &Request{},
+			expected: false,
+		},
+		{
+			testName: "if the request has a ServiceName that matches the specific ServiceName in the rule, AppliesTo should return true",
+			rule: &CentralizedRule{
+				Properties: &Properties{
+					ServiceName: "specific-service-name",
+				},
+			},
+			request:  &Request{ServiceName: "specific-service-name"},
+			expected: true,
+		},
+		{
+			testName: "if the request is empty and the rules are all wildcards, AppliesTo should return true",
+			rule: &CentralizedRule{
+				Properties: &Properties{
+					ServiceName: "*",
+					URLPath:     "*",
+					HTTPMethod:  "*",
+					Host:        "*",
+				},
+				serviceType: "*",
+			},
+			request:  &Request{},
+			expected: true,
+		},
+	}
+
+	for _, tCase := range testCases {
+		t.Run(tCase.testName, func(t *testing.T) {
+			assert.Equal(t, tCase.rule.AppliesTo(tCase.request), tCase.expected)
+		})
+	}
+}
+
+func TestLocalizedRuleAppliesTo(t *testing.T) {
+	type testCase struct {
+		testName string
+		rule     *Properties
+		host     string
+		path     string
+		method   string
+		expected bool
+	}
+
+	testCases := []testCase{
+		{
+			testName: "if the host is empty and the rule has a specific host, AppliesTo should return false",
+			rule: &Properties{
+				Host: "specific-host",
+			},
+			expected: false,
+		},
+		{
+			testName: "if the path is empty and the rule has a specific path, AppliesTo should return false",
+			rule: &Properties{
+				URLPath: "specific-path",
+			},
+			expected: false,
+		},
+		{
+			testName: "if the method is empty and the rule has a specific method, AppliesTo should return false",
+			rule: &Properties{
+				HTTPMethod: "POST",
+			},
+			expected: false,
+		},
+		{
+			testName: "if the request host matches the one in the rule, AppliesTo should return true",
+			rule: &Properties{
+				Host: "some-host",
+			},
+			host:     "some-host",
+			expected: true,
+		},
+	}
+
+	for _, tCase := range testCases {
+		t.Run(tCase.testName, func(t *testing.T) {
+			assert.Equal(t, tCase.rule.AppliesTo(tCase.host, tCase.path, tCase.method), tCase.expected)
+		})
+	}
+}
