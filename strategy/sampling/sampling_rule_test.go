@@ -429,6 +429,7 @@ func TestCentralizedRuleAppliesTo(t *testing.T) {
 	}
 
 	for _, tCase := range testCases {
+		tCase := tCase
 		t.Run(tCase.testName, func(t *testing.T) {
 			assert.Equal(t, tCase.rule.AppliesTo(tCase.request), tCase.expected)
 		})
@@ -478,6 +479,7 @@ func TestLocalizedRuleAppliesTo(t *testing.T) {
 	}
 
 	for _, tCase := range testCases {
+		tCase := tCase
 		t.Run(tCase.testName, func(t *testing.T) {
 			assert.Equal(t, tCase.rule.AppliesTo(tCase.host, tCase.path, tCase.method), tCase.expected)
 		})
