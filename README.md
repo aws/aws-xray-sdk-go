@@ -137,6 +137,7 @@ func init() {
 ```
 
 **Start a custom segment/subsegment**
+Note that customers using xray.BeginSegment API directly will only be able to evaluate sampling rules based on service name.
 
 ```go
   // Start a segment
