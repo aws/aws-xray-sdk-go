@@ -487,8 +487,8 @@ func (seg *Segment) addPlugin(metadata *plugins.PluginMetadata) {
 func (seg *Segment) addSDKAndServiceInformation() {
 	seg.GetAWS()["xray"] = SDK{Version: SDKVersion, Type: SDKType}
 
-	seg.GetService().Compiler = runtime.Compiler
-	seg.GetService().CompilerVersion = runtime.Version()
+	seg.GetService().Runtime = runtime.Compiler
+	seg.GetService().RuntimeVersion = runtime.Version()
 }
 
 func (seg *Segment) beforeEmitSubsegment(s *Segment) {
