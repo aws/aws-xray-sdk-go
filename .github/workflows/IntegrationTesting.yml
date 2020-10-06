@@ -27,7 +27,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: deployment-package
-          path: sample-apps/http-server/deploy.zip
+          path: deploy.zip
 
   deploy_Web_App:
     name: Build Web Application
