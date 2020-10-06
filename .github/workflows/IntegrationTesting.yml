@@ -18,7 +18,7 @@ jobs:
         run: mkdir sample-apps/http-server/aws-xray-sdk-go
 
       - name: Copy XRay SDK to deployment package
-        run: cp -r * sample-apps/http-server/aws-xray-sdk-go
+        run: rsync -r * sample-apps/http-server/aws-xray-sdk-go --exclude sample-apps/
 
       - name: Zip up the deployment package
         run: zip -r deploy.zip sample-apps/http-server/ -x '*.git*'
