@@ -21,13 +21,15 @@ jobs:
         run: rsync -r * sample-apps/http-server/aws-xray-sdk-go --exclude sample-apps/
 
       - name: Zip up the deployment package
-        run: zip -r deploy.zip sample-apps/http-server/ -x '*.git*'
+        run: |
+          cd sample-apps/http-server
+          zip -r deploy.zip . -x '*.git*'
 
       - name: Upload WebApp with X-Ray SDK build artifact
         uses: actions/upload-artifact@v2
         with:
           name: deployment-package
-          path: deploy.zip
+          path: sample-apps/http-server/deploy.zip
 
   deploy_Web_App:
     name: Build Web Application
