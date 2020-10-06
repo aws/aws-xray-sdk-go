@@ -44,9 +44,6 @@ jobs:
         with:
           name: deployment-package
 
-      - name: view the fs
-        run: ls
-
       - name: Copy deployment package to terraform directory
         run: cp deploy.zip ./terraform
 
@@ -86,3 +83,66 @@ jobs:
         with:
           name: terraform-state-artifact
           path: ./terraform
+
+  test_WebApp:
+    name: Test WebApp
+    needs: deploy_Web_App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Pull in source code from TestRunner Github repository
+        uses: actions/checkout@v2
+        with:
+          repository: bhautikpip/TestRunner
+          token: ${{  secrets.PAT }}
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Run Integration Test
+        run: |
+          pip3 install -r requirements.txt
+          python testrunner.py --t webapp --e http://${{ github.run_id }}-eb-app-env.us-west-2.elasticbeanstalk.com  --l golang
+
+
+    cleanup:
+      name: Resource tear down
+      needs: test_WebApp
+      if: true
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Download terraform state artifact
+          uses: actions/download-artifact@v2
+          with:
+            name: terraform-state-artifact
+
+        - name: Configure AWS Credentials
+          uses: aws-actions/configure-aws-credentials@v1
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: us-west-2
+
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v1
+
+        - name: Terraform Init
+          run: terraform init
+
+        - name: set permissions to terraform plugins
+          run: chmod -R a+x .terraform/plugins/registry.terraform.io/hashicorp/aws/3.5.0/linux_amd64/*
+
+        - name: Destroy resources
+          run: terraform destroy -state="terraform.tfstate" -var-file="fixtures.us-west-2.tfvars" -auto-approve
+          env:
+            TF_VAR_resource_prefix: ${{ github.run_id }}
