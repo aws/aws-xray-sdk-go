@@ -3,7 +3,7 @@ on: [pull_request]
 
 jobs:
   build_SDK:
-    name: Build X-Ray Go SDK with sample app
+    name: Build X-Ray Go SDK With Sample App
     runs-on: ubuntu-latest
 
     steps:
@@ -14,7 +14,7 @@ jobs:
         with:
           go-version: '1.14'
 
-      - name: create a deployment package
+      - name: Create a deployment package
         run: mkdir sample-apps/http-server/aws-xray-sdk-go
 
       - name: Copy X-Ray SDK to deployment package
@@ -31,8 +31,8 @@ jobs:
           name: deployment-package
           path: sample-apps/http-server/deploy.zip
 
-  deploy_Web_App:
-    name: Deploy X-Ray Instrumented Web app
+  deploy_WebApp:
+    name: Deploy X-Ray Instrumented Web App
     needs: build_SDK
     runs-on: ubuntu-latest
 
@@ -86,7 +86,7 @@ jobs:
 
   test_WebApp:
     name: Test WebApp
-    needs: deploy_Web_App
+    needs: deploy_WebApp
     runs-on: ubuntu-latest
 
     steps:
