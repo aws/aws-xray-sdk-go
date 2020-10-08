@@ -88,6 +88,9 @@ func newGlobalConfig() *globalConfig {
 		} else if cms == ctxmissing.LogErrorStrategy {
 			cm := ctxmissing.NewDefaultLogErrorStrategy()
 			ret.contextMissingStrategy = cm
+		} else if cms == ctxmissing.IgnoreErrorStrategy {
+			cm := ctxmissing.NewDefaultIgnoreErrorStrategy()
+			ret.contextMissingStrategy = cm
 		}
 	} else {
 		cm := ctxmissing.NewDefaultRuntimeErrorStrategy()
@@ -150,6 +153,9 @@ func ContextWithConfig(ctx context.Context, c Config) (context.Context, error) {
 			c.ContextMissingStrategy = cm
 		} else if cms == ctxmissing.LogErrorStrategy {
 			cm := ctxmissing.NewDefaultLogErrorStrategy()
+			c.ContextMissingStrategy = cm
+		} else if cms == ctxmissing.IgnoreErrorStrategy {
+			cm := ctxmissing.NewDefaultIgnoreErrorStrategy()
 			c.ContextMissingStrategy = cm
 		}
 	}
@@ -216,6 +222,9 @@ func Configure(c Config) error {
 			globalCfg.contextMissingStrategy = cm
 		} else if cms == ctxmissing.LogErrorStrategy {
 			cm := ctxmissing.NewDefaultLogErrorStrategy()
+			globalCfg.contextMissingStrategy = cm
+		} else if cms == ctxmissing.IgnoreErrorStrategy {
+			cm := ctxmissing.NewDefaultIgnoreErrorStrategy()
 			globalCfg.contextMissingStrategy = cm
 		}
 	} else if c.ContextMissingStrategy != nil {
