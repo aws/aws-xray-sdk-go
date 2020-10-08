@@ -68,6 +68,6 @@ func (dl *DefaultLogErrorStrategy) ContextMissing(v interface{}) {
 
 // ContextMissing ignores an error message when the
 // segment context is missing.
-func (dl *DefaultIgnoreErrorStrategy) ContextMissing(v interface{}) {
+func (di *DefaultIgnoreErrorStrategy) ContextMissing(v interface{}) {
 	// do nothing
 }
