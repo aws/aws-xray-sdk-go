@@ -1,25 +1,10 @@
 # SampleApp for AWS X-Ray Go SDK
 
-This repository contains sample app to show the tracing use case of aws-xray-sdk-go. The SampleApp contains example of tracing aws sdk calls like list all SQS queues and list all s3 buckets. Moreover, it contains tracing SQL request (creating, deleting table and populating data inside that table) and tracing upstream HTTP request. 
+This repository contains sample app to show the tracing use case of aws-xray-sdk-go. The SampleApp contains example of tracing aws sdk calls like list all s3 buckets. Moreover, it contains tracing upstream HTTP request. 
 
 ## Prerequirements
 
-* Should have a mysql database setup since SampleApp will be querying to the local database 
 * Should have XRay daemon or AOC with xray receiver installed, and running in order to see traces on the AWS XRay console
-
-The following environment variable is expected to set by the customer
-```
-DSN_STRING - The connection string of the database (set username, password and dbname)
-```
-NOTE: example of recommended dsn string: username:password@tcp(127.0.0.1:3306)/dbname
-
-## Setup
-
-
-To run the SampleApp with environment variable set up,
-```
-DSN_STRING="username:password@tcp(127.0.0.1:3306)/dbname" go run main.go
-```
 
 ## Requst route path
 
@@ -27,7 +12,6 @@ This application contains 3 paths
 ```
 /aws-sdk-call
 /outgoing-http-call
-/aws-mysql-call
 ```
 
 ## Opening Issues
