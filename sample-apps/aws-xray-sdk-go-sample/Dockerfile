@@ -1,5 +1,4 @@
-# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: MIT-0
+:# SPDX-License-Identifier: MIT-0
 
 FROM golang:1.14
 
