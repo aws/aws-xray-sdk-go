@@ -21,7 +21,7 @@ import (
 
 func webServer(){
 	http.Handle("/outgoing-http-call", xray.Handler(xray.NewFixedSegmentNamer("SampleApplication"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, err := ctxhttp.Get(r.Context(), xray.Client(nil), "https://aws.amazon.com/")
+		_, err := ctxhttp.Get(r.Context(), xray.Client(nil), "https://aws.amazon.com")
 		if err != nil {
 			log.Println(err)
 			return
