@@ -8,7 +8,7 @@ This repository contains sample app to show the tracing use case of aws-xray-sdk
 
 ## Requst route path
 
-This application contains 3 paths
+This application contains 2 paths
 ```
 /aws-sdk-call
 /outgoing-http-call
