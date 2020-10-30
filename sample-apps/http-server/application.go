@@ -23,7 +23,7 @@ func main() {
 
 	// test http instrumentation
 	http.Handle("/outgoing-http-call", xray.Handler(xray.NewFixedSegmentNamer("/outgoing-http-call"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, err := ctxhttp.Get(r.Context(), xray.Client(nil), "https://aws.amazon.com/")
+		_, err := ctxhttp.Get(r.Context(), xray.Client(nil), "https://aws.amazon.com")
 		if err != nil {
 			return
 		}
