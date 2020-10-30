@@ -1,5 +1,3 @@
-:# SPDX-License-Identifier: MIT-0
-
 FROM golang:1.14
 
 # Set the Current Working Directory inside the container
