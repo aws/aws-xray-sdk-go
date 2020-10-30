@@ -86,7 +86,7 @@ jobs:
 
   test_WebApp:
     name: Run testing suite
-    needs: build_SDK
+    needs: deploy_WebApp
     runs-on: ubuntu-latest
 
     steps:
