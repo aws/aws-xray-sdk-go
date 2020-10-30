@@ -85,6 +85,10 @@ jobs:
           path: ./terraform
 
   test_WebApp:
+    name: Run testing suite
+    needs: build_SDK
+    runs-on: ubuntu-latest
+
     steps:
       - uses: actions/setup-java@v1
         with:
