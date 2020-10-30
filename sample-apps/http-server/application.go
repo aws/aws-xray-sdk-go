@@ -4,6 +4,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"golang.org/x/net/context/ctxhttp"
 	"net/http"
@@ -12,11 +13,11 @@ import (
 func main() {
 	// test aws-sdk instrumentation
 	http.Handle("/aws-sdk-call", xray.Handler(xray.NewFixedSegmentNamer("/aws-sdk-call"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sess := session.Must(session.NewSession(&aws.Config{
-			Region: aws.String("us-west-2")},))
-		dynamo := dynamodb.New(sess)
-		xray.AWS(dynamo.Client)
-		_, _ = dynamo.ListTablesWithContext(r.Context(), &dynamodb.ListTablesInput{})
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-west-2")},))
+		input := &s3.ListBucketsInput{}
+		s3Session := s3.New(sess)
+		xray.AWS(s3Session.Client)
+		_, _ = s3Session.ListBuckets(r.Context(), input)
 
 		_, _ = w.Write([]byte("Ok! tracing aws sdk call"))
 	})))
