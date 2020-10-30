@@ -68,14 +68,14 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -var-file="fixtures.us-west-2.tfvars" -no-color
         env:
-          TF_VAR_resource_prefix: ${{ github.run_id }}
+          TF_VAR_resource_prefix: '${{ github.run_id }}-${{ github.run_number }}'
         continue-on-error: true
         working-directory: ./terraform
 
       - name: Terraform Apply
         run: terraform apply -var-file="fixtures.us-west-2.tfvars" -auto-approve
         env:
-          TF_VAR_resource_prefix: ${{ github.run_id }}
+          TF_VAR_resource_prefix: '${{ github.run_id }}-${{ github.run_number }}'
         working-directory: ./terraform
 
       - name: Upload terraform state files for destorying resources
@@ -85,21 +85,10 @@ jobs:
           path: ./terraform
 
   test_WebApp:
-    name: Test WebApp
-    needs: deploy_WebApp
-    runs-on: ubuntu-latest
-
     steps:
-      - name: Pull in source code from TestRunner Github repository
-        uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
         with:
-          repository: bhautikpip/TestRunner
-          token: ${{  secrets.PAT }}
-
-      - name: Setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
+          java-version: 14
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -108,11 +97,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
 
-      - name: Run Integration Test
-        run: |
-          pip3 install -r requirements.txt
-          python testrunner.py --t webapp --e http://${{ github.run_id }}-eb-app-env.us-west-2.elasticbeanstalk.com  --l golang
+      - name: Checkout test framework
+        uses: actions/checkout@v2
+        with:
+          repository: aws-observability/aws-otel-test-framework
+          ref: terraform
 
+      - name: Run testing suite
+        run: ./gradlew :validator:run --args='-c default-xray-trace-validation.yml --endpoint http://${{ github.run_id }}-${{ github.run_number }}-eb-app-env.us-west-2.elasticbeanstalk.com'
 
   cleanup:
     name: Resource tear down
@@ -145,4 +137,4 @@ jobs:
       - name: Destroy resources
         run: terraform destroy -state="terraform.tfstate" -var-file="fixtures.us-west-2.tfvars" -auto-approve
         env:
-          TF_VAR_resource_prefix: ${{ github.run_id }}
+          TF_VAR_resource_prefix: '${{ github.run_id }}-${{ github.run_number }}'

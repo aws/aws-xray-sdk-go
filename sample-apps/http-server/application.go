@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+	// test aws-sdk instrumentation
 	http.Handle("/aws-sdk-call", xray.Handler(xray.NewFixedSegmentNamer("/aws-sdk-call"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sess := session.Must(session.NewSession(&aws.Config{
 			Region: aws.String("us-west-2")},))
@@ -20,6 +21,7 @@ func main() {
 		_, _ = w.Write([]byte("Ok! tracing aws sdk call"))
 	})))
 
+	// test http instrumentation
 	http.Handle("/outgoing-http-call", xray.Handler(xray.NewFixedSegmentNamer("/outgoing-http-call"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, err := ctxhttp.Get(r.Context(), xray.Client(nil), "https://aws.amazon.com/")
 		if err != nil {
@@ -28,15 +30,6 @@ func main() {
 
 		_, _ = w.Write([]byte("Ok! tracing outgoing http call"))
 	})))
-
-	http.Handle("/annotation-metadata", xray.Handler(xray.NewFixedSegmentNamer("/annotation-metadata"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, subSeg := xray.BeginSubsegment(r.Context(), "subsegment")
-		_ = subSeg.AddAnnotation("one", "1")
-		_ = subSeg.AddMetadata("integration-test", "true")
-		subSeg.Close(nil)
-		_, _ = w.Write([]byte("Ok! annotation-metadata testing"))
-	})))
-
 
 	_ = http.ListenAndServe(":5000", nil)
 }
