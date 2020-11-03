@@ -26,4 +26,4 @@ jobs:
           uses: actions/cache@v2
           with:
             path: /tmp/.buildx-cache
-            key: ubuntu-latest-buildx-${{ github.sha }}
+            key: ${{ runner.os }}-buildx-${{ github.sha }}
