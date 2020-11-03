@@ -12,7 +12,6 @@ jobs:
       - name: Get dependencies
         run: |
           go get -v -t -d ./...
-          go get github.com/aws/aws-xray-sdk-go@${{ github.sha }}
   build_docker:
     name: Build docker image
     needs: build
