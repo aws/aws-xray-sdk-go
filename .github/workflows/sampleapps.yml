@@ -22,3 +22,8 @@ jobs:
         uses: actions/checkout@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
+      - name: Cache Docker layer
+          uses: actions/cache@v2
+          with:
+            path: /tmp/.buildx-cache
+            key: ubuntu-latest-buildx-${{ github.sha }}
