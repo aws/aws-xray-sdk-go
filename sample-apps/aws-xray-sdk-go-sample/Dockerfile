@@ -4,7 +4,7 @@ FROM golang:1.14
 WORKDIR /app
 
 # Copy go mod and sum files
-COPY go.mod go.sum main.go ./
+COPY . .
 #
 ENV GOPROXY direct
 #
@@ -16,10 +16,10 @@ RUN go mod download
 RUN go install .
 
 # Build the Go app
-RUN go build -o mainapp .
+RUN cd sample-apps/aws-xray-sdk-go-sample/ && go build -o main .
 
 EXPOSE 8080
 
 EXPOSE 8000
 
-CMD ["./mainapp"]
+CMD ["sample-apps/aws-xray-sdk-go-sample/main"]
