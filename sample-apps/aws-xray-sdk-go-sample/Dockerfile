@@ -13,7 +13,7 @@ RUN go mod download
 
 # Copy the source from the current directory to the Working Directory inside the container
 
-RUN go sample-apps/aws-xray-sdk-go-sample/ && install .
+RUN cd sample-apps/aws-xray-sdk-go-sample/ && go install .
 
 # Build the Go app
 RUN cd sample-apps/aws-xray-sdk-go-sample/ && go build -o main .
