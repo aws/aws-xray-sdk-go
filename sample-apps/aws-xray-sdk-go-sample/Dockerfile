@@ -1,7 +1,7 @@
 FROM golang:1.14
 
 # Set the Current Working Directory inside the container
-WORKDIR /app
+WORKDIR /
 
 ## Copy go mod and sum files
 #COPY go.mod go.sum ./
