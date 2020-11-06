@@ -4,7 +4,7 @@ FROM golang:1.14
 WORKDIR /app
 
 # Copy go mod and sum files
-COPY go.mod go.sum ./
+COPY go.mod go.sum main.go ./
 #
 ENV GOPROXY direct
 #
@@ -12,8 +12,6 @@ ENV GOPROXY direct
 RUN go mod download
 
 # Copy the source from the current directory to the Working Directory inside the container
-COPY main.go ./
-
 
 RUN go install .
 
