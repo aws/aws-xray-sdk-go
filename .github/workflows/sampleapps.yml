@@ -27,9 +27,17 @@ jobs:
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
-      - name: Login to ECR
-        uses: docker/login-action@v1
-        with:
-          registry: ${{ secrets.AWS_REGISTRY_ACCOUNT_ID }}.${{ secrets.INTEG_TEST_AWS_KEY_ID }}.dkr.ecr.us-west-2.amazonaws.com
-          username: ${{ secrets.INTEG_TEST_AWS_KEY_ID }}
-          password: ${{ secrets.INTEG_TEST_AWS_KEY_SECRET }}
+      - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v1
+          with:
+            aws-access-key-id: ${{ secrets.INTEG_TEST_AWS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.INTEG_TEST_AWS_KEY_SECRET }}
+            aws-region: us-west-2
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+
+
+
+
