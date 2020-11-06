@@ -15,10 +15,10 @@ ENV GOPROXY direct
 COPY . .
 
 # Build the Go app
-RUN go build -o main .
+RUN go build -o mainapp .
 
 EXPOSE 8080
 
 EXPOSE 8000
 
-CMD ["./main"]
+CMD ["./mainapp"]
