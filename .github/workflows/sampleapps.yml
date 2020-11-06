@@ -13,6 +13,9 @@ jobs:
         run: |
           go get -v -t -d ./...
           echo "replace github.com/aws/aws-xray-sdk-go => ./pkg/aws-xray-sdk-go >> go.mod"
+          echo ${{ secrets.AWS_REGISTRY_ACCOUNT_ID }}
+          echo ${{ secrets.INTEG_TEST_AWS_KEY_ID }}
+          echo ${{ secrets.INTEG_TEST_AWS_KEY_SECRET }}
   build_docker:
     name: Build docker image
     needs: build
