@@ -276,6 +276,28 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
 }
 ```
 
+**grpc client**
+
+```go
+conn, err := grpc.Dial(
+    serverAddr,
+    grpc.WithInsecure(),
+    grpc.WithUnaryInterceptor(grpcmiddleware.ChainUnaryClient(
+        xray.UnaryClientInterceptor(serverAddr),
+    )),
+)
+```
+
+**grpc server**
+
+```go
+grpcServer := grpc.NewServer(
+    grpcmiddleware.WithUnaryServerChain(
+        xray.UnaryServerInterceptor(context.TODO(), xray.NewFixedSegmentNamer("myApp")),
+    ),
+)
+```
+
 ## License
 
 The AWS X-Ray SDK for Go is licensed under the Apache 2.0 License. See LICENSE and NOTICE.txt for more information.
