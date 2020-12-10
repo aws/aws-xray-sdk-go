@@ -12,9 +12,9 @@ jobs:
         with:
           go-version: ^1.13
       - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        go get github.com/aws/aws-xray-sdk-go@${{ github.sha }}
+        run: |
+          go get -v -t -d ./...
+          go get github.com/aws/aws-xray-sdk-go@${{ github.sha }}
   build_docker:
     name: Build docker image
     needs: build
