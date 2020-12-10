@@ -1,5 +1,3 @@
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-// SPDX-License-Identifier: MIT-0
 package main
 
 import (
@@ -14,38 +12,39 @@ import (
 )
 
 func webServer() {
-	// Root path, do nothing
 	http.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("This is root"))
+		_, _ = w.Write([]byte("healthcheck"))
 	}))
+
 	//test http instrumentation
-	http.Handle("/outgoing-http-call", xray.Handler(xray.NewFixedSegmentNamer("SampleApplication"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	http.Handle("/outgoing-http-call", xray.Handler(xray.NewFixedSegmentNamer("/outgoing-http-call"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, err := ctxhttp.Get(r.Context(), xray.Client(nil), "https://aws.amazon.com")
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		w.Write([]byte("Hello, http!"))
+		_, _ = w.Write([]byte("Tracing http call!"))
 	})))
+
 	//test aws sdk instrumentation
-	http.Handle("/aws-sdk-call", xray.Handler(xray.NewFixedSegmentNamer("AWS SDK Calls"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	http.Handle("/aws-sdk-call", xray.Handler(xray.NewFixedSegmentNamer("/aws-sdk-call"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		testAWSCalls(r.Context())
-		w.Write([]byte("Hello,aws!"))
+		_, _ = w.Write([]byte("Tracing aws sdk call!"))
 	})))
 
 	listenAddress := os.Getenv("LISTEN_ADDRESS")
 	if listenAddress == "" {
 		listenAddress = "127.0.0.1:8080"
 	}
-	http.ListenAndServe(listenAddress, nil)
-	log.Printf("SampleApp is listening on %s !", listenAddress)
+	_ = http.ListenAndServe(listenAddress, nil)
+	log.Printf("App is listening on %s !", listenAddress)
 }
 
 func testAWSCalls(ctx context.Context) {
 
 	awsSess, err := session.NewSession()
 	if err != nil {
-		log.Fatalf("failed to open aws session")
+		log.Fatalf("Failed to open aws session")
 	}
 
 	s3Client := s3.New(awsSess)
@@ -56,10 +55,10 @@ func testAWSCalls(ctx context.Context) {
 		log.Println(err)
 		return
 	}
-	log.Println("downstream aws calls successfully{}")
+	log.Println("Successfully traced aws sdk call")
 }
 
 func main() {
-	log.Println("SampleApp Starts")
 	webServer()
 }
+
