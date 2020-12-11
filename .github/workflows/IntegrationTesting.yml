@@ -29,7 +29,7 @@ jobs:
 
   deploy_WebApp:
     name: Deploy X-Ray Instrumented Web App
-    needs: build_SDK
+    needs: package_SDK
     runs-on: ubuntu-latest
 
     steps:
