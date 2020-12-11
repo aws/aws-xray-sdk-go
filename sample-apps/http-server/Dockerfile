@@ -10,7 +10,7 @@ RUN cd sample-apps/http-server/ && go install .
 # Build Golang sample app
 RUN cd sample-apps/http-server/ && go build -o application .
 
-EXPOSE 8080
+EXPOSE 5000
 
 # Entrypoint
 CMD ["sample-apps/http-server/application"]
