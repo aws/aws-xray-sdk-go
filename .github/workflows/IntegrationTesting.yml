@@ -1,5 +1,5 @@
 name: Integration Testing
-on: [pull_request]
+on: push
 
 jobs:
   build_SDK:
@@ -7,23 +7,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Pull in source code from aws-xray-sdk-go Github repository
+      - name: Checkout X-Ray Go SDK
         uses: actions/checkout@v2
 
-      - uses: actions/setup-go@v2
-        with:
-          go-version: '1.14'
-
-      - name: Create a deployment package
+      - name: Create a directory
         run: mkdir sample-apps/http-server/aws-xray-sdk-go
 
-      - name: Copy X-Ray SDK to deployment package
+      - name: Copy X-Ray SDK to deployment package with Sample App
         run: rsync -r * sample-apps/http-server/aws-xray-sdk-go --exclude sample-apps/
 
       - name: Zip up the deployment package
-        run: |
-          cd sample-apps/http-server
-          zip -r deploy.zip . -x '*.git*'
+        run: zip -r deploy.zip . -x '*.git*'
+        working-directory: ./sample-apps/http-server
+
 
       - name: Upload WebApp with X-Ray SDK build artifact
         uses: actions/upload-artifact@v2
@@ -50,8 +46,8 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.INTEG_TEST_AWS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INTEG_TEST_AWS_KEY_SECRET }}
           aws-region: us-west-2
 
       - name: Setup Terraform
@@ -97,8 +93,8 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.INTEG_TEST_AWS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INTEG_TEST_AWS_KEY_SECRET }}
           aws-region: us-west-2
 
       - name: Checkout test framework
@@ -113,7 +109,7 @@ jobs:
   cleanup:
     name: Resource tear down
     needs: test_WebApp
-    if: true
+    if: always()
     runs-on: ubuntu-latest
 
     steps:
@@ -125,8 +121,8 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.INTEG_TEST_AWS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INTEG_TEST_AWS_KEY_SECRET }}
           aws-region: us-west-2
 
       - name: Setup Terraform
