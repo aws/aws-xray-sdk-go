@@ -31,14 +31,14 @@ jobs:
       - name: Set up GOPATH
         run: |
           go version
-          echo "::set-env name=GOPATH::${{ github.workspace }}"
-          echo "::add-path::${{ github.workspace }}/bin"
+          echo "GOPATH=${{ github.workspace }}" >> $GITHUB_ENV
+          echo "${{ github.workspace }}/bin" >> $GITHUB_PATH
           mkdir -p "bin"
           mkdir -p "pkg"
           mkdir -p "src"
 
           # for dep, bash and Windows
-          echo "::set-env name=INSTALL_DIRECTORY::$(pwd)/bin"
+          echo "INSTALL_DIRECTORY=$(pwd)/bin" >> $GITHUB_ENV
         shell: bash
       - name: Check out code
         uses: actions/checkout@v2
@@ -85,13 +85,13 @@ jobs:
       - name: Set up GOPATH
         run: |
           go version
-          echo "::set-env name=GOPATH::${{ github.workspace }}"
-          echo "::add-path::${{ github.workspace }}/bin"
+          echo "GOPATH=${{ github.workspace }}" >> $GITHUB_ENV
+          echo "${{ github.workspace }}/bin" >> $GITHUB_PATH
           mkdir -p "bin"
           mkdir -p "pkg"
           mkdir -p "src"
           # for dep, bash and Windows
-          echo "::set-env name=INSTALL_DIRECTORY::$(pwd)/bin"
+          echo "INSTALL_DIRECTORY=$(pwd)/bin" >> $GITHUB_ENV
         shell: bash
       - name: Check out code
         uses: actions/checkout@v2
