@@ -1,0 +1,140 @@
+name: Integration Testing
+on: push
+
+jobs:
+  package_SDK:
+    name: Build X-Ray Go SDK With Sample App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout X-Ray Go SDK
+        uses: actions/checkout@v2
+
+      - name: Create a directory
+        run: mkdir sample-apps/http-server/aws-xray-sdk-go
+
+      - name: Copy X-Ray SDK to deployment package with Sample App
+        run: rsync -r * sample-apps/http-server/aws-xray-sdk-go --exclude sample-apps/
+
+      - name: Zip up the deployment package
+        run: zip -r deploy.zip . -x '*.git*'
+        working-directory: ./sample-apps/http-server
+
+
+      - name: Upload WebApp with X-Ray SDK build artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: deployment-package
+          path: sample-apps/http-server/deploy.zip
+
+  deploy_WebApp:
+    name: Deploy X-Ray Instrumented Web App
+    needs: package_SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download terraform state artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: deployment-package
+
+      - name: Copy deployment package to terraform directory
+        run: cp deploy.zip ./terraform
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.INTEG_TEST_AWS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INTEG_TEST_AWS_KEY_SECRET }}
+          aws-region: us-west-2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform
+
+      - name: Terraform Validate
+        run: terraform validate -no-color
+        working-directory: ./terraform
+
+      - name: Terraform Plan
+        run: terraform plan -var-file="fixtures.us-west-2.tfvars" -no-color
+        env:
+          TF_VAR_resource_prefix: '${{ github.run_id }}-${{ github.run_number }}'
+        continue-on-error: true
+        working-directory: ./terraform
+
+      - name: Terraform Apply
+        run: terraform apply -var-file="fixtures.us-west-2.tfvars" -auto-approve
+        env:
+          TF_VAR_resource_prefix: '${{ github.run_id }}-${{ github.run_number }}'
+        working-directory: ./terraform
+
+      - name: Upload terraform state files for destorying resources
+        uses: actions/upload-artifact@v2
+        with:
+          name: terraform-state-artifact
+          path: ./terraform
+
+  test_WebApp:
+    name: Run testing suite
+    needs: deploy_WebApp
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 14
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.INTEG_TEST_AWS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INTEG_TEST_AWS_KEY_SECRET }}
+          aws-region: us-west-2
+
+      - name: Checkout test framework
+        uses: actions/checkout@v2
+        with:
+          repository: aws-observability/aws-otel-test-framework
+          ref: terraform
+
+      - name: Run testing suite
+        run: ./gradlew :validator:run --args='-c default-xray-trace-validation.yml --endpoint http://${{ github.run_id }}-${{ github.run_number }}-eb-app-env.us-west-2.elasticbeanstalk.com'
+
+  cleanup:
+    name: Resource tear down
+    needs: test_WebApp
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download terraform state artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: terraform-state-artifact
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.INTEG_TEST_AWS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INTEG_TEST_AWS_KEY_SECRET }}
+          aws-region: us-west-2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: set permissions to terraform plugins
+        run: chmod -R a+x .terraform/*
+
+      - name: Destroy resources
+        run: terraform destroy -state="terraform.tfstate" -var-file="fixtures.us-west-2.tfvars" -auto-approve
+        env:
+          TF_VAR_resource_prefix: '${{ github.run_id }}-${{ github.run_number }}'

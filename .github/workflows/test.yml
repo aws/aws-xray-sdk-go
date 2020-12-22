@@ -36,7 +36,6 @@ jobs:
           mkdir -p "bin"
           mkdir -p "pkg"
           mkdir -p "src"
-
           # for dep, bash and Windows
           echo "INSTALL_DIRECTORY=$(pwd)/bin" >> $GITHUB_ENV
         shell: bash
@@ -117,4 +116,3 @@ jobs:
           GO111MODULE: "on"
         shell: bash
         working-directory: src/github.com/aws/aws-xray-sdk-go
-

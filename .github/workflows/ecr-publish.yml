@@ -6,6 +6,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Create a directory
+        run: mkdir sample-apps/http-server/aws-xray-sdk-go
+
+      - name: Copy X-Ray SDK to deployment package with Sample App
+        run: rsync -r * sample-apps/http-server/aws-xray-sdk-go --exclude sample-apps/
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 

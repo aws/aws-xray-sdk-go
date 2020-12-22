@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-xray-sdk-go/xray"
@@ -34,24 +35,19 @@ func webServer() {
 
 	listenAddress := os.Getenv("LISTEN_ADDRESS")
 	if listenAddress == "" {
-		listenAddress = "127.0.0.1:8080"
+		listenAddress = "127.0.0.1:5000"
 	}
 	_ = http.ListenAndServe(listenAddress, nil)
 	log.Printf("App is listening on %s !", listenAddress)
 }
 
 func testAWSCalls(ctx context.Context) {
-
-	awsSess, err := session.NewSession()
-	if err != nil {
-		log.Fatalf("Failed to open aws session")
-	}
+	awsSess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String("us-west-2")},))
 
 	s3Client := s3.New(awsSess)
-
 	xray.AWS(s3Client.Client)
-
-	if _, err = s3Client.ListBucketsWithContext(ctx, nil); err != nil {
+	if _, err := s3Client.ListBucketsWithContext(ctx, nil); err != nil {
 		log.Println(err)
 		return
 	}
