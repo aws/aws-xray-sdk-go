@@ -1,3 +1,18 @@
+Release v1.2.0 (2021-01-05)
+================================
+### SDK Enhancements
+* Refresh messages are `debug` to reduce log noise. [PR #241](https://github.com/aws/aws-xray-sdk-go/pull/241)
+* Added `runtime` and `runtime_version` keys [PR #245](https://github.com/aws/aws-xray-sdk-go/pull/245)
+* `BeginSegment` API honors sampling rule based on `ServiceName` [PR #244](https://github.com/aws/aws-xray-sdk-go/pull/244)
+* Added `IGNORE_ERROR` mode for context missing strategy [PR #253](https://github.com/aws/aws-xray-sdk-go/pull/253)
+* Added X-Ray Go SDK sample apps and added Github workflow to publish sample app image tags to ECR [PR #261](https://github.com/aws/aws-xray-sdk-go/pull/261)
+* Added Github workflow for end to end Integration Test for X-Ray Go SDK [PR #270](https://github.com/aws/aws-xray-sdk-go/pull/270)
+
+### SDK Bugs
+* Fix typo (Metdata -> Metadata) [PR #239](https://github.com/aws/aws-xray-sdk-go/pull/239)
+* Remove Deprecated `set-env` and `add-path` syntax from workflow [PR #267](https://github.com/aws/aws-xray-sdk-go/pull/267)
+* Fix elastic beanstalk solution stack name [PR #271](https://github.com/aws/aws-xray-sdk-go/pull/271)
+
 Release v1.1.0 (2020-06-08)
 ================================
 ### SDK Breaking Changes
