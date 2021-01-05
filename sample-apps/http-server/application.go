@@ -1,42 +1,59 @@
 package main
 
 import (
+	"context"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"golang.org/x/net/context/ctxhttp"
+	"log"
 	"net/http"
+	"os"
 )
 
-func main() {
-	http.Handle("/aws-sdk-call", xray.Handler(xray.NewFixedSegmentNamer("/aws-sdk-call"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sess := session.Must(session.NewSession(&aws.Config{
-			Region: aws.String("us-west-2")},))
-		dynamo := dynamodb.New(sess)
-		xray.AWS(dynamo.Client)
-		_, _ = dynamo.ListTablesWithContext(r.Context(), &dynamodb.ListTablesInput{})
+func webServer() {
+	http.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("healthcheck"))
+	}))
 
-		_, _ = w.Write([]byte("Ok! tracing aws sdk call"))
-	})))
-
+	//test http instrumentation
 	http.Handle("/outgoing-http-call", xray.Handler(xray.NewFixedSegmentNamer("/outgoing-http-call"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, err := ctxhttp.Get(r.Context(), xray.Client(nil), "https://aws.amazon.com/")
+		_, err := ctxhttp.Get(r.Context(), xray.Client(nil), "https://aws.amazon.com")
 		if err != nil {
+			log.Println(err)
 			return
 		}
-
-		_, _ = w.Write([]byte("Ok! tracing outgoing http call"))
+		_, _ = w.Write([]byte("Tracing http call!"))
 	})))
 
-	http.Handle("/annotation-metadata", xray.Handler(xray.NewFixedSegmentNamer("/annotation-metadata"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, subSeg := xray.BeginSubsegment(r.Context(), "subsegment")
-		_ = subSeg.AddAnnotation("one", "1")
-		_ = subSeg.AddMetadata("integration-test", "true")
-		subSeg.Close(nil)
-		_, _ = w.Write([]byte("Ok! annotation-metadata testing"))
+	//test aws sdk instrumentation
+	http.Handle("/aws-sdk-call", xray.Handler(xray.NewFixedSegmentNamer("/aws-sdk-call"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testAWSCalls(r.Context())
+		_, _ = w.Write([]byte("Tracing aws sdk call!"))
 	})))
 
+	listenAddress := os.Getenv("LISTEN_ADDRESS")
+	if listenAddress == "" {
+		listenAddress = "127.0.0.1:5000"
+	}
+	_ = http.ListenAndServe(listenAddress, nil)
+	log.Printf("App is listening on %s !", listenAddress)
+}
 
-	_ = http.ListenAndServe(":5000", nil)
+func testAWSCalls(ctx context.Context) {
+	awsSess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String("us-west-2")},))
+
+	s3Client := s3.New(awsSess)
+	xray.AWS(s3Client.Client)
+	if _, err := s3Client.ListBucketsWithContext(ctx, nil); err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println("Successfully traced aws sdk call")
+}
+
+func main() {
+	webServer()
 }

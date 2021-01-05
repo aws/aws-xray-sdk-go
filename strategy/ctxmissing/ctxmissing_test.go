@@ -39,3 +39,12 @@ func TestDefaultLogErrorStrategy(t *testing.T) {
 	l.ContextMissing("TestLogError")
 	assert.True(t, strings.Contains(buf.String(), "Suppressing AWS X-Ray context missing panic: TestLogError"))
 }
+
+func TestDefaultIgnoreErrorStrategy(t *testing.T) {
+	defer func() {
+		p := recover()
+		assert.Equal(t, p, nil)
+	}()
+	r := NewDefaultIgnoreErrorStrategy()
+	r.ContextMissing("TestIgnoreError")
+}

@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/aws/aws-xray-sdk-go.svg?branch=master)](https://travis-ci.org/aws/aws-xray-sdk-go)
+![Test](https://github.com/aws/aws-xray-sdk-go/workflows/Test/badge.svg)
 
 # AWS X-Ray SDK for Go
 
