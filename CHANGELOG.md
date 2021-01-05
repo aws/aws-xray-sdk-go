@@ -1,4 +1,4 @@
-Release v1.2.0 (2020-12-23)
+Release v1.2.0 (2020-01-05)
 ================================
 ### SDK Enhancements
 * Refresh messages are `debug` to reduce log noise. [PR #241](https://github.com/aws/aws-xray-sdk-go/pull/241)
