@@ -1,0 +1,22 @@
+name: Release X-Ray Go SDK
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version to tag the release with, e.g., v1.3.0, v1.4.0
+        required: true
+
+jobs:
+  release_sdk:
+    name: Releasing X-Ray Go SDK latest version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Generate signed tag
+        run: git tag -a -s ${{ github.event.inputs.version }} -m "release ${{ github.event.inputs.version }}"
+
+      - name: Push signed tag
+        run: git push origin ${{ github.event.inputs.version }}
