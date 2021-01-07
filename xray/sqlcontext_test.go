@@ -77,46 +77,57 @@ func TestDSN(t *testing.T) {
 		dsn string
 		url string
 		str string
+		name string
 	}{
 		{
 			dsn: "postgres://user@host:5432/database",
 			url: "postgres://user@host:5432/database",
+			name: "test database@host",
 		},
 		{
 			dsn: "postgres://user:password@host:5432/database",
 			url: "postgres://user@host:5432/database",
+			name: "test database@host",
 		},
 		{
 			dsn: "postgres://host:5432/database?password=password",
 			url: "postgres://host:5432/database",
+			name: "test database@host",
 		},
 		{
 			dsn: "user:password@host:5432/database",
 			url: "user@host:5432/database",
+			name: "test database@host",
 		},
 		{
 			dsn: "host:5432/database?password=password",
 			url: "host:5432/database",
+			name: "test database@host",
 		},
 		{
 			dsn: "user%2Fpassword@host:5432/database",
 			url: "user@host:5432/database",
+			name: "test database@host",
 		},
 		{
 			dsn: "user/password@host:5432/database",
 			url: "user@host:5432/database",
+			name: "test database@host",
 		},
 		{
 			dsn: "user=user database=database",
 			str: "user=user database=database",
+			name: "test database",
 		},
 		{
 			dsn: "user=user password=password database=database",
 			str: "user=user database=database",
+			name: "test database",
 		},
 		{
 			dsn: "odbc:server=localhost;user id=sa;password={foo}};bar};otherthing=thing",
 			str: "odbc:server=localhost;user id=sa;otherthing=thing",
+			name: "test database",
 		},
 	}
 
@@ -142,6 +153,7 @@ func TestDSN(t *testing.T) {
 			assert.Equal(t, tt.str, subseg.SQL.ConnectionString)
 			assert.Equal(t, "test version", subseg.SQL.DatabaseVersion)
 			assert.Equal(t, "test user", subseg.SQL.User)
+			assert.Equal(t, tt.name, subseg.Name)
 			assert.False(t, subseg.Throttle)
 			assert.False(t, subseg.Error)
 			assert.False(t, subseg.Fault)
