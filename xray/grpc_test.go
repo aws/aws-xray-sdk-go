@@ -3,217 +3,258 @@ package xray
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"regexp"
+	"sync"
 	"testing"
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_testing "github.com/grpc-ecosystem/go-grpc-middleware/testing"
-	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
+	pb "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/test/bufconn"
 )
 
-type grpcBaseTestSuite struct {
-	*grpc_testing.InterceptorTestSuite
+type testGRPCPingService struct {
+	counter int32
+	mut     sync.Mutex
+
+	pb.TestServiceServer
 }
 
-func newGrpcBaseTestSuite(t *testing.T) *grpcBaseTestSuite {
-	return &grpcBaseTestSuite{
-		InterceptorTestSuite: &grpc_testing.InterceptorTestSuite{
-			TestService: &grpc_testing.TestPingService{T: t},
-		},
+func (s *testGRPCPingService) Ping(_ context.Context, req *pb.PingRequest) (*pb.PingResponse, error) {
+	time.Sleep(time.Duration(req.SleepTimeMs) * time.Millisecond)
+
+	s.mut.Lock()
+	s.counter++
+	counter := s.counter
+	s.mut.Unlock()
+
+	return &pb.PingResponse{
+		Value:   req.Value,
+		Counter: counter,
+	}, nil
+}
+
+func (s *testGRPCPingService) PingError(_ context.Context, req *pb.PingRequest) (*pb.Empty, error) {
+	code := codes.Code(req.ErrorCodeReturned)
+	return nil, status.Errorf(code, "Userspace error.")
+}
+
+func newGrpcServer(t *testing.T, opts ...grpc.ServerOption) *bufconn.Listener {
+	const bufSize = 1024 * 1024
+	lis := bufconn.Listen(bufSize)
+
+	s := grpc.NewServer(opts...)
+	pb.RegisterTestServiceServer(s, &testGRPCPingService{})
+	go func() {
+		if err := s.Serve(lis); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	return lis
+}
+
+func newGrpcClient(t *testing.T, ctx context.Context, lis *bufconn.Listener, opts ...grpc.DialOption) (client pb.TestServiceClient, closeFunc func()) {
+	var bufDialer = func(ctx context.Context, address string) (net.Conn, error) {
+		return lis.Dial()
 	}
+
+	opts = append(opts, grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+
+	conn, err := grpc.DialContext(
+		ctx,
+		"bufnet",
+		opts...,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	closeFunc = func() {
+		if err := conn.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	client = pb.NewTestServiceClient(conn)
+	return
 }
 
-func TestGrpcClientSuit(t *testing.T) {
-	b := newGrpcBaseTestSuite(t)
-	b.InterceptorTestSuite.ServerOpts = []grpc.ServerOption{
+func TestGrpcUnaryClientInterceptor(t *testing.T) {
+	lis := newGrpcServer(
+		t,
 		grpc_middleware.WithUnaryServerChain(
 			UnaryServerInterceptor(context.Background(), NewFixedSegmentNamer("test")),
 		),
-	}
-
-	b.InterceptorTestSuite.ClientOpts = []grpc.DialOption{
-		grpc.WithUnaryInterceptor(UnaryClientInterceptor("localhost")),
-	}
-
-	suite.Run(t, &grpcClientTestSuite{b})
-}
-
-type grpcClientTestSuite struct {
-	*grpcBaseTestSuite
-}
-
-func (s *grpcClientTestSuite) TestUnaryClientInterceptor() {
-	ctx, td := NewTestDaemon()
-	defer td.Close()
-
-	ctx2, root := BeginSegment(ctx, "Test")
-	_, err := s.Client.Ping(
-		ctx2,
-		&pb_testproto.PingRequest{Value: "something", SleepTimeMs: 9999},
 	)
-	root.Close(nil)
-	if !assert.NoError(s.T(), err) {
-		return
-	}
-
-	seg, err := td.Recv()
-	if !assert.NoError(s.T(), err) {
-		return
-	}
-
-	var subseg *Segment
-	assert.NoError(s.T(), json.Unmarshal(seg.Subsegments[0], &subseg))
-	assert.Equal(s.T(), "remote", subseg.Namespace)
-	assert.Equal(s.T(), "grpc://localhost/mwitkow.testproto.TestService/Ping", subseg.HTTP.Request.URL)
-	assert.Equal(s.T(), false, subseg.HTTP.Request.XForwardedFor)
-	assert.False(s.T(), subseg.Throttle)
-	assert.False(s.T(), subseg.Error)
-	assert.False(s.T(), subseg.Fault)
-}
-
-func (s *grpcClientTestSuite) TestUnaryClientInterceptorWithError() {
-	ctx, td := NewTestDaemon()
-	defer td.Close()
-
-	ctx2, root := BeginSegment(ctx, "Test")
-	_, err := s.Client.PingError(
-		ctx2,
-		&pb_testproto.PingRequest{Value: "something", ErrorCodeReturned: uint32(codes.Internal)},
+	client, closeFunc := newGrpcClient(
+		t,
+		context.Background(),
+		lis,
+		grpc.WithUnaryInterceptor(UnaryClientInterceptor("bufnet")),
 	)
-	root.Close(nil)
-	if !assert.Error(s.T(), err) {
-		return
-	}
+	defer closeFunc()
 
-	seg, err := td.Recv()
-	if !assert.NoError(s.T(), err) {
-		return
-	}
+	t.Run("success response", func(t *testing.T) {
+		ctx, td := NewTestDaemon()
+		defer td.Close()
 
-	var subseg *Segment
-	assert.NoError(s.T(), json.Unmarshal(seg.Subsegments[0], &subseg))
-	assert.Equal(s.T(), "remote", subseg.Namespace)
-	assert.Equal(s.T(), "grpc://localhost/mwitkow.testproto.TestService/PingError", subseg.HTTP.Request.URL)
-	assert.Equal(s.T(), false, subseg.HTTP.Request.XForwardedFor)
-	assert.False(s.T(), subseg.Throttle)
-	assert.True(s.T(), subseg.Error)
-	assert.False(s.T(), seg.Fault)
+		ctx2, root := BeginSegment(ctx, "Test")
+		_, err := client.Ping(
+			ctx2,
+			&pb.PingRequest{Value: "something", SleepTimeMs: 9999},
+		)
+		root.Close(nil)
+		if !assert.NoError(t, err) {
+			return
+		}
+
+		seg, err := td.Recv()
+		if !assert.NoError(t, err) {
+			return
+		}
+
+		var subseg *Segment
+		assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
+		assert.Equal(t, "remote", subseg.Namespace)
+		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/Ping", subseg.HTTP.Request.URL)
+		assert.Equal(t, false, subseg.HTTP.Request.XForwardedFor)
+		assert.False(t, subseg.Throttle)
+		assert.False(t, subseg.Error)
+		assert.False(t, subseg.Fault)
+	})
+
+	t.Run("error response", func(t *testing.T) {
+		ctx, td := NewTestDaemon()
+		defer td.Close()
+
+		ctx2, root := BeginSegment(ctx, "Test")
+		_, err := client.PingError(
+			ctx2,
+			&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(codes.Internal)},
+		)
+		root.Close(nil)
+		if !assert.Error(t, err) {
+			return
+		}
+
+		seg, err := td.Recv()
+		if !assert.NoError(t, err) {
+			return
+		}
+
+		var subseg *Segment
+		assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
+		assert.Equal(t, "remote", subseg.Namespace)
+		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/PingError", subseg.HTTP.Request.URL)
+		assert.Equal(t, false, subseg.HTTP.Request.XForwardedFor)
+		assert.False(t, subseg.Throttle)
+		assert.True(t, subseg.Error)
+		assert.False(t, seg.Fault)
+	})
 }
 
-func TestGrpcServerSuit(t *testing.T) {
+func TestUnaryServerInterceptor(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	b := newGrpcBaseTestSuite(t)
-	b.InterceptorTestSuite.ServerOpts = []grpc.ServerOption{
+	lis := newGrpcServer(
+		t,
 		grpc_middleware.WithUnaryServerChain(
 			UnaryServerInterceptor(ctx, NewFixedSegmentNamer("test")),
 		),
-	}
-
-	suite.Run(t, &grpcServerTestSuite{b, td})
-}
-
-type grpcServerTestSuite struct {
-	*grpcBaseTestSuite
-	td *TestDaemon
-}
-
-func (s *grpcServerTestSuite) TestUnaryServerInterceptor() {
-	_, err := s.Client.Ping(
-		s.DeadlineCtx(time.Now().Add(3*time.Second)),
-		&pb_testproto.PingRequest{Value: "something", SleepTimeMs: 9999},
 	)
+	client, closeFunc := newGrpcClient(t, context.Background(), lis)
+	defer closeFunc()
 
-	if !assert.NoError(s.T(), err) {
-		return
-	}
+	t.Run("success response", func(t *testing.T) {
+		_, err := client.Ping(
+			context.Background(),
+			&pb.PingRequest{Value: "something", SleepTimeMs: 9999},
+		)
 
-	seg, err := s.td.Recv()
-	if !assert.NoError(s.T(), err) {
-		return
-	}
+		if !assert.NoError(t, err) {
+			return
+		}
 
-	assert.Equal(s.T(), "grpc://localhost/mwitkow.testproto.TestService/Ping", seg.HTTP.Request.URL)
-	assert.Equal(s.T(), false, seg.HTTP.Request.XForwardedFor)
-	assert.Regexp(s.T(), regexp.MustCompile(`^grpc-go/`), seg.HTTP.Request.UserAgent)
-	assert.Equal(s.T(), "TestVersion", seg.Service.Version)
+		seg, err := td.Recv()
+		if !assert.NoError(t, err) {
+			return
+		}
+
+		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/Ping", seg.HTTP.Request.URL)
+		assert.Equal(t, false, seg.HTTP.Request.XForwardedFor)
+		assert.Regexp(t, regexp.MustCompile(`^grpc-go/`), seg.HTTP.Request.UserAgent)
+		assert.Equal(t, "TestVersion", seg.Service.Version)
+	})
+
+	t.Run("error response", func(t *testing.T) {
+		_, err := client.PingError(
+			context.Background(),
+			&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(codes.Internal)},
+		)
+
+		if !assert.Error(t, err) {
+			return
+		}
+
+		seg, err := td.Recv()
+		if !assert.NoError(t, err) {
+			return
+		}
+
+		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/PingError", seg.HTTP.Request.URL)
+		assert.Equal(t, false, seg.HTTP.Request.XForwardedFor)
+		assert.Regexp(t, regexp.MustCompile(`^grpc-go/`), seg.HTTP.Request.UserAgent)
+		assert.Equal(t, "TestVersion", seg.Service.Version)
+		assert.False(t, seg.Throttle)
+		assert.True(t, seg.Error)
+		assert.False(t, seg.Fault)
+	})
 }
 
-func (s *grpcServerTestSuite) TestUnaryServerInterceptorWithError() {
-	_, err := s.Client.PingError(
-		s.DeadlineCtx(time.Now().Add(3*time.Second)),
-		&pb_testproto.PingRequest{Value: "something", ErrorCodeReturned: uint32(codes.Internal)},
-	)
-
-	if !assert.Error(s.T(), err) {
-		return
-	}
-
-	seg, err := s.td.Recv()
-	if !assert.NoError(s.T(), err) {
-		return
-	}
-
-	assert.Equal(s.T(), "grpc://localhost/mwitkow.testproto.TestService/PingError", seg.HTTP.Request.URL)
-	assert.Equal(s.T(), false, seg.HTTP.Request.XForwardedFor)
-	assert.Regexp(s.T(), regexp.MustCompile(`^grpc-go/`), seg.HTTP.Request.UserAgent)
-	assert.Equal(s.T(), "TestVersion", seg.Service.Version)
-	assert.False(s.T(), seg.Throttle)
-	assert.True(s.T(), seg.Error)
-	assert.False(s.T(), seg.Fault)
-}
-
-func TestGrpcServerWithParentTracerSuit(t *testing.T) {
+func TestUnaryServerAndClientInterceptor(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
-	b := newGrpcBaseTestSuite(t)
-	b.InterceptorTestSuite.ServerOpts = []grpc.ServerOption{
+	lis := newGrpcServer(
+		t,
 		grpc_middleware.WithUnaryServerChain(
 			UnaryServerInterceptor(ctx, NewFixedSegmentNamer("test")),
 		),
-	}
-
-	b.InterceptorTestSuite.ClientOpts = []grpc.DialOption{
+	)
+	client, closeFunc := newGrpcClient(
+		t,
+		context.Background(),
+		lis,
 		grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 			md := metadata.Pairs(TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
 			ctx = metadata.NewOutgoingContext(ctx, md)
 			return invoker(ctx, method, req, reply, cc, opts...)
 		}),
-	}
+	)
+	defer closeFunc()
 
-	suite.Run(t, &grpcServerWithParentTracerSuit{b, td})
-}
-
-type grpcServerWithParentTracerSuit struct {
-	*grpcBaseTestSuite
-	td *TestDaemon
-}
-
-func (s *grpcServerWithParentTracerSuit) TestUnaryServerInterceptor() {
-	_, err := s.Client.Ping(
-		s.DeadlineCtx(time.Now().Add(3*time.Second)),
-		&pb_testproto.PingRequest{Value: "something", SleepTimeMs: 9999},
+	_, err := client.Ping(
+		context.Background(),
+		&pb.PingRequest{Value: "something", SleepTimeMs: 9999},
 	)
 
-	if !assert.NoError(s.T(), err) {
+	if !assert.NoError(t, err) {
 		return
 	}
 
-	seg, err := s.td.Recv()
-	if !assert.NoError(s.T(), err) {
+	seg, err := td.Recv()
+	if !assert.NoError(t, err) {
 		return
 	}
 
-	assert.Equal(s.T(), "fakeid", seg.TraceID)
-	assert.Equal(s.T(), "reqid", seg.ParentID)
-	assert.Equal(s.T(), true, seg.Sampled)
-	assert.Equal(s.T(), "TestVersion", seg.Service.Version)
+	assert.Equal(t, "fakeid", seg.TraceID)
+	assert.Equal(t, "reqid", seg.ParentID)
+	assert.Equal(t, true, seg.Sampled)
+	assert.Equal(t, "TestVersion", seg.Service.Version)
 }
