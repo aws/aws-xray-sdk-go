@@ -13,11 +13,6 @@ jobs:
       - name: Checkout master branch
         uses: actions/checkout@v2
 
-      - name: Initialize Github name and email
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
