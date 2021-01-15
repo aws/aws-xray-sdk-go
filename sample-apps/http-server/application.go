@@ -57,4 +57,3 @@ func testAWSCalls(ctx context.Context) {
 func main() {
 	webServer()
 }
-
