@@ -30,6 +30,7 @@ func UnaryClientInterceptor(host string) grpc.UnaryClientInterceptor {
 			seg.Lock()
 			seg.Namespace = "remote"
 			seg.GetHTTP().GetRequest().URL = "grpc://" + host + method
+			seg.GetHTTP().GetRequest().Method = method
 			seg.Unlock()
 
 			err := invoker(ctx2, method, req, reply, cc, opts...)
@@ -75,6 +76,7 @@ func UnaryServerInterceptor(ctx context.Context, sn SegmentNamer) grpc.UnaryServ
 		seg.Lock()
 		seg.GetHTTP().GetRequest().ClientIP, seg.GetHTTP().GetRequest().XForwardedFor = clientIPFromGrpcMetadata(md)
 		seg.GetHTTP().GetRequest().URL = url
+		seg.GetHTTP().GetRequest().Method = info.FullMethod
 		if len(md.Get("user-agent")) == 1 {
 			seg.GetHTTP().GetRequest().UserAgent = md.Get("user-agent")[0]
 		}
