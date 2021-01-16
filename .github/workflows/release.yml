@@ -22,5 +22,5 @@ jobs:
           tag_name: 'v${{ github.event.inputs.version }}'
           release_name: 'v${{ github.event.inputs.version }}'
           body: 'Please refer [change-log](https://github.com/aws/aws-xray-sdk-go/blob/master/CHANGELOG.md) for more details'
-          draft: false
+          draft: true
           prerelease: false
