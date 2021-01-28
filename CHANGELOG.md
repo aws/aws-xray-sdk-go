@@ -1,3 +1,9 @@
+Release v1.3.0 (2021-02-01)
+================================
+### SDK Enhancements
+* Added SQL tracing name support (for database with same name) [PR #273](https://github.com/aws/aws-xray-sdk-go/pull/273)
+* Added automated release workflow [PR #274](https://github.com/aws/aws-xray-sdk-go/pull/274)
+
 Release v1.2.0 (2021-01-05)
 ================================
 ### SDK Enhancements
