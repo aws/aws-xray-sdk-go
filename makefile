@@ -12,10 +12,10 @@ lint:
 	golint ${SDK_BASE_FOLDERS}
 
 test::
-	go test -cover `go list ./... | grep -v vendor`
+	go test -coverprofile=coverage.txt -covermode=atomic `go list ./... | grep -v vendor`
 
 test-with-race: test
-	go test -cover -race `go list ./... | grep -v vendor`
+	go test -coverprofile=coverage.txt -covermode=atomic -race `go list ./... | grep -v vendor`
 
 fmt:
 	go fmt `go list ./... | grep -v vendor`

@@ -64,6 +64,12 @@ jobs:
         shell: bash
         working-directory: src/github.com/aws/aws-xray-sdk-go
 
+      - uses: codecov/codecov-action@v1
+        with:
+          files: ./coverage.txt
+          fail_ci_if_error: true
+          verbose: true
+
   benchmark:
     name: XRay-Go-SDK-Benchmarking
     runs-on: ${{ matrix.os }}
