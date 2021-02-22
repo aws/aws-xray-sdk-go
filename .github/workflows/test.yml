@@ -70,6 +70,7 @@ jobs:
           fail_ci_if_error: true
           verbose: true
           working-directory: src/github.com/aws/aws-xray-sdk-go
+          shell: bash
 
   benchmark:
     name: XRay-Go-SDK-Benchmarking
