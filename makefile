@@ -12,10 +12,21 @@ lint:
 	golint ${SDK_BASE_FOLDERS}
 
 test::
-	go test -cover -covermode=atomic `go list ./... | grep -v vendor`
+	go test -cover `go list ./... | grep -v vendor`
 
 test-with-race: test
-	go test -cover -covermode=atomic -race `go list ./... | grep -v vendor`
+	go test -cover -race `go list ./... | grep -v vendor`
+
+test-with-coverage: test
+	set -e; \
+	printf "" > coverage.txt; \
+	for dir in $(go list ./... | grep -v vendor); do \
+	  go test -race -coverprofile=profile.out -covermode=atomic $dir \
+	  if [ -f profile.out ]; then \
+           cat profile.out >> coverage.txt \
+           rm profile.out \
+      fi \
+	done; \
 
 fmt:
 	go fmt `go list ./... | grep -v vendor`

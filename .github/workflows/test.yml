@@ -58,7 +58,7 @@ jobs:
         working-directory: src/github.com/aws/aws-xray-sdk-go
 
       - name: Test
-        run: make test-with-race
+        run: make test-with-coverage
         env:
           GO111MODULE: "on"
         shell: bash
@@ -66,6 +66,7 @@ jobs:
 
       - uses: codecov/codecov-action@v1
         with:
+          file: ./coverage.txt
           fail_ci_if_error: true
           verbose: true
 
