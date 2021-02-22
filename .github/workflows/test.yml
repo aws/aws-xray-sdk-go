@@ -69,6 +69,7 @@ jobs:
           file: ./coverage.txt
           fail_ci_if_error: true
           verbose: true
+          working-directory: src/github.com/aws/aws-xray-sdk-go
 
   benchmark:
     name: XRay-Go-SDK-Benchmarking
