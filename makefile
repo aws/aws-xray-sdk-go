@@ -17,17 +17,16 @@ test::
 test-with-race: test
 	go test -cover -race `go list ./... | grep -v vendor`
 
-test-with-coverage: test
+test-with-coverage:
 	set -e; \
 	printf "" > coverage.txt; \
 	for dir in $(go list ./... | grep -v vendor); do \
 	  go test -race -coverprofile=profile.out -covermode=atomic $dir \
-	  if [ -f profile.out ] \
-	  then \
+	  if [ -f profile.out ]; then \
         cat profile.out >> coverage.txt \
         rm profile.out \
       fi \
-	done; \
+	done \
 
 fmt:
 	go fmt `go list ./... | grep -v vendor`
