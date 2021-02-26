@@ -64,9 +64,15 @@ jobs:
         shell: bash
         working-directory: src/github.com/aws/aws-xray-sdk-go
 
+      - name: debug covrage file path
+        run: ls src/github.com/aws/aws-xray-sdk-go
+
+      - name: debug covrage content
+        run: cat src/github.com/aws/aws-xray-sdk-go/coverage.txt
+
       - uses: codecov/codecov-action@v1
         with:
-          file: ./coverage.txt
+          file: src/github.com/aws/aws-xray-sdk-go/coverage.txt
           fail_ci_if_error: true
           verbose: true
 
