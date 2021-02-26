@@ -23,10 +23,10 @@ test-with-coverage:
 	for dir in $(go list ./... | grep -v vendor); do \
 	  go test -race -coverprofile=profile.out -covermode=atomic $dir; \
 	  if [ -f profile.out ]; then \
-        cat profile.out >> coverage.txt; \
-        rm profile.out; \
+         cat profile.out >> coverage.txt; \
+         rm profile.out; \
       fi; \
-	done; \
+    done
 
 fmt:
 	go fmt `go list ./... | grep -v vendor`
