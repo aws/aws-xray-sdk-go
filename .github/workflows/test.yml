@@ -58,7 +58,7 @@ jobs:
         working-directory: src/github.com/aws/aws-xray-sdk-go
 
       - name: Test
-        run: make test-with-coverage
+        run: make test-with-race
         env:
           GO111MODULE: "on"
         shell: bash
