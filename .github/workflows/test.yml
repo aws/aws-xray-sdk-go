@@ -1,7 +1,13 @@
 name: Test
-on: [push, pull_request]
-jobs:
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
+jobs:
   test:
     name: Test
     runs-on: ${{ matrix.os }}
