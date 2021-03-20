@@ -1,0 +1,19 @@
+name: Continuous monitoring of distribution channels
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 */6 * * *'
+
+jobs:
+  smoke-tests:
+    name: Run smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16'
+      - name: Run distribution test
+        run: go test distributioncheck
+        working-directory: integration-tests/distributioncheck
