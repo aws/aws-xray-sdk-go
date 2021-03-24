@@ -579,6 +579,11 @@ func (seg *Segment) AddMetadataToNamespace(namespace string, key string, value i
 
 // AddError allows adding an error to the segment.
 func (seg *Segment) AddError(err error) error {
+	// If SDK is disabled then return
+	if SdkDisabled() {
+		return nil
+	}
+
 	seg.Lock()
 	defer seg.Unlock()
 
