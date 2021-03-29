@@ -32,8 +32,8 @@ jobs:
         if: ${{ always() }}
         run: |
           if [[ "${{ steps.distribution-availability.outcome }}" == "failure" ]]; then
-            aws cloudwatch put-metric-data --metric-name XRayGoSDKDistributionAvailability --dimensions failure=rate --namespace MonitorSDK --value 1 --timestamp $(date +%s)
+            aws cloudwatch put-metric-data --metric-name XRayGoSDKDistributionUnavailability --dimensions failure=rate --namespace MonitorSDK --value 1 --timestamp $(date +%s)
           else
-            aws cloudwatch put-metric-data --metric-name XRayGoSDKDistributionAvailability --dimensions failure=rate --namespace MonitorSDK --value 0 --timestamp $(date +%s)
+            aws cloudwatch put-metric-data --metric-name XRayGoSDKDistributionUnavailability --dimensions failure=rate --namespace MonitorSDK --value 0 --timestamp $(date +%s)
           fi
 
