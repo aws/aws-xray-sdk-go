@@ -1,6 +1,8 @@
 # Benchmark Instructions for AWS X-Ray Go SDK
 AWS X-Ray Go SDK introduced benchmarks to identify performance bottlenecks of AWS X-Ray Go SDK codebase. Moreover, benchmarks can be used to identify data races and locking issues. Below are the instructions on how to run AWS X-Ray Go SDK benchmarks using Go commands and makefile.
 
+An example of the benchmark output can be found [here](./results/1.0.0.md).
+
 ## Run all the benchmarks using Go Command
 ```
 go test -benchmem -run=^$$ -bench=. ./...
