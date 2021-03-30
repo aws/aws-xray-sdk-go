@@ -3,6 +3,9 @@ package xray
 import (
 	"context"
 	"errors"
+	"github.com/golang/protobuf/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"net/http/httptrace"
 	"strings"
 
@@ -35,10 +38,9 @@ func UnaryClientInterceptor(host string) grpc.UnaryClientInterceptor {
 
 			err := invoker(ctx2, method, req, reply, cc, opts...)
 
+			recordContentLength(seg, reply)
 			if err != nil {
-				seg.Lock()
-				seg.Error = true
-				seg.Unlock()
+				classifyErrorStatus(seg, err)
 				ct.subsegments.GotConn(nil, err)
 			}
 
@@ -83,13 +85,30 @@ func UnaryServerInterceptor(ctx context.Context, sn SegmentNamer) grpc.UnaryServ
 		seg.Unlock()
 
 		resp, err = handler(ctx, req)
+		recordContentLength(seg, resp)
 		if err != nil {
-			seg.Lock()
-			seg.Error = true
-			seg.Unlock()
+			classifyErrorStatus(seg, err)
 		}
 
 		return resp, err
+	}
+}
+
+func classifyErrorStatus(seg *Segment, err error) {
+	seg.Lock()
+	defer seg.Unlock()
+	grpcStatus, ok := status.FromError(err)
+	if !ok {
+		seg.Error = true
+		return
+	}
+	switch grpcStatus.Code() {
+	case codes.ResourceExhausted:
+		seg.Throttle = true
+	case codes.Internal, codes.Unimplemented, codes.DataLoss:
+		seg.Fault = true
+	default:
+		seg.Error = true
 	}
 }
 
@@ -102,4 +121,12 @@ func clientIPFromGrpcMetadata(md metadata.MD) (string, bool) {
 		return strings.TrimSpace(strings.Split(forwardedFor, ",")[0]), true
 	}
 	return "", false
+}
+
+func recordContentLength(seg *Segment, reply interface{}) {
+	seg.Lock()
+	defer seg.Unlock()
+	if protoMessage, isProtoMessage := reply.(proto.Message); isProtoMessage {
+		seg.GetHTTP().GetResponse().ContentLength = proto.Size(protoMessage)
+	}
 }
