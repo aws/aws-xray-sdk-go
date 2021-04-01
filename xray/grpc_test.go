@@ -86,6 +86,37 @@ func newGrpcClient(ctx context.Context, t *testing.T, lis *bufconn.Listener, opt
 	return
 }
 
+type testCase struct {
+	name string
+
+	// responseErrorStatusCode makes the test suite call grpc method `PingError` to trigger the testing server to
+	// return an error response.
+	// If responseErrorStatusCode is codes.OK, the test suite call `Ping` to get a success response
+	responseErrorStatusCode codes.Code
+
+	expectedThrottle bool
+	expectedError bool
+	expectedFault bool
+}
+
+func (t testCase) isTestForSuccessResponse() bool {
+	return t.responseErrorStatusCode == codes.OK
+}
+
+func (t testCase) getExpectedURL() string {
+	if t.isTestForSuccessResponse() {
+		return "grpc://bufnet/mwitkow.testproto.TestService/Ping"
+	}
+	return "grpc://bufnet/mwitkow.testproto.TestService/PingError"
+}
+
+func (t testCase) getExpectedContentLength() int {
+	if t.isTestForSuccessResponse() {
+		return proto.Size(&pb.PingResponse{Value: "something", Counter: 1})
+	}
+	return 0
+}
+
 func TestGrpcUnaryClientInterceptor(t *testing.T) {
 	lis := newGrpcServer(
 		t,
@@ -96,127 +127,75 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(UnaryClientInterceptor("bufnet")))
 	defer closeFunc()
 
-	t.Run("success response", func(t *testing.T) {
-		ctx, td := NewTestDaemon()
-		defer td.Close()
+	testCases := []testCase{
+		{
+			name: "success response",
+			responseErrorStatusCode: codes.OK,
+			expectedThrottle: false,
+			expectedError: false,
+			expectedFault: false,
+		},
+		{
+			name: "error response",
+			responseErrorStatusCode: codes.Unauthenticated,
+			expectedThrottle: false,
+			expectedError: true,
+			expectedFault: true,
+		},
+		{
+			name: "throttle response",
+			responseErrorStatusCode: codes.ResourceExhausted,
+			expectedThrottle: true,
+			expectedFault: true,
+			expectedError: false,
+		},
+		{
+			name: "fault response",
+			responseErrorStatusCode: codes.Internal,
+			expectedThrottle: false,
+			expectedError: false,
+			expectedFault: true,
+		},
+	}
 
-		ctx2, root := BeginSegment(ctx, "Test")
-		_, err := client.Ping(
-			ctx2,
-			&pb.PingRequest{Value: "something", SleepTimeMs: 9999},
-		)
-		root.Close(nil)
-		if !assert.NoError(t, err) {
-			return
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, td := NewTestDaemon()
+			defer td.Close()
 
-		seg, err := td.Recv()
-		if !assert.NoError(t, err) {
-			return
-		}
+			ctx2, root := BeginSegment(ctx, "Test")
+			var err error
+			if tc.isTestForSuccessResponse() {
+				_, err = client.Ping(
+					ctx2,
+					&pb.PingRequest{
+						Value:                "something",
+						SleepTimeMs:          9999,
+					},
+				)
+				require.NoError(t, err)
+			} else {
+				_, err = client.PingError(
+					ctx2,
+					&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(tc.responseErrorStatusCode)})
+				require.Error(t, err)
+			}
+			root.Close(nil)
 
-		expectedContentLength := proto.Size(&pb.PingResponse{Value: "something", Counter: 1})
+			seg, err := td.Recv()
+			require.NoError(t, err)
 
-		var subseg *Segment
-		assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
-		assert.Equal(t, "remote", subseg.Namespace)
-		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/Ping", subseg.HTTP.Request.URL)
-		assert.Equal(t, false, subseg.HTTP.Request.XForwardedFor)
-		assert.False(t, subseg.Throttle)
-		assert.False(t, subseg.Error)
-		assert.False(t, subseg.Fault)
-		assert.Equal(t, expectedContentLength, subseg.HTTP.Response.ContentLength)
-	})
-
-	t.Run("error response", func(t *testing.T) {
-		ctx, td := NewTestDaemon()
-		defer td.Close()
-
-		ctx2, root := BeginSegment(ctx, "Test")
-		_, err := client.PingError(
-			ctx2,
-			&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(codes.Unauthenticated)},
-		)
-		root.Close(nil)
-		if !assert.Error(t, err) {
-			return
-		}
-
-		seg, err := td.Recv()
-		if !assert.NoError(t, err) {
-			return
-		}
-
-		var subseg *Segment
-		assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
-		assert.Equal(t, "remote", subseg.Namespace)
-		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/PingError", subseg.HTTP.Request.URL)
-		assert.Equal(t, false, subseg.HTTP.Request.XForwardedFor)
-		assert.False(t, subseg.Throttle)
-		assert.True(t, subseg.Error)
-		assert.True(t, subseg.Fault)
-		assert.Zero(t, subseg.HTTP.Response.ContentLength)
-	})
-
-	t.Run("throttle response", func(t *testing.T) {
-		ctx, td := NewTestDaemon()
-		defer td.Close()
-
-		ctx2, root := BeginSegment(ctx, "Test")
-		_, err := client.PingError(
-			ctx2,
-			&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(codes.ResourceExhausted)},
-		)
-		root.Close(nil)
-		if !assert.Error(t, err) {
-			return
-		}
-
-		seg, err := td.Recv()
-		if !assert.NoError(t, err) {
-			return
-		}
-
-		var subseg *Segment
-		assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
-		assert.Equal(t, "remote", subseg.Namespace)
-		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/PingError", subseg.HTTP.Request.URL)
-		assert.Equal(t, false, subseg.HTTP.Request.XForwardedFor)
-		assert.True(t, subseg.Throttle)
-		assert.False(t, subseg.Error)
-		assert.True(t, subseg.Fault)
-		assert.Zero(t, subseg.HTTP.Response.ContentLength)
-	})
-
-	t.Run("fault response", func(t *testing.T) {
-		ctx, td := NewTestDaemon()
-		defer td.Close()
-
-		ctx2, root := BeginSegment(ctx, "Test")
-		_, err := client.PingError(
-			ctx2,
-			&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(codes.Internal)},
-		)
-		root.Close(nil)
-		if !assert.Error(t, err) {
-			return
-		}
-
-		seg, err := td.Recv()
-		if !assert.NoError(t, err) {
-			return
-		}
-
-		var subseg *Segment
-		assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
-		assert.Equal(t, "remote", subseg.Namespace)
-		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/PingError", subseg.HTTP.Request.URL)
-		assert.Equal(t, false, subseg.HTTP.Request.XForwardedFor)
-		assert.False(t, subseg.Throttle)
-		assert.False(t, subseg.Error)
-		assert.True(t, subseg.Fault)
-		assert.Zero(t, subseg.HTTP.Response.ContentLength)
-	})
+			var subseg *Segment
+			assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
+			assert.Equal(t, "remote", subseg.Namespace)
+			assert.Equal(t, tc.getExpectedURL(), subseg.HTTP.Request.URL)
+			assert.Equal(t, false, subseg.HTTP.Request.XForwardedFor)
+			assert.Equal(t, tc.expectedThrottle, subseg.Throttle)
+			assert.Equal(t, tc.expectedError, subseg.Error)
+			assert.Equal(t, tc.expectedFault, subseg.Fault)
+			assert.Equal(t, tc.getExpectedContentLength(), subseg.HTTP.Response.ContentLength)
+		})
+	}
 }
 
 func TestUnaryServerInterceptor(t *testing.T) {
