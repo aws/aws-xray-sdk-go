@@ -62,7 +62,7 @@ func newGrpcServer(t *testing.T, opts ...grpc.ServerOption) *bufconn.Listener {
 	return lis
 }
 
-func newGrpcClient(t *testing.T, ctx context.Context, lis *bufconn.Listener, opts ...grpc.DialOption) (client pb.TestServiceClient, closeFunc func()) {
+func newGrpcClient(ctx context.Context, t *testing.T, lis *bufconn.Listener, opts ...grpc.DialOption) (client pb.TestServiceClient, closeFunc func()) {
 	var bufDialer = func(ctx context.Context, address string) (net.Conn, error) {
 		return lis.Dial()
 	}
@@ -93,12 +93,7 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 			UnaryServerInterceptor(context.Background(), NewFixedSegmentNamer("test")),
 		),
 	)
-	client, closeFunc := newGrpcClient(
-		t,
-		context.Background(),
-		lis,
-		grpc.WithUnaryInterceptor(UnaryClientInterceptor("bufnet")),
-	)
+	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(UnaryClientInterceptor("bufnet")))
 	defer closeFunc()
 
 	t.Run("success response", func(t *testing.T) {
@@ -234,7 +229,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 			UnaryServerInterceptor(ctx, NewFixedSegmentNamer("test")),
 		),
 	)
-	client, closeFunc := newGrpcClient(t, context.Background(), lis)
+	client, closeFunc := newGrpcClient(context.Background(), t, lis)
 	defer closeFunc()
 
 	t.Run("success response", func(t *testing.T) {
@@ -333,16 +328,11 @@ func TestUnaryServerAndClientInterceptor(t *testing.T) {
 			UnaryServerInterceptor(ctx, NewFixedSegmentNamer("test")),
 		),
 	)
-	client, closeFunc := newGrpcClient(
-		t,
-		context.Background(),
-		lis,
-		grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-			md := metadata.Pairs(TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
-			ctx = metadata.NewOutgoingContext(ctx, md)
-			return invoker(ctx, method, req, reply, cc, opts...)
-		}),
-	)
+	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		md := metadata.Pairs(TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
+		ctx = metadata.NewOutgoingContext(ctx, md)
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}))
 	defer closeFunc()
 
 	_, err := client.Ping(
