@@ -211,90 +211,67 @@ func TestUnaryServerInterceptor(t *testing.T) {
 	client, closeFunc := newGrpcClient(context.Background(), t, lis)
 	defer closeFunc()
 
-	t.Run("success response", func(t *testing.T) {
-		_, err := client.Ping(
-			context.Background(),
-			&pb.PingRequest{Value: "something", SleepTimeMs: 9999},
-		)
+	testCases := []testCase{
+		{
+			name:                    "success response",
+			responseErrorStatusCode: codes.OK,
+			expectedThrottle:        false,
+			expectedError:           false,
+			expectedFault:           false,
+		},
+		{
+			name: "error response",
+			responseErrorStatusCode: codes.Unauthenticated,
+			expectedThrottle: false,
+			expectedError: true,
+			expectedFault: false,
+		},
+		{
+			name: "throttle response",
+			responseErrorStatusCode: codes.ResourceExhausted,
+			expectedThrottle: true,
+			expectedError: false,
+			expectedFault: false,
+		},
+		{
+			name: "fault response",
+			responseErrorStatusCode: codes.Internal,
+			expectedThrottle: false,
+			expectedError: false,
+			expectedFault: true,
+		},
+	}
 
-		if !assert.NoError(t, err) {
-			return
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.isTestForSuccessResponse() {
+				_, err := client.Ping(
+					context.Background(),
+					&pb.PingRequest{Value: "something", SleepTimeMs: 9999},
+				)
+				require.NoError(t, err)
+			} else {
+				_, err := client.PingError(
+					context.Background(),
+					&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(tc.responseErrorStatusCode)},
+				)
+				require.Error(t, err)
+			}
 
-		seg, err := td.Recv()
-		if !assert.NoError(t, err) {
-			return
-		}
 
-		expectedContentLength := proto.Size(&pb.PingResponse{Value: "something", Counter: 1})
+			seg, err := td.Recv()
+			require.NoError(t, err)
 
-		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/Ping", seg.HTTP.Request.URL)
-		assert.Equal(t, false, seg.HTTP.Request.XForwardedFor)
-		assert.Regexp(t, regexp.MustCompile(`^grpc-go/`), seg.HTTP.Request.UserAgent)
-		assert.Equal(t, "TestVersion", seg.Service.Version)
-		assert.Equal(t, expectedContentLength, seg.HTTP.Response.ContentLength)
-	})
-
-	t.Run("error response", func(t *testing.T) {
-		_, err := client.PingError(
-			context.Background(),
-			&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(codes.Unauthenticated)},
-		)
-
-		if !assert.Error(t, err) {
-			return
-		}
-
-		seg, err := td.Recv()
-		if !assert.NoError(t, err) {
-			return
-		}
-
-		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/PingError", seg.HTTP.Request.URL)
-		assert.Equal(t, false, seg.HTTP.Request.XForwardedFor)
-		assert.Regexp(t, regexp.MustCompile(`^grpc-go/`), seg.HTTP.Request.UserAgent)
-		assert.Equal(t, "TestVersion", seg.Service.Version)
-		assert.False(t, seg.Throttle)
-		assert.True(t, seg.Error)
-		assert.False(t, seg.Fault)
-		assert.Zero(t, seg.HTTP.Response.ContentLength)
-	})
-
-	t.Run("throttle response", func(t *testing.T) {
-		_, err := client.PingError(
-			context.Background(),
-			&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(codes.ResourceExhausted)})
-		require.Error(t, err)
-		seg, err := td.Recv()
-		require.NoError(t, err)
-
-		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/PingError", seg.HTTP.Request.URL)
-		assert.Equal(t, false, seg.HTTP.Request.XForwardedFor)
-		assert.Regexp(t, regexp.MustCompile(`^grpc-go/`), seg.HTTP.Request.UserAgent)
-		assert.Equal(t, "TestVersion", seg.Service.Version)
-		assert.True(t, seg.Throttle)
-		assert.False(t, seg.Error)
-		assert.False(t, seg.Fault)
-		assert.Zero(t, seg.HTTP.Response.ContentLength)
-	})
-
-	t.Run("fault response", func(t *testing.T) {
-		_, err := client.PingError(
-			context.Background(),
-			&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(codes.Internal)})
-		require.Error(t, err)
-		seg, err := td.Recv()
-		require.NoError(t, err)
-
-		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/PingError", seg.HTTP.Request.URL)
-		assert.Equal(t, false, seg.HTTP.Request.XForwardedFor)
-		assert.Regexp(t, regexp.MustCompile(`^grpc-go/`), seg.HTTP.Request.UserAgent)
-		assert.Equal(t, "TestVersion", seg.Service.Version)
-		assert.False(t, seg.Throttle)
-		assert.False(t, seg.Error)
-		assert.True(t, seg.Fault)
-		assert.Zero(t, seg.HTTP.Response.ContentLength)
-	})
+			assert.Equal(t, tc.getExpectedURL(), seg.HTTP.Request.URL)
+			assert.Equal(t, false, seg.HTTP.Request.XForwardedFor)
+			assert.Regexp(t, regexp.MustCompile(`^grpc-go/`), seg.HTTP.Request.UserAgent)
+			assert.Equal(t, "TestVersion", seg.Service.Version)
+			assert.Equal(t, tc.expectedThrottle, seg.Throttle)
+			assert.Equal(t, tc.expectedError, seg.Error)
+			assert.Equal(t, tc.expectedFault, seg.Fault)
+			assert.Equal(t, tc.getExpectedContentLength(), seg.HTTP.Response.ContentLength)
+		})
+	}
 }
 
 func TestUnaryServerAndClientInterceptor(t *testing.T) {
