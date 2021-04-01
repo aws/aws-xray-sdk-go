@@ -276,6 +276,8 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
 }
 ```
 
+`aws-xray-sdk-go` doesn't currently support streaming grpc call.
+
 **grpc client**
 
 ```go
