@@ -6,7 +6,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"net/http"
 	"net/http/httptrace"
+	"net/url"
 	"strings"
 
 	"github.com/aws/aws-xray-sdk-go/header"
@@ -62,22 +64,31 @@ func UnaryServerInterceptor(ctx context.Context, sn SegmentNamer) grpc.UnaryServ
 		}
 		traceHeader := header.FromString(traceID)
 
-		var host, url string
+		var host string
+
 		if len(md.Get(":authority")) == 1 {
 			host = md.Get(":authority")[0]
-			url = "grpc://" + host + info.FullMethod
+		}
+		requestURL := url.URL{
+			Scheme: "grpc",
+			Host: host,
+			Path: info.FullMethod,
 		}
 		name := sn.Name(host)
 
 		ctx = context.WithValue(ctx, RecorderContextKey{}, cfg)
 
 		var seg *Segment
-		ctx, seg = NewSegmentFromHeader(ctx, name, nil, traceHeader)
+		ctx, seg = NewSegmentFromHeader(ctx, name, &http.Request{
+			Host: host,
+			URL: &requestURL,
+			Method: info.FullMethod,
+		}, traceHeader)
 		defer seg.Close(nil)
 
 		seg.Lock()
 		seg.GetHTTP().GetRequest().ClientIP, seg.GetHTTP().GetRequest().XForwardedFor = clientIPFromGrpcMetadata(md)
-		seg.GetHTTP().GetRequest().URL = url
+		seg.GetHTTP().GetRequest().URL = requestURL.String()
 		seg.GetHTTP().GetRequest().Method = info.FullMethod
 		if len(md.Get("user-agent")) == 1 {
 			seg.GetHTTP().GetRequest().UserAgent = md.Get("user-agent")[0]
