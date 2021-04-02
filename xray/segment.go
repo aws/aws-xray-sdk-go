@@ -46,7 +46,7 @@ func NewSegmentID() string {
 }
 
 func noOpTraceID() string {
-	return "0-00000000-000000000000000000000000"
+	return "1-00000000-000000000000000000000000"
 }
 
 func noOpSegmentID() string {
