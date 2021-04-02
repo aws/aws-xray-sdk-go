@@ -221,7 +221,7 @@ func TestIDGeneration_secureTrue(t *testing.T) {
 	idGeneration(seg)
 
 	assert.Equal(t, seg.Sampled, false)
-	assert.NotEqual(t, seg.TraceID, "0-00000000-000000000000000000000000")
+	assert.NotEqual(t, seg.TraceID, "1-00000000-000000000000000000000000")
 	assert.NotEqual(t, seg.ID, "0000000000000000")
 	os.Unsetenv("AWS_XRAY_SECURE_RANDOM_ID")
 }
@@ -233,7 +233,7 @@ func TestIDGeneration_secureFalse(t *testing.T) {
 	idGeneration(seg)
 
 	assert.Equal(t, seg.Sampled, false)
-	assert.Equal(t, seg.TraceID, "0-00000000-000000000000000000000000")
+	assert.Equal(t, seg.TraceID, "1-00000000-000000000000000000000000")
 	assert.Equal(t, seg.ID, "0000000000000000")
 	os.Unsetenv("AWS_XRAY_SECURE_RANDOM_ID")
 }
@@ -244,7 +244,7 @@ func TestIDGeneration_samplingFalse(t *testing.T) {
 	idGeneration(seg)
 
 	assert.Equal(t, seg.Sampled, false)
-	assert.Equal(t, seg.TraceID, "0-00000000-000000000000000000000000")
+	assert.Equal(t, seg.TraceID, "1-00000000-000000000000000000000000")
 	assert.Equal(t, seg.ID, "0000000000000000")
 }
 
@@ -254,7 +254,7 @@ func TestIDGeneration_samplingTrue(t *testing.T) {
 	idGeneration(seg)
 
 	assert.Equal(t, seg.Sampled, true)
-	assert.NotEqual(t, seg.TraceID, "0-00000000-000000000000000000000000")
+	assert.NotEqual(t, seg.TraceID, "1-00000000-000000000000000000000000")
 	assert.NotEqual(t, seg.ID, "0000000000000000")
 }
 
@@ -269,7 +269,7 @@ func TestIDGeneration_segSubSeg(t *testing.T) {
 	seg.Close(nil)
 
 	assert.Equal(t, seg.Sampled, true)
-	assert.NotEqual(t, seg.TraceID, "0-00000000-000000000000000000000000")
+	assert.NotEqual(t, seg.TraceID, "1-00000000-000000000000000000000000")
 	assert.NotEqual(t, seg.ID, "0000000000000000")
 	assert.NotEqual(t, subSeg.ID, "0000000000000000")
 	os.Unsetenv("AWS_XRAY_SECURE_RANDOM_ID")
