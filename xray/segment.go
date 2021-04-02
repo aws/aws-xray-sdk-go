@@ -151,10 +151,10 @@ func idGeneration(seg *Segment) {
 		seg.TraceID = NewTraceID()
 		seg.ID = NewSegmentID()
 	} else {
-		if seg.Sampled == false {
+		if !seg.Sampled {
 			seg.TraceID = noOpTraceID()
 			seg.ID = noOpSegmentID()
-		}  else {
+		} else {
 			seg.TraceID = NewTraceID()
 			seg.ID = NewSegmentID()
 		}
