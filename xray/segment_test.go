@@ -235,7 +235,7 @@ func TestIDGeneration_noOpFalse(t *testing.T) {
 	assert.Equal(t, seg.Sampled, false)
 	assert.NotEqual(t, seg.TraceID, "1-00000000-000000000000000000000000")
 	assert.NotEqual(t, seg.ID, "0000000000000000")
-	os.Unsetenv("AWS_XRAY_SECURE_RANDOM_ID")
+	os.Unsetenv("AWS_XRAY_NOOP_ID")
 }
 
 func TestIDGeneration_samplingFalse(t *testing.T) {
