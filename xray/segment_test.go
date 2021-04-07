@@ -308,7 +308,7 @@ func BenchmarkAddError(b *testing.B) {
 	seg.Close(nil)
 }
 
-func BenchmarkIdGeneration_secureTrue(b *testing.B) {
+func BenchmarkIdGeneration_noOpTrue(b *testing.B) {
 	os.Setenv("AWS_XRAY_NOOP_ID", "true")
 	seg := &Segment{parent: nil}
 	for i := 0; i < b.N; i++ {
@@ -317,7 +317,7 @@ func BenchmarkIdGeneration_secureTrue(b *testing.B) {
 	os.Unsetenv("AWS_XRAY_NOOP_ID")
 }
 
-func BenchmarkIdGeneration_secureFalse(b *testing.B) {
+func BenchmarkIdGeneration_noOpFalse(b *testing.B) {
 	os.Setenv("AWS_XRAY_NOOP_ID", "false")
 	seg := &Segment{parent: nil}
 	for i := 0; i < b.N; i++ {
