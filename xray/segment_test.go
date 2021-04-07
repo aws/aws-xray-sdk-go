@@ -214,20 +214,8 @@ func TestSDKDisable_otherMethods(t *testing.T) {
 	os.Setenv("AWS_XRAY_SDK_DISABLED", "FALSE")
 }
 
-func TestIDGeneration_secureTrue(t *testing.T) {
-	os.Setenv("AWS_XRAY_SECURE_RANDOM_ID", "true")
-	seg := &Segment{parent: nil}
-	seg.Sampled = false
-	idGeneration(seg)
-
-	assert.Equal(t, seg.Sampled, false)
-	assert.NotEqual(t, seg.TraceID, "1-00000000-000000000000000000000000")
-	assert.NotEqual(t, seg.ID, "0000000000000000")
-	os.Unsetenv("AWS_XRAY_SECURE_RANDOM_ID")
-}
-
-func TestIDGeneration_secureFalse(t *testing.T) {
-	os.Setenv("AWS_XRAY_SECURE_RANDOM_ID", "FALSE")
+func TestIDGeneration_noOPTrue(t *testing.T) {
+	os.Setenv("AWS_XRAY_NOOP_ID", "true")
 	seg := &Segment{parent: nil}
 	seg.Sampled = false
 	idGeneration(seg)
@@ -235,6 +223,18 @@ func TestIDGeneration_secureFalse(t *testing.T) {
 	assert.Equal(t, seg.Sampled, false)
 	assert.Equal(t, seg.TraceID, "1-00000000-000000000000000000000000")
 	assert.Equal(t, seg.ID, "0000000000000000")
+	os.Unsetenv("AWS_XRAY_NOOP_ID")
+}
+
+func TestIDGeneration_noOpFalse(t *testing.T) {
+	os.Setenv("AWS_XRAY_NOOP_ID", "FALSE")
+	seg := &Segment{parent: nil}
+	seg.Sampled = false
+	idGeneration(seg)
+
+	assert.Equal(t, seg.Sampled, false)
+	assert.NotEqual(t, seg.TraceID, "1-00000000-000000000000000000000000")
+	assert.NotEqual(t, seg.ID, "0000000000000000")
 	os.Unsetenv("AWS_XRAY_SECURE_RANDOM_ID")
 }
 
@@ -259,7 +259,7 @@ func TestIDGeneration_samplingTrue(t *testing.T) {
 }
 
 func TestIDGeneration_segSubSeg(t *testing.T) {
-	os.Setenv("AWS_XRAY_SECURE_RANDOM_ID", "true")
+	os.Setenv("AWS_XRAY_NOOP_ID", "true")
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 	ctx, seg := BeginSegment(ctx, "Segment")
@@ -272,7 +272,7 @@ func TestIDGeneration_segSubSeg(t *testing.T) {
 	assert.NotEqual(t, seg.TraceID, "1-00000000-000000000000000000000000")
 	assert.NotEqual(t, seg.ID, "0000000000000000")
 	assert.NotEqual(t, subSeg.ID, "0000000000000000")
-	os.Unsetenv("AWS_XRAY_SECURE_RANDOM_ID")
+	os.Unsetenv("AWS_XRAY_NOOP_ID")
 }
 
 // Benchmarks
@@ -309,19 +309,19 @@ func BenchmarkAddError(b *testing.B) {
 }
 
 func BenchmarkIdGeneration_secureTrue(b *testing.B) {
-	os.Setenv("AWS_XRAY_SECURE_RANDOM_ID", "true")
+	os.Setenv("AWS_XRAY_NOOP_ID", "true")
 	seg := &Segment{parent: nil}
 	for i := 0; i < b.N; i++ {
 		idGeneration(seg)
 	}
-	os.Unsetenv("AWS_XRAY_SECURE_RANDOM_ID")
+	os.Unsetenv("AWS_XRAY_NOOP_ID")
 }
 
 func BenchmarkIdGeneration_secureFalse(b *testing.B) {
-	os.Setenv("AWS_XRAY_SECURE_RANDOM_ID", "false")
+	os.Setenv("AWS_XRAY_NOOP_ID", "false")
 	seg := &Segment{parent: nil}
 	for i := 0; i < b.N; i++ {
 		idGeneration(seg)
 	}
-	os.Unsetenv("AWS_XRAY_SECURE_RANDOM_ID")
+	os.Unsetenv("AWS_XRAY_NOOP_ID")
 }

@@ -146,8 +146,8 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 }
 
 func idGeneration(seg *Segment) {
-	secureRandom := os.Getenv("AWS_XRAY_SECURE_RANDOM_ID")
-	if secureRandom != "" && strings.ToLower(secureRandom) == "true" {
+	noOpID := os.Getenv("AWS_XRAY_NOOP_ID")
+	if noOpID != "" && strings.ToLower(noOpID) == "false" {
 		seg.TraceID = NewTraceID()
 		seg.ID = NewSegmentID()
 	} else {
