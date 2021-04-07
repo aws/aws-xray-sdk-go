@@ -58,7 +58,7 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 	seg := basicSegment(name, h)
 
 	if h == nil {
-		// generates segment and trace id based on sampling decision and secure random env variable
+		// generates segment and trace id based on sampling decision and AWS_XRAY_NOOP_ID env variable
 		idGeneration(seg)
 	}
 
@@ -139,7 +139,7 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 		seg.Dummy = true
 	}
 
-	// generates segment and trace id based on sampling decision and secure random env variable
+	// generates segment and trace id based on sampling decision and AWS_XRAY_NOOP_ID env variable
 	idGeneration(seg)
 
 	return context.WithValue(ctx, ContextKey, seg), seg
