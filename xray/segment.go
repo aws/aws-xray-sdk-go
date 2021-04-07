@@ -277,12 +277,20 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 
 	seg.ParentSegment = parent.ParentSegment
 
+	noOpID := os.Getenv("AWS_XRAY_NOOP_ID")
+	if noOpID != "" && strings.ToLower(noOpID) == "false" {
+		seg.ID = NewSegmentID()
+	} else {
+		if !seg.ParentSegment.Sampled {
+			seg.ID = noOpSegmentID()
+		} else {
+			seg.ID = NewSegmentID()
+		}
+	}
+
 	// check whether segment is dummy or not based on sampling decision
 	if !seg.ParentSegment.Sampled {
 		seg.Dummy = true
-		seg.ID = noOpSegmentID()
-	} else {
-		seg.ID = NewSegmentID()
 	}
 
 	atomic.AddUint32(&seg.ParentSegment.totalSubSegments, 1)
