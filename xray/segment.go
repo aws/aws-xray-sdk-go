@@ -277,6 +277,7 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 
 	seg.ParentSegment = parent.ParentSegment
 
+	// generates subsegment id based on sampling decision and AWS_XRAY_NOOP_ID env variable
 	noOpID := os.Getenv("AWS_XRAY_NOOP_ID")
 	if noOpID != "" && strings.ToLower(noOpID) == "false" {
 		seg.ID = NewSegmentID()
