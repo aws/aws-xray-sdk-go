@@ -13,22 +13,21 @@ import (
 	"errors"
 )
 
-// ContextKeytype defines integer to be type of ContextKey.
-type ContextKeytype int
+const (
+	// ContextKey key for Segment value
+	ContextKey = "ck"
 
-// ContextKey returns a pointer to a newly allocated zero value of ContextKeytype.
-var ContextKey = new(ContextKeytype)
+	// RecorderContextKey records the key for Config value.
+	RecorderContextKey = "rck"
+)
 
 // ErrRetrieveSegment happens when a segment cannot be retrieved
 var ErrRetrieveSegment = errors.New("unable to retrieve segment")
 
-// RecorderContextKey records the key for Config value.
-type RecorderContextKey struct{}
-
 // GetRecorder returns a pointer to the config struct provided
 // in ctx, or nil if no config is set.
 func GetRecorder(ctx context.Context) *Config {
-	if r, ok := ctx.Value(RecorderContextKey{}).(*Config); ok {
+	if r, ok := ctx.Value(RecorderContextKey).(*Config); ok {
 		return r
 	}
 	return nil

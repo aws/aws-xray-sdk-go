@@ -170,7 +170,7 @@ func ContextWithConfig(ctx context.Context, c Config) (context.Context, error) {
 		err = errors
 	}
 
-	return context.WithValue(ctx, RecorderContextKey{}, &c), err
+	return context.WithValue(ctx, RecorderContextKey, &c), err
 }
 
 func configureStrategy(s sampling.Strategy, daemonEndpoints *daemoncfg.DaemonEndpoints) {

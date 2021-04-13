@@ -9,7 +9,6 @@
 package xray
 
 import (
-	"bytes"
 	"context"
 	"net"
 	"net/http"
@@ -90,7 +89,7 @@ func HandlerWithContext(ctx context.Context, sn SegmentNamer, h http.Handler) ht
 		name := sn.Name(r.Host)
 
 		traceHeader := header.FromString(r.Header.Get(TraceIDHeaderKey))
-		ctx := context.WithValue(r.Context(), RecorderContextKey{}, cfg)
+		ctx := context.WithValue(r.Context(), RecorderContextKey, cfg)
 		c, seg := NewSegmentFromHeader(ctx, name, r, traceHeader)
 		defer seg.Close(nil)
 		r = r.WithContext(c)
@@ -117,49 +116,15 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 }
 
 func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Request, traceHeader *header.Header) {
-	seg.Lock()
-
-	scheme := "https://"
-	if r.TLS == nil {
-		scheme = "http://"
-	}
-	seg.GetHTTP().GetRequest().Method = r.Method
-	seg.GetHTTP().GetRequest().URL = scheme + r.Host + r.URL.Path
-	seg.GetHTTP().GetRequest().ClientIP, seg.GetHTTP().GetRequest().XForwardedFor = clientIP(r)
-	seg.GetHTTP().GetRequest().UserAgent = r.UserAgent()
-
-	// Don't use the segment's header here as we only want to
-	// send back the root and possibly sampled values.
-	var respHeader bytes.Buffer
-	respHeader.WriteString("Root=")
-	respHeader.WriteString(seg.TraceID)
-
-	if traceHeader.SamplingDecision == header.Requested {
-		respHeader.WriteString(";Sampled=")
-		respHeader.WriteString(strconv.Itoa(btoi(seg.Sampled)))
-	}
-
-	w.Header().Set(TraceIDHeaderKey, respHeader.String())
-	seg.Unlock()
+	traceID := seg.TraceHeaderID(traceHeader)
+	w.Header().Set(TraceIDHeaderKey, traceID)
 
 	capturer := &responseCapturer{w, 200, 0}
 	resp := capturer.wrappedResponseWriter()
 	h.ServeHTTP(resp, r)
 
-	seg.Lock()
-	seg.GetHTTP().GetResponse().Status = capturer.status
-	seg.GetHTTP().GetResponse().ContentLength, _ = strconv.Atoi(capturer.Header().Get("Content-Length"))
-
-	if capturer.status >= 400 && capturer.status < 500 {
-		seg.Error = true
-	}
-	if capturer.status == 429 {
-		seg.Throttle = true
-	}
-	if capturer.status >= 500 && capturer.status < 600 {
-		seg.Fault = true
-	}
-	seg.Unlock()
+	clen, _ := strconv.Atoi(capturer.Header().Get("Content-Length"))
+	seg.HTTPCapture(capturer.status, clen)
 }
 
 func clientIP(r *http.Request) (string, bool) {
