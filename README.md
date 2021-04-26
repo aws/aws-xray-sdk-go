@@ -276,6 +276,10 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
 }
 ```
 
+**Integrations:**
+
+- [valyala/fasthttp](xray/adaptors/fasthttp/README.md)
+
 ## License
 
 The AWS X-Ray SDK for Go is licensed under the Apache 2.0 License. See LICENSE and NOTICE.txt for more information.
