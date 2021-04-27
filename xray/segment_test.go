@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -324,4 +325,157 @@ func BenchmarkIdGeneration_noOpFalse(b *testing.B) {
 		idGeneration(seg)
 	}
 	os.Unsetenv("AWS_XRAY_NOOP_ID")
+}
+
+func TestSegment_TraceHeaderID(t *testing.T) {
+	type args struct {
+		traceHeader *header.Header
+	}
+	tests := []struct {
+		name    string
+		init    func(t *testing.T) *Segment
+		inspect func(r *Segment, t *testing.T) //inspects receiver after test run
+
+		args func(t *testing.T) args
+
+		want1 string
+	}{
+		{
+			name: "TraceID with sampling decision",
+			init: func(*testing.T) *Segment {
+				return &Segment{
+					TraceID: "x-traceid",
+					Sampled: true,
+				}
+			},
+			inspect: func(*Segment, *testing.T) {},
+			args: func(*testing.T) args {
+				return args{
+					traceHeader: &header.Header{
+						SamplingDecision: header.Requested,
+					},
+				}
+			},
+			want1: "Root=x-traceid;Sampled=1",
+		},
+		{
+			name: "TraceID without Sampled",
+			init: func(*testing.T) *Segment {
+				return &Segment{
+					TraceID: "x-traceid",
+					Sampled: true,
+				}
+			},
+			inspect: func(*Segment, *testing.T) {},
+			args: func(*testing.T) args {
+				return args{
+					traceHeader: &header.Header{},
+				}
+			},
+			want1: "Root=x-traceid",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tArgs := tt.args(t)
+
+			receiver := tt.init(t)
+			got1 := receiver.TraceHeaderID(tArgs.traceHeader)
+
+			if tt.inspect != nil {
+				tt.inspect(receiver, t)
+			}
+
+			if !reflect.DeepEqual(got1, tt.want1) {
+				t.Errorf("Segment.TraceHeaderID got1 = %v, want1: %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func TestSegment_HTTPCapture(t *testing.T) {
+	type args struct {
+		statusCode int
+	}
+	tests := []struct {
+		name    string
+		init    func(t *testing.T) *Segment
+		inspect func(r *Segment, t *testing.T) //inspects receiver after test run
+
+		args func(t *testing.T) args
+	}{
+		{
+			name: "StatudCode 400 >= 400 and < 500 is a error",
+			init: func(*testing.T) *Segment {
+				return &Segment{}
+			},
+			inspect: func(s *Segment, t *testing.T) {
+				if !s.Error {
+					t.Errorf("Segment error, got = false, want1: true")
+				}
+			},
+			args: func(*testing.T) args {
+				return args{
+					statusCode: 401,
+				}
+			},
+		},
+		{
+			name: "StatudCode 429 set error/throttle",
+			init: func(*testing.T) *Segment {
+				return &Segment{}
+			},
+			inspect: func(s *Segment, t *testing.T) {
+				if !s.Error {
+					t.Errorf("Segment error, got = false, want1: true")
+				}
+
+				if !s.Throttle {
+					t.Errorf("Segment.Throttle error, got = false, want1: true")
+				}
+
+			},
+			args: func(*testing.T) args {
+				return args{
+					statusCode: 429,
+				}
+			},
+		},
+		{
+			name: "StatusCode 500 is a fault error",
+			init: func(*testing.T) *Segment {
+				return &Segment{}
+			},
+			inspect: func(s *Segment, t *testing.T) {
+				if !s.Fault {
+					t.Errorf("Segment.Fault error, got = false, want1: true")
+				}
+
+			},
+			args: func(*testing.T) args {
+				return args{
+					statusCode: 500,
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tArgs := tt.args(t)
+
+			receiver := tt.init(t)
+			receiver.HTTPCapture(tArgs.statusCode)
+
+			if tt.inspect != nil {
+				tt.inspect(receiver, t)
+			}
+
+			if receiver.GetHTTP().GetResponse().Status != tArgs.statusCode {
+				t.Errorf("Status code error, got = %d, want1: %d", receiver.GetHTTP().GetResponse().Status, tArgs.statusCode)
+			}
+
+		})
+	}
 }
