@@ -287,7 +287,6 @@ Apply xray gRPC interceptors (`xray.UnaryServerInterceptor` or `xray.UnaryClient
 ```go
 conn, err := grpc.Dial(
     serverAddr,
-    grpc.WithInsecure(),
     // use grpc.WithChainUnaryInterceptor instead to apply multiple interceptors
     grpc.WithUnaryInterceptor(
         xray.UnaryClientInterceptor(serverAddr),
