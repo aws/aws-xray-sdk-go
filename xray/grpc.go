@@ -71,8 +71,8 @@ func UnaryServerInterceptor(ctx context.Context, sn SegmentNamer) grpc.UnaryServ
 		}
 		requestURL := url.URL{
 			Scheme: "grpc",
-			Host: host,
-			Path: info.FullMethod,
+			Host:   host,
+			Path:   info.FullMethod,
 		}
 		name := sn.Name(host)
 
@@ -80,8 +80,8 @@ func UnaryServerInterceptor(ctx context.Context, sn SegmentNamer) grpc.UnaryServ
 
 		var seg *Segment
 		ctx, seg = NewSegmentFromHeader(ctx, name, &http.Request{
-			Host: host,
-			URL: &requestURL,
+			Host:   host,
+			URL:    &requestURL,
 			Method: info.FullMethod,
 		}, traceHeader)
 		defer seg.Close(nil)
