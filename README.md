@@ -276,25 +276,31 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
 }
 ```
 
-`aws-xray-sdk-go` doesn't currently support streaming grpc call.
+**gRPC**
 
-**grpc client**
+Note: `aws-xray-sdk-go` doesn't currently support streaming gRPC call.
+
+Apply xray gRPC interceptors (`xray.UnaryServerInterceptor` or `xray.UnaryClientInterceptor`) to instrument gRPC unary requests/responses, and the handling code.
+
+**gRPC Client**
 
 ```go
 conn, err := grpc.Dial(
     serverAddr,
     grpc.WithInsecure(),
-    grpc.WithUnaryInterceptor(grpcmiddleware.ChainUnaryClient(
+    // use grpc.WithChainUnaryInterceptor instead to apply multiple interceptors
+    grpc.WithUnaryInterceptor(
         xray.UnaryClientInterceptor(serverAddr),
-    )),
+    ),
 )
 ```
 
-**grpc server**
+**gRPC Server**
 
 ```go
 grpcServer := grpc.NewServer(
-    grpcmiddleware.WithUnaryServerChain(
+    // use grpc.ChainUnaryInterceptor instead to apply multiple interceptors
+    grpc.UnaryInterceptor(
         xray.UnaryServerInterceptor(context.TODO(), xray.NewFixedSegmentNamer("myApp")),
     ),
 )
