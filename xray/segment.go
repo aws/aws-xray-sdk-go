@@ -9,14 +9,12 @@
 package xray
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"fmt"
 	"net/http"
 	"os"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -127,16 +125,6 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 			logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
 			seg.AddRuleName(sd)
 		}
-
-		scheme := "https://"
-		if r.TLS == nil {
-			scheme = "http://"
-		}
-
-		seg.GetHTTP().GetRequest().Method = r.Method
-		seg.GetHTTP().GetRequest().URL = scheme + r.Host + r.URL.Path
-		seg.GetHTTP().GetRequest().ClientIP, seg.GetHTTP().GetRequest().XForwardedFor = clientIP(r)
-		seg.GetHTTP().GetRequest().UserAgent = r.UserAgent()
 
 	}
 
@@ -650,39 +638,4 @@ func (seg *Segment) addError(err error) {
 	seg.Fault = true
 	seg.GetCause().WorkingDirectory, _ = os.Getwd()
 	seg.GetCause().Exceptions = append(seg.GetCause().Exceptions, seg.ParentSegment.GetConfiguration().ExceptionFormattingStrategy.ExceptionFromError(err))
-}
-
-// TraceHeaderID return trace id for http header
-func (seg *Segment) TraceHeaderID(traceHeader *header.Header) string {
-	seg.Lock()
-	defer seg.Unlock()
-
-	var respHeader bytes.Buffer
-	respHeader.WriteString("Root=")
-	respHeader.WriteString(seg.TraceID)
-
-	if traceHeader.SamplingDecision == header.Requested {
-		respHeader.WriteString(";Sampled=")
-		respHeader.WriteString(strconv.Itoa(btoi(seg.Sampled)))
-	}
-
-	return respHeader.String()
-}
-
-// HTTPCapture fill segment response by http status code
-func (seg *Segment) HTTPCapture(statusCode int) {
-	seg.Lock()
-	defer seg.Unlock()
-
-	seg.GetHTTP().GetResponse().Status = statusCode
-
-	if statusCode >= 400 && statusCode < 500 {
-		seg.Error = true
-	}
-	if statusCode == 429 {
-		seg.Throttle = true
-	}
-	if statusCode >= 500 && statusCode < 600 {
-		seg.Fault = true
-	}
 }

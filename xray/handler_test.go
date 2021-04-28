@@ -13,9 +13,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-xray-sdk-go/header"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -169,5 +171,135 @@ func BenchmarkHandler(b *testing.B) {
 		req := httptest.NewRequest(http.MethodGet, ts.URL, strings.NewReader(""))
 		http.DefaultTransport.RoundTrip(req)
 		ts.Close()
+	}
+}
+
+func TestTraceHeaderID(t *testing.T) {
+	type args struct {
+		seg         *Segment
+		traceHeader *header.Header
+	}
+	tests := []struct {
+		name  string
+		args  func(t *testing.T) args
+		want1 string
+	}{
+		{
+			name: "TraceID with sampling decision",
+			args: func(*testing.T) args {
+				return args{
+					seg: &Segment{
+						TraceID: "x-traceid",
+						Sampled: true,
+					},
+					traceHeader: &header.Header{
+						SamplingDecision: header.Requested,
+					},
+				}
+			},
+			want1: "Root=x-traceid;Sampled=1",
+		},
+		{
+			name: "TraceID without Sampled",
+			args: func(*testing.T) args {
+				return args{
+					seg: &Segment{
+						TraceID: "x-traceid",
+						Sampled: true,
+					},
+					traceHeader: &header.Header{},
+				}
+			},
+			want1: "Root=x-traceid",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tArgs := tt.args(t)
+			got1 := traceHeaderID(tArgs.seg, tArgs.traceHeader)
+			if !reflect.DeepEqual(got1, tt.want1) {
+				t.Errorf("Segment.TraceHeaderID got1 = %v, want1: %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func TestHTTPCaptureResponse(t *testing.T) {
+	type args struct {
+		seg        *Segment
+		statusCode int
+	}
+	tests := []struct {
+		name    string
+		inspect func(r *Segment, t *testing.T) //inspects receiver after test run
+
+		args func(t *testing.T) args
+	}{
+		{
+			name: "StatudCode 400 >= 400 and < 500 is a error",
+			inspect: func(s *Segment, t *testing.T) {
+				if !s.Error {
+					t.Errorf("Segment error, got = false, want1: true")
+				}
+			},
+			args: func(*testing.T) args {
+				return args{
+					seg:        &Segment{},
+					statusCode: 401,
+				}
+			},
+		},
+		{
+			name: "StatudCode 429 set error/throttle",
+			inspect: func(s *Segment, t *testing.T) {
+				if !s.Error {
+					t.Errorf("Segment error, got = false, want1: true")
+				}
+
+				if !s.Throttle {
+					t.Errorf("Segment.Throttle error, got = false, want1: true")
+				}
+
+			},
+			args: func(*testing.T) args {
+				return args{
+					seg:        &Segment{},
+					statusCode: 429,
+				}
+			},
+		},
+		{
+			name: "StatusCode 500 is a fault error",
+			inspect: func(s *Segment, t *testing.T) {
+				if !s.Fault {
+					t.Errorf("Segment.Fault error, got = false, want1: true")
+				}
+
+			},
+			args: func(*testing.T) args {
+				return args{
+					seg:        &Segment{},
+					statusCode: 500,
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tArgs := tt.args(t)
+
+			httpCaptureResponse(tArgs.seg, tArgs.statusCode)
+
+			if tt.inspect != nil {
+				tt.inspect(tArgs.seg, t)
+			}
+
+			if tArgs.seg.GetHTTP().GetResponse().Status != tArgs.statusCode {
+				t.Errorf("Status code error, got = %d, want1: %d", tArgs.seg.GetHTTP().GetResponse().Status, tArgs.statusCode)
+			}
+
+		})
 	}
 }
