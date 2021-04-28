@@ -174,7 +174,7 @@ func BenchmarkHandler(b *testing.B) {
 	}
 }
 
-func TestTraceHeaderID(t *testing.T) {
+func TestGenerateTraceIDHeaderValue(t *testing.T) {
 	type args struct {
 		seg         *Segment
 		traceHeader *header.Header
@@ -217,7 +217,7 @@ func TestTraceHeaderID(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tArgs := tt.args(t)
-			got1 := traceHeaderID(tArgs.seg, tArgs.traceHeader)
+			got1 := generateTraceIDHeaderValue(tArgs.seg, tArgs.traceHeader)
 			if !reflect.DeepEqual(got1, tt.want1) {
 				t.Errorf("Segment.TraceHeaderID got1 = %v, want1: %v", got1, tt.want1)
 			}

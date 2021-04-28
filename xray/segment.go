@@ -125,7 +125,6 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 			logger.Debugf("SamplingStrategy decided: %t", seg.Sampled)
 			seg.AddRuleName(sd)
 		}
-
 	}
 
 	if ctx.Done() != nil {

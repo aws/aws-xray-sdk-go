@@ -118,15 +118,16 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 
 func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Request, traceHeader *header.Header) {
 	httpCaptureRequest(seg, r)
-	traceID := traceHeaderID(seg, traceHeader)
-	w.Header().Set(TraceIDHeaderKey, traceID)
+	traceIDHeaderValue := generateTraceIDHeaderValue(seg, traceHeader)
+	w.Header().Set(TraceIDHeaderKey, traceIDHeaderValue)
 
 	capturer := &responseCapturer{w, 200, 0}
 	resp := capturer.wrappedResponseWriter()
 	h.ServeHTTP(resp, r)
 
-	cLen, _ := strconv.Atoi(capturer.Header().Get("Content-Length"))
-	seg.GetHTTP().GetResponse().ContentLength = cLen
+	seg.Lock()
+	seg.GetHTTP().GetResponse().ContentLength, _ = strconv.Atoi(capturer.Header().Get("Content-Length"))
+	seg.Unlock()
 	httpCaptureResponse(seg, capturer.status)
 }
 
@@ -149,8 +150,8 @@ func btoi(b bool) int {
 	return 0
 }
 
-// traceHeaderID return trace id for http header
-func traceHeaderID(seg *Segment, traceHeader *header.Header) string {
+// generateTraceIDHeaderValue generates value for _x_amzn_trace_id header key
+func generateTraceIDHeaderValue(seg *Segment, traceHeader *header.Header) string {
 	seg.Lock()
 	defer seg.Unlock()
 
