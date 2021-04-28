@@ -121,7 +121,7 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 	lis := newGrpcServer(
 		t,
 		grpc_middleware.WithUnaryServerChain(
-			UnaryServerInterceptor(context.Background(), NewFixedSegmentNamer("test")),
+			UnaryServerInterceptor(NewFixedSegmentNamer("test")),
 		),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(UnaryClientInterceptor("bufnet")))
@@ -198,14 +198,14 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 	}
 }
 
-func TestUnaryServerInterceptor(t *testing.T) {
+func TestUnaryServerInterceptorWithContext(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 
 	lis := newGrpcServer(
 		t,
 		grpc_middleware.WithUnaryServerChain(
-			UnaryServerInterceptor(ctx, NewFixedSegmentNamer("test")),
+			UnaryServerInterceptorWithContext(ctx, NewFixedSegmentNamer("test")),
 		),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis)
@@ -281,7 +281,7 @@ func TestUnaryServerAndClientInterceptor(t *testing.T) {
 	lis := newGrpcServer(
 		t,
 		grpc_middleware.WithUnaryServerChain(
-			UnaryServerInterceptor(ctx, NewFixedSegmentNamer("test")),
+			UnaryServerInterceptorWithContext(ctx, NewFixedSegmentNamer("test")),
 		),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
