@@ -3,6 +3,7 @@ package xray
 import (
 	"context"
 	"encoding/json"
+	"github.com/aws/aws-xray-sdk-go/header"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/require"
 	"net"
@@ -244,20 +245,22 @@ func TestUnaryServerInterceptorWithContext(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			var respHeaders metadata.MD
 			if tc.isTestForSuccessResponse() {
 				_, err := client.Ping(
 					context.Background(),
 					&pb.PingRequest{Value: "something", SleepTimeMs: 9999},
+					grpc.Header(&respHeaders),
 				)
 				require.NoError(t, err)
 			} else {
 				_, err := client.PingError(
 					context.Background(),
 					&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(tc.responseErrorStatusCode)},
+					grpc.Header(&respHeaders),
 				)
 				require.Error(t, err)
 			}
-
 
 			seg, err := td.Recv()
 			require.NoError(t, err)
@@ -270,6 +273,12 @@ func TestUnaryServerInterceptorWithContext(t *testing.T) {
 			assert.Equal(t, tc.expectedError, seg.Error)
 			assert.Equal(t, tc.expectedFault, seg.Fault)
 			assert.Equal(t, tc.getExpectedContentLength(), seg.HTTP.Response.ContentLength)
+			respTraceHeaderSlice := respHeaders[TraceIDHeaderKey]
+			require.NotNil(t, respTraceHeaderSlice)
+			require.Len(t, respTraceHeaderSlice, 1)
+			respTraceHeader := header.FromString(respTraceHeaderSlice[0])
+			assert.Equal(t, seg.TraceID, respTraceHeader.TraceID)
+			assert.Equal(t, header.Unknown, respTraceHeader.SamplingDecision)
 		})
 	}
 }

@@ -9,6 +9,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.6.1
+	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b
 	golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78 // indirect
 	golang.org/x/text v0.3.5 // indirect

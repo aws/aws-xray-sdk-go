@@ -1,14 +1,17 @@
 package xray
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"github.com/golang/protobuf/proto"
+	"go.uber.org/multierr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-xray-sdk-go/header"
@@ -93,9 +96,12 @@ func unaryServerInterceptorWithConfig(sn SegmentNamer, cfg *Config) grpc.UnarySe
 		seg.Unlock()
 
 		resp, err = handler(ctx, req)
-		recordContentLength(seg, resp)
 		if err != nil {
 			classifyErrorStatus(seg, err)
+		}
+		recordContentLength(seg, resp)
+		if headerErr := addResponseTraceHeader(ctx, seg, traceHeader); headerErr != nil {
+			err = multierr.Combine(err, headerErr)
 		}
 
 		return resp, err
@@ -149,4 +155,19 @@ func recordContentLength(seg *Segment, reply interface{}) {
 	if protoMessage, isProtoMessage := reply.(proto.Message); isProtoMessage {
 		seg.GetHTTP().GetResponse().ContentLength = proto.Size(protoMessage)
 	}
+}
+
+func addResponseTraceHeader(ctx context.Context, seg *Segment, incomingTraceHeader *header.Header) error {
+	var respHeader bytes.Buffer
+	respHeader.WriteString("Root=")
+	respHeader.WriteString(seg.TraceID)
+	if incomingTraceHeader.SamplingDecision == header.Requested {
+		respHeader.WriteString(";Sampled=")
+		respHeader.WriteString(strconv.Itoa(btoi(seg.Sampled)))
+	}
+
+	headers := metadata.New(map[string]string{
+		TraceIDHeaderKey: respHeader.String(),
+	})
+	return grpc.SendHeader(ctx, headers)
 }
