@@ -96,8 +96,8 @@ type testCase struct {
 	responseErrorStatusCode codes.Code
 
 	expectedThrottle bool
-	expectedError bool
-	expectedFault bool
+	expectedError    bool
+	expectedFault    bool
 }
 
 func (t testCase) isTestForSuccessResponse() bool {
@@ -130,32 +130,32 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "success response",
+			name:                    "success response",
 			responseErrorStatusCode: codes.OK,
-			expectedThrottle: false,
-			expectedError: false,
-			expectedFault: false,
+			expectedThrottle:        false,
+			expectedError:           false,
+			expectedFault:           false,
 		},
 		{
-			name: "error response",
+			name:                    "error response",
 			responseErrorStatusCode: codes.Unauthenticated,
-			expectedThrottle: false,
-			expectedError: true,
-			expectedFault: true,
+			expectedThrottle:        false,
+			expectedError:           true,
+			expectedFault:           true,
 		},
 		{
-			name: "throttle response",
+			name:                    "throttle response",
 			responseErrorStatusCode: codes.ResourceExhausted,
-			expectedThrottle: true,
-			expectedFault: true,
-			expectedError: false,
+			expectedThrottle:        true,
+			expectedFault:           true,
+			expectedError:           false,
 		},
 		{
-			name: "fault response",
+			name:                    "fault response",
 			responseErrorStatusCode: codes.Internal,
-			expectedThrottle: false,
-			expectedError: false,
-			expectedFault: true,
+			expectedThrottle:        false,
+			expectedError:           false,
+			expectedFault:           true,
 		},
 	}
 
@@ -170,8 +170,8 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 				_, err = client.Ping(
 					ctx2,
 					&pb.PingRequest{
-						Value:                "something",
-						SleepTimeMs:          9999,
+						Value:       "something",
+						SleepTimeMs: 9999,
 					},
 				)
 				require.NoError(t, err)
@@ -221,25 +221,25 @@ func TestUnaryServerInterceptorWithContext(t *testing.T) {
 			expectedFault:           false,
 		},
 		{
-			name: "error response",
+			name:                    "error response",
 			responseErrorStatusCode: codes.Unauthenticated,
-			expectedThrottle: false,
-			expectedError: true,
-			expectedFault: false,
+			expectedThrottle:        false,
+			expectedError:           true,
+			expectedFault:           false,
 		},
 		{
-			name: "throttle response",
+			name:                    "throttle response",
 			responseErrorStatusCode: codes.ResourceExhausted,
-			expectedThrottle: true,
-			expectedError: false,
-			expectedFault: false,
+			expectedThrottle:        true,
+			expectedError:           false,
+			expectedFault:           false,
 		},
 		{
-			name: "fault response",
+			name:                    "fault response",
 			responseErrorStatusCode: codes.Internal,
-			expectedThrottle: false,
-			expectedError: false,
-			expectedFault: true,
+			expectedThrottle:        false,
+			expectedError:           false,
+			expectedFault:           true,
 		},
 	}
 
