@@ -3,14 +3,15 @@ package xray
 import (
 	"context"
 	"encoding/json"
-	"github.com/aws/aws-xray-sdk-go/header"
-	"github.com/golang/protobuf/proto"
-	"github.com/stretchr/testify/require"
 	"net"
 	"regexp"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/aws/aws-xray-sdk-go/header"
+	"github.com/golang/protobuf/proto"
+	"github.com/stretchr/testify/require"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	pb "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
