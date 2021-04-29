@@ -10,59 +10,82 @@ package xray
 
 import (
 	"context"
+	v2Middleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	"github.com/aws/smithy-go/middleware"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-func initializeMiddlewareBefore(stack *middleware.Stack) error {
-	return stack.Initialize.Add(middleware.InitializeMiddlewareFunc("XRayInitializeMiddlewareBefore", func(
-		ctx context.Context, in middleware.InitializeInput, next middleware.InitializeHandler) (
-		out middleware.InitializeOutput, metadata middleware.Metadata, err error) {
-
-		//ctx = context.WithValue(ctx, spanTimestampKey{}, time.Now())
-		return next.HandleInitialize(ctx, in)
-	}),
-		middleware.Before)
-}
+type awsV2SubsegmentKey struct{}
 
 func initializeMiddlewareAfter(stack *middleware.Stack) error {
 	return stack.Initialize.Add(middleware.InitializeMiddlewareFunc("XRayInitializeMiddlewareAfter", func(
 		ctx context.Context, in middleware.InitializeInput, next middleware.InitializeHandler) (
 		out middleware.InitializeOutput, metadata middleware.Metadata, err error) {
 
-		//serviceID := v2Middleware.GetServiceID(ctx)
-		//opts := []trace.SpanOption{
-		//	trace.WithTimestamp(ctx.Value(spanTimestampKey{}).(time.Time)),
-		//	trace.WithSpanKind(trace.SpanKindClient),
-		//	trace.WithAttributes(ServiceAttr(serviceID),
-		//		RegionAttr(v2Middleware.GetRegion(ctx)),
-		//		OperationAttr(v2Middleware.GetOperationName(ctx))),
-		//}
+		serviceName := v2Middleware.GetServiceID(ctx)
+		// Start the subsegment
+		ctx, subseg := BeginSubsegment(ctx, serviceName)
+		if subseg == nil {
+			return
+		}
+		subseg.Namespace = "aws"
+		subseg.GetAWS()["region"] = v2Middleware.GetRegion(ctx)
+		subseg.GetAWS()["operation"] = v2Middleware.GetOperationName(ctx)
 
-
-		//ctx, span := m.tracer.Start(ctx, serviceID, opts...)
-		//defer span.End() //TODO: what is defer? Why do we start the span and end in the same func?
+		// set the subsegment in the context
+		ctx = context.WithValue(ctx, awsV2SubsegmentKey{}, subseg)
 
 		out, metadata, err = next.HandleInitialize(ctx, in)
-		if err != nil {
-			//span.RecordError(err)
-			//span.SetStatus(codes.Error, err.Error())
-		}
+
+		// End the subsegment when the response returns from this middleware
+		defer subseg.Close(err)
 
 		return out, metadata, err
 	}),
 		middleware.After)
 }
 
-//
-//var initializeMiddlewareBefore = middleware.InitializeMiddlewareFunc("XRayInitializeMiddlewareBefore", func(
-//	ctx context.Context, in middleware.InitializeInput, next middleware.InitializeHandler,) (
-//	out middleware.InitializeOutput, metadata middleware.Metadata, err error,) {
-//
-//	// Insert begin subsegment
-//
-//	return next.HandleInitialize(ctx, in)
-//})
+func deserializeMiddleware(stack *middleware.Stack) error {
+	return stack.Deserialize.Add(middleware.DeserializeMiddlewareFunc("XRayDeserializeMiddleware", func(
+		ctx context.Context, in middleware.DeserializeInput, next middleware.DeserializeHandler) (
+		out middleware.DeserializeOutput, metadata middleware.Metadata, err error) {
+
+		subseg := ctx.Value(awsV2SubsegmentKey{}).(*Segment)
+		in.Request.(*smithyhttp.Request).Header.Set(TraceIDHeaderKey, subseg.DownstreamHeader().String())
+
+		out, metadata, err = next.HandleDeserialize(ctx, in)
+
+		resp, ok := out.RawResponse.(*smithyhttp.Response)
+		if !ok {
+			// No raw response to wrap with.
+			return out, metadata, err
+		}
+
+		subseg.GetHTTP().GetResponse().Status = resp.StatusCode
+		subseg.GetHTTP().GetResponse().ContentLength = int(resp.ContentLength)
+		requestID, ok := v2Middleware.GetRequestIDMetadata(metadata)
+		if ok {
+			subseg.GetAWS()[RequestIDKey] = requestID
+		}
+		if extendedRequestID := resp.Header.Get(S3ExtendedRequestIDHeaderKey); extendedRequestID != "" {
+			subseg.GetAWS()[ExtendedRequestIDKey] = extendedRequestID
+		}
+
+		if resp.StatusCode >= 400 && resp.StatusCode <= 499 {
+			subseg.Error = true
+			if resp.StatusCode == 429 {
+				subseg.Throttle = true
+			}
+		} else if resp.StatusCode >= 500 && resp.StatusCode <= 599 {
+			subseg.Fault = true
+		}
+
+
+		return out, metadata, err
+	}),
+		middleware.Before)
+}
 
 func AppendMiddlewares(apiOptions *[]func(*middleware.Stack) error) {
-	*apiOptions = append(*apiOptions, initializeMiddlewareBefore, initializeMiddlewareAfter)
+	*apiOptions = append(*apiOptions, initializeMiddlewareAfter, deserializeMiddleware)
 }
