@@ -153,6 +153,7 @@ Note that customers using xray.BeginSegment API directly will only be able to ev
 ```
 
 **Generate no-op trace and segment id**
+
 X-Ray Go SDK will by default generate no-op trace and segment id for unsampled requests and secure random trace and entity id for sampled requests. If customer wants to enable generating secure random trace and entity id for all the (sampled/unsampled) requests (this is applicable for trace id injection into logs use case) then they achieve that by setting AWS_XRAY_NOOP_ID environment variable as False.
 
 **Disabling XRay Tracing**
