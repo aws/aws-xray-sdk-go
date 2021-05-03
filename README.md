@@ -276,6 +276,29 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
 }
 ```
 
+## Integrations
+
+Support for incoming requests with [valyala/fasthttp](https://github.com/valyala/fasthttp):
+
+```go
+func index(ctx *fasthttp.RequestCtx) {
+	ctx.WriteString("Welcome!")
+}
+
+func hello(ctx *fasthttp.RequestCtx) {
+	fmt.Fprintf(ctx, "Hello, %s!\n", ctx.UserValue("name"))
+}
+
+func main() {
+	fh := xray.NewFastHTTP(nil)
+	r := router.New()
+	r.GET("/", fh.Handler(xray.NewFixedSegmentNamer("index"), index))
+	r.GET("/hello/{name}", fh.Handler(xray.NewFixedSegmentNamer("hello"), hello))
+
+	log.Fatal(fasthttp.ListenAndServe(":8080", r.Handler))
+}
+```
+
 ## License
 
 The AWS X-Ray SDK for Go is licensed under the Apache 2.0 License. See LICENSE and NOTICE.txt for more information.
