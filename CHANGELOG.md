@@ -1,3 +1,12 @@
+Release v1.4.0 (2021-05-03)
+================================
+### SDK Enhancements
+* No op trace id generation support for unsampled traces [PR #293](https://github.com/aws/aws-xray-sdk-go/pull/293)
+* Refactored `httpTrace` method [PR #296](https://github.com/aws/aws-xray-sdk-go/pull/296)
+
+### SDK Bugs
+* Fix panic issue when call `AddError` function [PR #288](https://github.com/aws/aws-xray-sdk-go/pull/288)
+
 Release v1.3.0 (2021-02-02)
 ================================
 ### SDK Enhancements
