@@ -1,73 +1,50 @@
 package xray
 
 import (
-	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
-	"github.com/valyala/fasthttp/fasthttputil"
 )
-
-// serve serves http request using provided fasthttp handler
-func serveFasthttp(handler fasthttp.RequestHandler, req *http.Request) (*http.Response, error) {
-	ln := fasthttputil.NewInmemoryListener()
-	defer ln.Close()
-
-	go func() {
-		err := fasthttp.Serve(ln, handler)
-		if err != nil {
-			panic(fmt.Errorf("failed to serve: %v", err))
-		}
-	}()
-
-	client := http.Client{
-		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				return ln.Dial()
-			},
-		},
-	}
-
-	return client.Do(req)
-}
 
 func TestFastHTTPHandler(t *testing.T) {
 	ctx1, td := NewTestDaemon()
 	cfg := GetRecorder(ctx1)
 	defer td.Close()
 
-	handler := func(ctx *fasthttp.RequestCtx) {
-		fmt.Fprint(ctx, "It's working!")
-	}
+	b := `{"body": "content"}`
+	req := fasthttp.Request{}
+	req.SetBodyString(b)
+	req.SetRequestURI("/path")
+	req.SetHost("localhost")
+	req.Header.SetContentType("application/json")
+	req.Header.SetContentLength(len(b))
+	req.Header.SetMethod(http.MethodPost)
+	req.Header.SetUserAgent("UA_test")
 
-	r, err := http.NewRequest("POST", "http://test/", nil)
-	if err != nil {
-		t.Error(err)
-	}
+	rc := &fasthttp.RequestCtx{}
+	rc.Init(&req, nil, nil)
 
-	r.Header.Set("User-Agent", "UA_test")
+	remoteAddr := &net.TCPAddr{
+		IP:   []byte{1, 2, 3, 5},
+		Port: 0,
+	}
+	rc.SetRemoteAddr(remoteAddr)
 
 	fh := NewFastHTTP(cfg)
-	res, err := serveFasthttp(fh.Handler(NewFixedSegmentNamer("test"), handler), r)
-	if err != nil {
-		t.Error(err)
-	}
+	handler := fh.Handler(NewFixedSegmentNamer("test"), func(ctx *fasthttp.RequestCtx) {})
+	handler(rc)
 
-	defer res.Body.Close()
 	seg, err := td.Recv()
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, http.StatusOK, rc.Response.StatusCode())
 	assert.Equal(t, http.MethodPost, seg.HTTP.Request.Method)
-	assert.Equal(t, "http://test/", seg.HTTP.Request.URL)
-
-	// fasthttputil force string `pipe` to RemoteAddr.
-	assert.Equal(t, "pipe", seg.HTTP.Request.ClientIP)
+	assert.Equal(t, "http://localhost/path", seg.HTTP.Request.URL)
+	assert.Equal(t, "1.2.3.5", seg.HTTP.Request.ClientIP)
 	assert.Equal(t, "UA_test", seg.HTTP.Request.UserAgent)
 }
