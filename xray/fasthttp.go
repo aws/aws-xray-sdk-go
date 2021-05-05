@@ -48,6 +48,7 @@ func (h *FastHTTPHandler) Handler(sn SegmentNamer, handler fasthttp.RequestHandl
 	}
 }
 
+// fasthttpToNetHTTPRequest convert a fasthttp.Request to http.Request
 func fasthttpToNetHTTPRequest(ctx *fasthttp.RequestCtx) (*http.Request, error) {
 	requestURI := string(ctx.RequestURI())
 	rURL, err := url.ParseRequestURI(requestURI)
@@ -62,8 +63,6 @@ func fasthttpToNetHTTPRequest(ctx *fasthttp.RequestCtx) (*http.Request, error) {
 		Method:     string(ctx.Method()),
 		RemoteAddr: ctx.RemoteAddr().String(),
 	}
-
-	fmt.Printf("remoteAddr: %#v\n", ctx.RemoteAddr())
 
 	hdr := make(http.Header)
 	ctx.Request.Header.VisitAll(func(k, v []byte) {
@@ -83,8 +82,7 @@ func fasthttpToNetHTTPRequest(ctx *fasthttp.RequestCtx) (*http.Request, error) {
 }
 
 func fastHTTPTrace(seg *Segment, h fasthttp.RequestHandler, ctx *fasthttp.RequestCtx, traceHeader *header.Header) {
-	traceIDHeaderValue := generateTraceIDHeaderValue(seg, traceHeader)
-	ctx.Request.Header.Set(TraceIDHeaderKey, traceIDHeaderValue)
+	ctx.Request.Header.Set(TraceIDHeaderKey, generateTraceIDHeaderValue(seg, traceHeader))
 	h(ctx)
 
 	seg.Lock()
