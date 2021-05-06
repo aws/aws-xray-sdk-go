@@ -9,21 +9,24 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// FastHTTPHandler
-type FastHTTPHandler struct {
+type FastHTTPHandler interface {
+	Handler(SegmentNamer, fasthttp.RequestHandler) fasthttp.RequestHandler
+}
+
+type fasthttpHandler struct {
 	cfg *Config
 }
 
-// NewFastHTTP returns a struct that provides Handle method
+// NewFastHTTPInstrumentor returns a struct that provides Handle method
 // that satisfy fasthttp.RequestHandler interface.
-func NewFastHTTP(cfg *Config) *FastHTTPHandler {
-	return &FastHTTPHandler{
+func NewFastHTTPInstrumentor(cfg *Config) FastHTTPHandler {
+	return &fasthttpHandler{
 		cfg: cfg,
 	}
 }
 
 // Handler wraps the provided fasthttp.RequestHandler
-func (h *FastHTTPHandler) Handler(sn SegmentNamer, handler fasthttp.RequestHandler) fasthttp.RequestHandler {
+func (h *fasthttpHandler) Handler(sn SegmentNamer, handler fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		if h.cfg != nil {
 			ctx.SetUserValue(fasthttpContextConfigKey, h.cfg)
@@ -44,7 +47,7 @@ func (h *FastHTTPHandler) Handler(sn SegmentNamer, handler fasthttp.RequestHandl
 
 		ctx.SetUserValue(fasthttpContextKey, seg)
 		httpCaptureRequest(seg, req)
-		fastHTTPTrace(seg, handler, ctx, traceHeader)
+		fasthttpTrace(seg, handler, ctx, traceHeader)
 	}
 }
 
@@ -81,7 +84,7 @@ func fasthttpToNetHTTPRequest(ctx *fasthttp.RequestCtx) (*http.Request, error) {
 	return req, nil
 }
 
-func fastHTTPTrace(seg *Segment, h fasthttp.RequestHandler, ctx *fasthttp.RequestCtx, traceHeader *header.Header) {
+func fasthttpTrace(seg *Segment, h fasthttp.RequestHandler, ctx *fasthttp.RequestCtx, traceHeader *header.Header) {
 	ctx.Request.Header.Set(TraceIDHeaderKey, generateTraceIDHeaderValue(seg, traceHeader))
 	h(ctx)
 
