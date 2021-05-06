@@ -11,8 +11,10 @@ package xray
 import (
 	"context"
 	"encoding/json"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -28,7 +30,7 @@ func TestAWS(t *testing.T) {
 	// Runs a suite of tests against two different methods of registering
 	// handlers on an AWS client.
 
-	type test func(context.Context, *TestDaemon, *testing.T, *lambda.Lambda)
+	type test func(context.Context, *TestDaemon, *testing.T, *lambda.Lambda, *http.Request)
 	tests := []struct {
 		name     string
 		test     test
@@ -38,6 +40,7 @@ func TestAWS(t *testing.T) {
 		{"successful connection", testClientSuccessfulConnection, false},
 		{"without segment", testClientWithoutSegment, false},
 		{"test data race", testAWSDataRace, false},
+		{"test manual header", testRespectManuallyAddedHeaders, false},
 	}
 
 	onClient := func(s *session.Session) *lambda.Lambda {
@@ -83,16 +86,17 @@ func TestAWS(t *testing.T) {
 				defer td.Close()
 
 				t.Run(test.name, func(t *testing.T) {
-					session, cleanup := fakeSession(t, test.failConn)
+					rr := &http.Request{} // Used to inspect the request received by service
+					session, cleanup := fakeSession(t, test.failConn, rr)
 					defer cleanup()
-					test.test(ctx, td, t, cons.constructor(session))
+					test.test(ctx, td, t, cons.constructor(session), rr)
 				})
 			}
 		})
 	}
 }
 
-func fakeSession(t *testing.T, failConn bool) (*session.Session, func()) {
+func fakeSession(t *testing.T, failConn bool, requestReceived *http.Request) (*session.Session, func()) {
 	cfg := &aws.Config{
 		Region:      aws.String("fake-moon-1"),
 		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop"),
@@ -102,6 +106,7 @@ func fakeSession(t *testing.T, failConn bool) (*session.Session, func()) {
 	if !failConn {
 		ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			b := []byte(`{}`)
+			requestReceived.Header = r.Header
 			w.WriteHeader(http.StatusOK)
 			w.Write(b)
 		}))
@@ -116,7 +121,7 @@ func fakeSession(t *testing.T, failConn bool) (*session.Session, func()) {
 	}
 }
 
-func testClientSuccessfulConnection(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda) {
+func testClientSuccessfulConnection(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda, rr *http.Request) {
 	ctx, root := BeginSegment(ctx, "Test")
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	root.Close(nil)
@@ -147,6 +152,10 @@ func testClientSuccessfulConnection(ctx context.Context, td *TestDaemon, t *test
 	assert.Equal(t, "attempt", attemptSubseg.Name)
 	assert.Zero(t, attemptSubseg.openSegments)
 
+	// Test trace header created & received properly
+	assert.NotNil(t, rr.Header.Get(TraceIDHeaderKey))
+	assert.Equal(t, 3, len(strings.Split(rr.Header.Get(TraceIDHeaderKey), ";")))
+
 	// Connect subsegment will contain multiple child subsegments.
 	// The subsegment should fail since the endpoint is not valid,
 	// and should not be InProgress.
@@ -167,7 +176,7 @@ func testClientSuccessfulConnection(ctx context.Context, td *TestDaemon, t *test
 	}
 }
 
-func testClientFailedConnection(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda) {
+func testClientFailedConnection(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda, rr *http.Request) {
 	ctx, root := BeginSegment(ctx, "Test")
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	root.Close(nil)
@@ -203,12 +212,12 @@ func testClientFailedConnection(ctx context.Context, td *TestDaemon, t *testing.
 	assert.NotEmpty(t, connectSubseg.Subsegments)
 }
 
-func testClientWithoutSegment(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda) {
+func testClientWithoutSegment(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda, rr *http.Request) {
 	_, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{})
 	assert.NoError(t, err)
 }
 
-func testAWSDataRace(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda) {
+func testAWSDataRace(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda, rr *http.Request) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	ctx, seg := BeginSegment(ctx, "TestSegment")
@@ -235,4 +244,17 @@ func testAWSDataRace(ctx context.Context, td *TestDaemon, t *testing.T, svc *lam
 
 	wg.Wait()
 	seg.Close(nil)
+}
+
+func testRespectManuallyAddedHeaders(ctx context.Context, td *TestDaemon, t *testing.T, svc *lambda.Lambda, rr *http.Request) {
+	header := "custom-header"
+	headers := map[string]string{
+		TraceIDHeaderKey: header,
+	}
+
+	out, err := svc.ListFunctionsWithContext(ctx, &lambda.ListFunctionsInput{}, request.WithSetRequestHeaders(headers))
+	assert.Nil(t, err)
+	assert.NotNil(t, out)
+	assert.NotNil(t, rr.Header.Get(TraceIDHeaderKey))
+	assert.Equal(t, header, rr.Header.Get(TraceIDHeaderKey))
 }
