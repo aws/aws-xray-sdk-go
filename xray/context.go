@@ -25,10 +25,23 @@ var ErrRetrieveSegment = errors.New("unable to retrieve segment")
 // RecorderContextKey records the key for Config value.
 type RecorderContextKey struct{}
 
+const (
+	// fasthttpContextKey records the key for Segment value
+	// this was necessary because fasthttp only accepts strings as keys in contexts
+	fasthttpContextKey = "xray-ck"
+
+	// fasthttpContextConfigKey records the key for Config value
+	fasthttpContextConfigKey = "xray-rck"
+)
+
 // GetRecorder returns a pointer to the config struct provided
 // in ctx, or nil if no config is set.
 func GetRecorder(ctx context.Context) *Config {
 	if r, ok := ctx.Value(RecorderContextKey{}).(*Config); ok {
+		return r
+	}
+
+	if r, ok := ctx.Value(fasthttpContextConfigKey).(*Config); ok {
 		return r
 	}
 	return nil
@@ -40,6 +53,11 @@ func GetSegment(ctx context.Context) *Segment {
 	if seg, ok := ctx.Value(ContextKey).(*Segment); ok {
 		return seg
 	}
+
+	if seg, ok := ctx.Value(fasthttpContextKey).(*Segment); ok {
+		return seg
+	}
+
 	return nil
 }
 
@@ -48,9 +66,11 @@ func GetSegment(ctx context.Context) *Segment {
 // identify the code paths executed. If no segment is provided in ctx,
 // an empty string is returned.
 func TraceID(ctx context.Context) string {
-	if seg, ok := ctx.Value(ContextKey).(*Segment); ok {
+
+	if seg := GetSegment(ctx); seg != nil {
 		return seg.TraceID
 	}
+
 	return ""
 }
 

@@ -15,6 +15,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"reflect"
 	"strconv"
@@ -106,7 +107,7 @@ type driverConn struct {
 }
 
 func (conn *driverConn) Ping(ctx context.Context) error {
-	return Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
+	return Capture(ctx, conn.attr.dbname+conn.attr.host, func(ctx context.Context) error {
 		conn.attr.populate(ctx, "PING")
 		if p, ok := conn.Conn.(driver.Pinger); ok {
 			return p.Ping(ctx)
@@ -191,7 +192,7 @@ func (conn *driverConn) ExecContext(ctx context.Context, query string, args []dr
 	var err error
 	var result driver.Result
 	if execerCtx, ok := conn.Conn.(driver.ExecerContext); ok {
-		Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
+		Capture(ctx, conn.attr.dbname+conn.attr.host, func(ctx context.Context) error {
 			result, err = execerCtx.ExecContext(ctx, query, args)
 			if err == driver.ErrSkip {
 				conn.attr.populate(ctx, query+msgErrSkip)
@@ -210,7 +211,7 @@ func (conn *driverConn) ExecContext(ctx context.Context, query string, args []dr
 		if err0 != nil {
 			return nil, err0
 		}
-		Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
+		Capture(ctx, conn.attr.dbname+conn.attr.host, func(ctx context.Context) error {
 			var err error
 			result, err = execer.Exec(query, dargs)
 			if err == driver.ErrSkip {
@@ -237,7 +238,7 @@ func (conn *driverConn) QueryContext(ctx context.Context, query string, args []d
 	var err error
 	var rows driver.Rows
 	if queryerCtx, ok := conn.Conn.(driver.QueryerContext); ok {
-		Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
+		Capture(ctx, conn.attr.dbname+conn.attr.host, func(ctx context.Context) error {
 			rows, err = queryerCtx.QueryContext(ctx, query, args)
 			if err == driver.ErrSkip {
 				conn.attr.populate(ctx, query+msgErrSkip)
@@ -256,7 +257,7 @@ func (conn *driverConn) QueryContext(ctx context.Context, query string, args []d
 		if err0 != nil {
 			return nil, err0
 		}
-		err = Capture(ctx, conn.attr.dbname, func(ctx context.Context) error {
+		err = Capture(ctx, conn.attr.dbname+conn.attr.host, func(ctx context.Context) error {
 			rows, err = queryer.Query(query, dargs)
 			if err == driver.ErrSkip {
 				conn.attr.populate(ctx, query+msgErrSkip)
@@ -301,6 +302,7 @@ type dbAttribute struct {
 	driverVersion    string
 	user             string
 	dbname           string
+	host             string
 }
 
 func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, conn driver.Conn, dsn string, filtered bool) (*dbAttribute, error) {
@@ -340,6 +342,14 @@ func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, con
 		q := u.Query()
 		q.Del("password")
 		u.RawQuery = q.Encode()
+
+		// In the case of known DSL sub segment name will be dbname@host
+		host, _, _ := net.SplitHostPort(u.Host)
+		if len(host) > 0 {
+			attr.host = "@" + host
+		} else {
+			attr.host = host
+		}
 
 		attr.url = u.String()
 		if !strings.Contains(dsn, "//") {
@@ -562,7 +572,7 @@ func (stmt *driverStmt) ExecContext(ctx context.Context, args []driver.NamedValu
 	var result driver.Result
 	var err error
 	if execerContext, ok := stmt.Stmt.(driver.StmtExecContext); ok {
-		err = Capture(ctx, stmt.attr.dbname, func(ctx context.Context) error {
+		err = Capture(ctx, stmt.attr.dbname+stmt.attr.host, func(ctx context.Context) error {
 			stmt.populate(ctx)
 			var err error
 			result, err = execerContext.ExecContext(ctx, args)
@@ -578,7 +588,7 @@ func (stmt *driverStmt) ExecContext(ctx context.Context, args []driver.NamedValu
 		if err0 != nil {
 			return nil, err0
 		}
-		err = Capture(ctx, stmt.attr.dbname, func(ctx context.Context) error {
+		err = Capture(ctx, stmt.attr.dbname+stmt.attr.host, func(ctx context.Context) error {
 			stmt.populate(ctx)
 			var err error
 			result, err = stmt.Stmt.Exec(dargs)
@@ -599,7 +609,7 @@ func (stmt *driverStmt) QueryContext(ctx context.Context, args []driver.NamedVal
 	var result driver.Rows
 	var err error
 	if queryCtx, ok := stmt.Stmt.(driver.StmtQueryContext); ok {
-		err = Capture(ctx, stmt.attr.dbname, func(ctx context.Context) error {
+		err = Capture(ctx, stmt.attr.dbname+stmt.attr.host, func(ctx context.Context) error {
 			stmt.populate(ctx)
 			var err error
 			result, err = queryCtx.QueryContext(ctx, args)
@@ -615,7 +625,7 @@ func (stmt *driverStmt) QueryContext(ctx context.Context, args []driver.NamedVal
 		if err0 != nil {
 			return nil, err0
 		}
-		err = Capture(ctx, stmt.attr.dbname, func(ctx context.Context) error {
+		err = Capture(ctx, stmt.attr.dbname+stmt.attr.host, func(ctx context.Context) error {
 			stmt.populate(ctx)
 			var err error
 			result, err = stmt.Stmt.Query(dargs)

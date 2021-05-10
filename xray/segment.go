@@ -45,9 +45,22 @@ func NewSegmentID() string {
 	return fmt.Sprintf("%02x", r)
 }
 
+func noOpTraceID() string {
+	return "1-00000000-000000000000000000000000"
+}
+
+func noOpSegmentID() string {
+	return "0000000000000000"
+}
+
 // BeginFacadeSegment creates a Segment for a given name and context.
 func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (context.Context, *Segment) {
 	seg := basicSegment(name, h)
+
+	if h == nil {
+		// generates segment and trace id based on sampling decision and AWS_XRAY_NOOP_ID env variable
+		idGeneration(seg)
+	}
 
 	cfg := GetRecorder(ctx)
 	seg.assignConfiguration(cfg)
@@ -126,7 +139,26 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 		seg.Dummy = true
 	}
 
+	// generates segment and trace id based on sampling decision and AWS_XRAY_NOOP_ID env variable
+	idGeneration(seg)
+
 	return context.WithValue(ctx, ContextKey, seg), seg
+}
+
+func idGeneration(seg *Segment) {
+	noOpID := os.Getenv("AWS_XRAY_NOOP_ID")
+	if noOpID != "" && strings.ToLower(noOpID) == "false" {
+		seg.TraceID = NewTraceID()
+		seg.ID = NewSegmentID()
+	} else {
+		if !seg.Sampled {
+			seg.TraceID = noOpTraceID()
+			seg.ID = noOpSegmentID()
+		} else {
+			seg.TraceID = NewTraceID()
+			seg.ID = NewSegmentID()
+		}
+	}
 }
 
 func basicSegment(name string, h *header.Header) *Segment {
@@ -146,8 +178,6 @@ func basicSegment(name string, h *header.Header) *Segment {
 	seg.Dummy = false
 
 	if h == nil {
-		seg.TraceID = NewTraceID()
-		seg.ID = NewSegmentID()
 		seg.Sampled = true
 	} else {
 		seg.Facade = true
@@ -247,6 +277,18 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 
 	seg.ParentSegment = parent.ParentSegment
 
+	// generates subsegment id based on sampling decision and AWS_XRAY_NOOP_ID env variable
+	noOpID := os.Getenv("AWS_XRAY_NOOP_ID")
+	if noOpID != "" && strings.ToLower(noOpID) == "false" {
+		seg.ID = NewSegmentID()
+	} else {
+		if !seg.ParentSegment.Sampled {
+			seg.ID = noOpSegmentID()
+		} else {
+			seg.ID = NewSegmentID()
+		}
+	}
+
 	// check whether segment is dummy or not based on sampling decision
 	if !seg.ParentSegment.Sampled {
 		seg.Dummy = true
@@ -259,7 +301,6 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	parent.openSegments++
 	parent.Unlock()
 
-	seg.ID = NewSegmentID()
 	seg.Name = name
 	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = true
@@ -579,6 +620,11 @@ func (seg *Segment) AddMetadataToNamespace(namespace string, key string, value i
 
 // AddError allows adding an error to the segment.
 func (seg *Segment) AddError(err error) error {
+	// If SDK is disabled then return
+	if SdkDisabled() {
+		return nil
+	}
+
 	seg.Lock()
 	defer seg.Unlock()
 

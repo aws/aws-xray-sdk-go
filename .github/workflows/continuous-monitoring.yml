@@ -1,0 +1,39 @@
+name: Continuous monitoring of distribution channels
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 */1 * * *'
+
+jobs:
+  smoke-tests:
+    name: Run smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.INTEG_TEST_AWS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INTEG_TEST_AWS_KEY_SECRET }}
+          aws-region: us-east-1
+      
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16'
+      
+      - name: Run distribution test
+        id: distribution-availability
+        run: go test distributioncheck
+        working-directory: integration-tests/distributioncheck
+      
+      - name: Publish metric on X-Ray Go SDK distribution availability
+        if: ${{ always() }}
+        run: |
+          if [[ "${{ steps.distribution-availability.outcome }}" == "failure" ]]; then
+            aws cloudwatch put-metric-data --metric-name XRayGoSDKDistributionUnavailability --dimensions failure=rate --namespace MonitorSDK --value 1 --timestamp $(date +%s)
+          else
+            aws cloudwatch put-metric-data --metric-name XRayGoSDKDistributionUnavailability --dimensions failure=rate --namespace MonitorSDK --value 0 --timestamp $(date +%s)
+          fi
+

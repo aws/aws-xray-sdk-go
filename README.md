@@ -152,6 +152,10 @@ Note that customers using xray.BeginSegment API directly will only be able to ev
   seg.Close(nil)
 ```
 
+**Generate no-op trace and segment id**
+
+X-Ray Go SDK will by default generate no-op trace and segment id for unsampled requests and secure random trace and entity id for sampled requests. If customer wants to enable generating secure random trace and entity id for all the (sampled/unsampled) requests (this is applicable for trace id injection into logs use case) then they achieve that by setting AWS_XRAY_NOOP_ID environment variable as False.
+
 **Disabling XRay Tracing**
 
 XRay tracing can be disabled by setting up environment variable `AWS_XRAY_SDK_DISABLED` . Disabling XRay can be useful for specific use case like if customer wants to stop tracing in their test environment they can do so just by setting up the environment variable.
@@ -303,6 +307,61 @@ grpcServer := grpc.NewServer(
         xray.UnaryServerInterceptor(context.TODO(), xray.NewFixedSegmentNamer("myApp")),
     ),
 )
+```
+
+## fasthttp instrumentation 
+
+Support for incoming requests with [valyala/fasthttp](https://github.com/valyala/fasthttp):
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/aws/aws-xray-sdk-go/xraylog"
+	"github.com/fasthttp/router"
+	"github.com/valyala/fasthttp"
+)
+
+func index(ctx *fasthttp.RequestCtx) {
+	ctx.WriteString("Welcome!")
+}
+
+func hello(ctx *fasthttp.RequestCtx) {
+	fmt.Fprintf(ctx, "Hello, %s!\n", ctx.UserValue("name"))
+}
+
+func middleware(name string, h fasthttp.RequestHandler, fh xray.FastHTTPHandler) fasthttp.RequestHandler {
+	f := func(ctx *fasthttp.RequestCtx) {
+		h(ctx)
+	}
+
+	return fh.Handler(xray.NewFixedSegmentNamer(name), f)
+}
+
+func init() {
+	if err := xray.Configure(xray.Config{
+		DaemonAddr:     "xray:2000",
+		ServiceVersion: "0.1",
+	}); err != nil {
+		panic(err)
+	}
+
+	xray.SetLogger(xraylog.NewDefaultLogger(os.Stdout, xraylog.LogLevelDebug))
+}
+
+func main() {
+	fh := xray.NewFastHTTPInstrumentor(nil)
+	r := router.New()
+	r.GET("/", middleware("index", index, fh))
+	r.GET("/hello/{name}", middleware("hello", hello, fh))
+
+	log.Fatal(fasthttp.ListenAndServe(":8080", r.Handler))
+}
 ```
 
 ## License

@@ -214,6 +214,67 @@ func TestSDKDisable_otherMethods(t *testing.T) {
 	os.Setenv("AWS_XRAY_SDK_DISABLED", "FALSE")
 }
 
+func TestIDGeneration_noOPTrue(t *testing.T) {
+	os.Setenv("AWS_XRAY_NOOP_ID", "true")
+	seg := &Segment{parent: nil}
+	seg.Sampled = false
+	idGeneration(seg)
+
+	assert.Equal(t, seg.Sampled, false)
+	assert.Equal(t, seg.TraceID, "1-00000000-000000000000000000000000")
+	assert.Equal(t, seg.ID, "0000000000000000")
+	os.Unsetenv("AWS_XRAY_NOOP_ID")
+}
+
+func TestIDGeneration_noOpFalse(t *testing.T) {
+	os.Setenv("AWS_XRAY_NOOP_ID", "FALSE")
+	seg := &Segment{parent: nil}
+	seg.Sampled = false
+	idGeneration(seg)
+
+	assert.Equal(t, seg.Sampled, false)
+	assert.NotEqual(t, seg.TraceID, "1-00000000-000000000000000000000000")
+	assert.NotEqual(t, seg.ID, "0000000000000000")
+	os.Unsetenv("AWS_XRAY_NOOP_ID")
+}
+
+func TestIDGeneration_samplingFalse(t *testing.T) {
+	seg := &Segment{parent: nil}
+	seg.Sampled = false
+	idGeneration(seg)
+
+	assert.Equal(t, seg.Sampled, false)
+	assert.Equal(t, seg.TraceID, "1-00000000-000000000000000000000000")
+	assert.Equal(t, seg.ID, "0000000000000000")
+}
+
+func TestIDGeneration_samplingTrue(t *testing.T) {
+	seg := &Segment{parent: nil}
+	seg.Sampled = true
+	idGeneration(seg)
+
+	assert.Equal(t, seg.Sampled, true)
+	assert.NotEqual(t, seg.TraceID, "1-00000000-000000000000000000000000")
+	assert.NotEqual(t, seg.ID, "0000000000000000")
+}
+
+func TestIDGeneration_segSubSeg(t *testing.T) {
+	os.Setenv("AWS_XRAY_NOOP_ID", "true")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "Segment")
+	_, subSeg := BeginSubsegment(ctx, "Subegment1")
+
+	subSeg.Close(nil)
+	seg.Close(nil)
+
+	assert.Equal(t, seg.Sampled, true)
+	assert.NotEqual(t, seg.TraceID, "1-00000000-000000000000000000000000")
+	assert.NotEqual(t, seg.ID, "0000000000000000")
+	assert.NotEqual(t, subSeg.ID, "0000000000000000")
+	os.Unsetenv("AWS_XRAY_NOOP_ID")
+}
+
 // Benchmarks
 func BenchmarkBeginSegment(b *testing.B) {
 	ctx, td := NewTestDaemon()
@@ -245,4 +306,22 @@ func BenchmarkAddError(b *testing.B) {
 	}
 	seg.Sampled = false
 	seg.Close(nil)
+}
+
+func BenchmarkIdGeneration_noOpTrue(b *testing.B) {
+	os.Setenv("AWS_XRAY_NOOP_ID", "true")
+	seg := &Segment{parent: nil}
+	for i := 0; i < b.N; i++ {
+		idGeneration(seg)
+	}
+	os.Unsetenv("AWS_XRAY_NOOP_ID")
+}
+
+func BenchmarkIdGeneration_noOpFalse(b *testing.B) {
+	os.Setenv("AWS_XRAY_NOOP_ID", "false")
+	seg := &Segment{parent: nil}
+	for i := 0; i < b.N; i++ {
+		idGeneration(seg)
+	}
+	os.Unsetenv("AWS_XRAY_NOOP_ID")
 }

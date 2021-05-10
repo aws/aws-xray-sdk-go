@@ -1,3 +1,18 @@
+Release v1.4.0 (2021-05-03)
+================================
+### SDK Enhancements
+* No op trace id generation support for unsampled traces [PR #293](https://github.com/aws/aws-xray-sdk-go/pull/293)
+* Refactored `httpTrace` method [PR #296](https://github.com/aws/aws-xray-sdk-go/pull/296)
+
+### SDK Bugs
+* Fix panic issue when call `AddError` function [PR #288](https://github.com/aws/aws-xray-sdk-go/pull/288)
+
+Release v1.3.0 (2021-02-02)
+================================
+### SDK Enhancements
+* Added SQL tracing name support (for database with same name) [PR #273](https://github.com/aws/aws-xray-sdk-go/pull/273)
+* Added automated release workflow [PR #274](https://github.com/aws/aws-xray-sdk-go/pull/274)
+
 Release v1.2.0 (2021-01-05)
 ================================
 ### SDK Enhancements

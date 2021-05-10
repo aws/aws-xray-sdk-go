@@ -56,7 +56,7 @@ func (c *driverConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = Capture(ctx, attr.dbname, func(ctx context.Context) error {
+	err = Capture(ctx, attr.dbname+attr.host, func(ctx context.Context) error {
 		attr.populate(ctx, "CONNECT")
 		var err error
 		rawConn, err = c.Connector.Connect(ctx)
