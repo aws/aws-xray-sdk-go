@@ -57,8 +57,16 @@ func UnaryClientInterceptor(host string) grpc.UnaryClientInterceptor {
 }
 
 // UnaryServerInterceptor provides gRPC unary server interceptor.
-func UnaryServerInterceptor(ctx context.Context, sn SegmentNamer) grpc.UnaryServerInterceptor {
-	cfg := GetRecorder(ctx)
+func UnaryServerInterceptor(serverInterceptorOptions ...ServerInterceptorOption) grpc.UnaryServerInterceptor {
+	var interceptorOptions serverInterceptorOption
+	for _, options := range serverInterceptorOptions {
+		options.apply(&interceptorOptions)
+	}
+
+	var cfg *Config
+	if interceptorOptions.ctx != nil {
+		cfg = GetRecorder(interceptorOptions.ctx)
+	}
 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		md, ok := metadata.FromIncomingContext(ctx)
@@ -79,9 +87,15 @@ func UnaryServerInterceptor(ctx context.Context, sn SegmentNamer) grpc.UnaryServ
 			Host:   host,
 			Path:   info.FullMethod,
 		}
-		name := sn.Name(host)
 
-		ctx = context.WithValue(ctx, RecorderContextKey{}, cfg)
+		name := host + info.FullMethod
+		if interceptorOptions.segmentNamer != nil {
+			name = interceptorOptions.segmentNamer.Name(host)
+		}
+
+		if cfg != nil {
+			ctx = context.WithValue(ctx, RecorderContextKey{}, cfg)
+		}
 
 		var seg *Segment
 		ctx, seg = NewSegmentFromHeader(ctx, name, &http.Request{
@@ -163,4 +177,37 @@ func addResponseTraceHeader(ctx context.Context, seg *Segment, incomingTraceHead
 		TraceIDHeaderKey: respHeader.String(),
 	})
 	return grpc.SendHeader(ctx, headers)
+}
+
+type ServerInterceptorOption interface {
+	apply(option *serverInterceptorOption)
+}
+
+type serverInterceptorOption struct {
+	ctx          context.Context
+	segmentNamer SegmentNamer
+}
+
+func newFuncServerInterceptorOption(f func(option *serverInterceptorOption)) ServerInterceptorOption {
+	return funcServerInterceptorOption{f: f}
+}
+
+type funcServerInterceptorOption struct {
+	f func(option *serverInterceptorOption)
+}
+
+func (f funcServerInterceptorOption) apply(option *serverInterceptorOption) {
+	f.f(option)
+}
+
+func ServerInterceptorWithContext(ctx context.Context) ServerInterceptorOption {
+	return newFuncServerInterceptorOption(func(option *serverInterceptorOption) {
+		option.ctx = ctx
+	})
+}
+
+func ServerInterceptorWithSegmentNamer(sn SegmentNamer) ServerInterceptorOption {
+	return newFuncServerInterceptorOption(func(option *serverInterceptorOption) {
+		option.segmentNamer = sn
+	})
 }

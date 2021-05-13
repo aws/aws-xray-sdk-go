@@ -123,7 +123,9 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 	lis := newGrpcServer(
 		t,
 		grpc_middleware.WithUnaryServerChain(
-			UnaryServerInterceptor(context.Background(), NewFixedSegmentNamer("test")),
+			UnaryServerInterceptor(
+				ServerInterceptorWithSegmentNamer(NewFixedSegmentNamer("test")),
+			),
 		),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(UnaryClientInterceptor("bufnet")))
@@ -207,7 +209,10 @@ func TestUnaryServerInterceptor(t *testing.T) {
 	lis := newGrpcServer(
 		t,
 		grpc_middleware.WithUnaryServerChain(
-			UnaryServerInterceptor(ctx, NewFixedSegmentNamer("test")),
+			UnaryServerInterceptor(
+				ServerInterceptorWithContext(ctx),
+				ServerInterceptorWithSegmentNamer(NewFixedSegmentNamer("test")),
+			),
 		),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis)
@@ -282,6 +287,28 @@ func TestUnaryServerInterceptor(t *testing.T) {
 			assert.Equal(t, header.Unknown, respTraceHeader.SamplingDecision)
 		})
 	}
+
+	// test that the interceptor by default will name the segment by the gRPC service name
+	t.Run("default namer", func(t *testing.T) {
+		ctx, td := NewTestDaemon()
+		defer td.Close()
+
+		lis := newGrpcServer(
+			t,
+			grpc_middleware.WithUnaryServerChain(
+				UnaryServerInterceptor(
+					ServerInterceptorWithContext(ctx),
+				),
+			),
+		)
+		client, closeFunc := newGrpcClient(context.Background(), t, lis)
+		defer closeFunc()
+		_, err := client.Ping(context.Background(), &pb.PingRequest{Value: "something", SleepTimeMs: 9999})
+		assert.NoError(t, err)
+		segment, err := td.Recv()
+		assert.NoError(t, err)
+		assert.Equal(t, "bufnet/mwitkow.testproto.TestService/Ping", segment.Name)
+	})
 }
 
 func TestUnaryServerAndClientInterceptor(t *testing.T) {
@@ -291,7 +318,10 @@ func TestUnaryServerAndClientInterceptor(t *testing.T) {
 	lis := newGrpcServer(
 		t,
 		grpc_middleware.WithUnaryServerChain(
-			UnaryServerInterceptor(ctx, NewFixedSegmentNamer("test")),
+			UnaryServerInterceptor(
+				ServerInterceptorWithContext(ctx),
+				ServerInterceptorWithSegmentNamer(NewFixedSegmentNamer("test")),
+			),
 		),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
