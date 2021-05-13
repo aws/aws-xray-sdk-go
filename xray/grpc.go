@@ -56,7 +56,10 @@ func UnaryClientInterceptor(host string) grpc.UnaryClientInterceptor {
 	}
 }
 
-func unaryServerInterceptorWithConfig(sn SegmentNamer, cfg *Config) grpc.UnaryServerInterceptor {
+// UnaryServerInterceptor provides gRPC unary server interceptor.
+func UnaryServerInterceptor(ctx context.Context, sn SegmentNamer) grpc.UnaryServerInterceptor {
+	cfg := GetRecorder(ctx)
+
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		md, ok := metadata.FromIncomingContext(ctx)
 
@@ -108,18 +111,6 @@ func unaryServerInterceptorWithConfig(sn SegmentNamer, cfg *Config) grpc.UnarySe
 
 		return resp, err
 	}
-}
-
-// UnaryServerInterceptorWithContext provides gRPC unary server interceptor. xray.Config of given ctx will be inherited
-// by the instrumented context.
-func UnaryServerInterceptorWithContext(ctx context.Context, sn SegmentNamer) grpc.UnaryServerInterceptor {
-	cfg := GetRecorder(ctx)
-	return unaryServerInterceptorWithConfig(sn, cfg)
-}
-
-// UnaryServerInterceptor provides gRPC unary server interceptor.
-func UnaryServerInterceptor(sn SegmentNamer) grpc.UnaryServerInterceptor {
-	return unaryServerInterceptorWithConfig(sn, nil)
 }
 
 func classifyErrorStatus(seg *Segment, err error) {
