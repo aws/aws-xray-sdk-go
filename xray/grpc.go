@@ -9,10 +9,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-xray-sdk-go/internal/logger"
+
 	"google.golang.org/grpc/codes"
 
 	"github.com/golang/protobuf/proto"
-	"go.uber.org/multierr"
 	"google.golang.org/grpc/status"
 
 	"github.com/aws/aws-xray-sdk-go/header"
@@ -114,7 +115,7 @@ func UnaryServerInterceptor(serverInterceptorOptions ...ServerInterceptorOption)
 		}
 		recordContentLength(seg, resp)
 		if headerErr := addResponseTraceHeader(ctx, seg, traceHeader); headerErr != nil {
-			err = multierr.Combine(err, headerErr)
+			logger.Debug("fail to send the grpc trace header")
 		}
 
 		return resp, err

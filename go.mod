@@ -10,7 +10,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.6.1
 	github.com/valyala/fasthttp v1.24.0
-	go.uber.org/multierr v1.6.0
 	golang.org/x/net v0.0.0-20210226101413-39120d07d75e
 	google.golang.org/genproto v0.0.0-20210114201628-6edceaf6022f // indirect
 	google.golang.org/grpc v1.35.0
