@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/http/httptrace"
 	"net/url"
 	"strconv"
 	"strings"
@@ -30,12 +29,8 @@ func UnaryClientInterceptor(host string) grpc.UnaryClientInterceptor {
 				return errors.New("failed to record gRPC transaction: segment cannot be found")
 			}
 
-			ct, e := NewClientTrace(ctx)
-			if e != nil {
-				return e
-			}
 			md := metadata.Pairs(TraceIDHeaderKey, seg.DownstreamHeader().String())
-			ctx2 := metadata.NewOutgoingContext(httptrace.WithClientTrace(ctx, ct.httpTrace), md)
+			ctx = metadata.NewOutgoingContext(ctx, md)
 
 			seg.Lock()
 			seg.Namespace = "remote"
@@ -43,12 +38,11 @@ func UnaryClientInterceptor(host string) grpc.UnaryClientInterceptor {
 			seg.GetHTTP().GetRequest().Method = http.MethodPost
 			seg.Unlock()
 
-			err := invoker(ctx2, method, req, reply, cc, opts...)
+			err := invoker(ctx, method, req, reply, cc, opts...)
 
 			recordContentLength(seg, reply)
 			if err != nil {
 				classifyErrorStatus(seg, err)
-				ct.subsegments.GotConn(nil, err)
 			}
 
 			return err
