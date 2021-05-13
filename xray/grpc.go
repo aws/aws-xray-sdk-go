@@ -10,9 +10,10 @@ import (
 	"strconv"
 	"strings"
 
+	"google.golang.org/grpc/codes"
+
 	"github.com/golang/protobuf/proto"
 	"go.uber.org/multierr"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/aws/aws-xray-sdk-go/header"
@@ -126,16 +127,16 @@ func classifyErrorStatus(seg *Segment, err error) {
 	defer seg.Unlock()
 	grpcStatus, ok := status.FromError(err)
 	if !ok {
-		seg.Error = true
+		seg.Fault = true
 		return
 	}
 	switch grpcStatus.Code() {
+	case codes.Canceled, codes.InvalidArgument, codes.NotFound, codes.AlreadyExists, codes.PermissionDenied, codes.Unauthenticated, codes.FailedPrecondition, codes.Aborted, codes.OutOfRange:
+		seg.Error = true
+	case codes.Unknown, codes.DeadlineExceeded, codes.Unimplemented, codes.Internal, codes.Unavailable, codes.DataLoss:
+		seg.Fault = true
 	case codes.ResourceExhausted:
 		seg.Throttle = true
-	case codes.Internal, codes.Unimplemented, codes.DataLoss:
-		seg.Fault = true
-	default:
-		seg.Error = true
 	}
 }
 
