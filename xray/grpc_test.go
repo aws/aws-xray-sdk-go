@@ -13,7 +13,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/require"
 
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	pb "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
@@ -122,11 +121,7 @@ func (t testCase) getExpectedContentLength() int {
 func TestGrpcUnaryClientInterceptor(t *testing.T) {
 	lis := newGrpcServer(
 		t,
-		grpc_middleware.WithUnaryServerChain(
-			UnaryServerInterceptor(
-				ServerInterceptorWithSegmentNamer(NewFixedSegmentNamer("test")),
-			),
-		),
+		grpc.UnaryInterceptor(UnaryServerInterceptor()),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(UnaryClientInterceptor(ClientInterceptorWithHost("bufnet"))))
 	defer closeFunc()
@@ -203,11 +198,7 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 	t.Run("default namer", func(t *testing.T) {
 		lis := newGrpcServer(
 			t,
-			grpc_middleware.WithUnaryServerChain(
-				UnaryServerInterceptor(
-					ServerInterceptorWithSegmentNamer(NewFixedSegmentNamer("test")),
-				),
-			),
+			grpc.UnaryInterceptor(UnaryServerInterceptor()),
 		)
 		client, closeFunc := newGrpcClient(
 			context.Background(),
@@ -268,12 +259,10 @@ func TestUnaryServerInterceptor(t *testing.T) {
 
 	lis := newGrpcServer(
 		t,
-		grpc_middleware.WithUnaryServerChain(
+		grpc.UnaryInterceptor(
 			UnaryServerInterceptor(
 				ServerInterceptorWithContext(ctx),
-				ServerInterceptorWithSegmentNamer(NewFixedSegmentNamer("test")),
-			),
-		),
+				ServerInterceptorWithSegmentNamer(NewFixedSegmentNamer("test")))),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis)
 	defer closeFunc()
@@ -355,11 +344,9 @@ func TestUnaryServerInterceptor(t *testing.T) {
 
 		lis := newGrpcServer(
 			t,
-			grpc_middleware.WithUnaryServerChain(
+			grpc.UnaryInterceptor(
 				UnaryServerInterceptor(
-					ServerInterceptorWithContext(ctx),
-				),
-			),
+					ServerInterceptorWithContext(ctx))),
 		)
 		client, closeFunc := newGrpcClient(context.Background(), t, lis)
 		defer closeFunc()
@@ -377,12 +364,10 @@ func TestUnaryServerAndClientInterceptor(t *testing.T) {
 
 	lis := newGrpcServer(
 		t,
-		grpc_middleware.WithUnaryServerChain(
+		grpc.UnaryInterceptor(
 			UnaryServerInterceptor(
 				ServerInterceptorWithContext(ctx),
-				ServerInterceptorWithSegmentNamer(NewFixedSegmentNamer("test")),
-			),
-		),
+				ServerInterceptorWithSegmentNamer(NewFixedSegmentNamer("test")))),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		md := metadata.Pairs(TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
