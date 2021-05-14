@@ -83,8 +83,10 @@ func UnaryServerInterceptor(serverInterceptorOptions ...ServerInterceptorOption)
 			Path:   info.FullMethod,
 		}
 
-		name := host + info.FullMethod
-		if interceptorOptions.segmentNamer != nil {
+		var name string
+		if interceptorOptions.segmentNamer == nil {
+			name = inferServiceName(info.FullMethod)
+		} else {
 			name = interceptorOptions.segmentNamer.Name(host)
 		}
 
@@ -172,6 +174,11 @@ func addResponseTraceHeader(ctx context.Context, seg *Segment, incomingTraceHead
 		TraceIDHeaderKey: respHeader.String(),
 	})
 	return grpc.SendHeader(ctx, headers)
+}
+
+func inferServiceName(fullMethodName string) string {
+	fullMethodName = fullMethodName[1:]
+	return fullMethodName[:strings.Index(fullMethodName, "/")]
 }
 
 type ServerInterceptorOption interface {

@@ -307,7 +307,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		assert.NoError(t, err)
 		segment, err := td.Recv()
 		assert.NoError(t, err)
-		assert.Equal(t, "bufnet/mwitkow.testproto.TestService/Ping", segment.Name)
+		assert.Equal(t, "mwitkow.testproto.TestService", segment.Name)
 	})
 }
 
@@ -349,4 +349,8 @@ func TestUnaryServerAndClientInterceptor(t *testing.T) {
 	assert.Equal(t, "reqid", seg.ParentID)
 	assert.Equal(t, true, seg.Sampled)
 	assert.Equal(t, "TestVersion", seg.Service.Version)
+}
+
+func TestInferServiceName(t *testing.T) {
+	assert.Equal(t, "com.example.Service", inferServiceName("/com.example.Service/method"))
 }
