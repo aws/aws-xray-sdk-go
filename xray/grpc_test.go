@@ -123,7 +123,7 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 		t,
 		grpc.UnaryInterceptor(UnaryServerInterceptor()),
 	)
-	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(UnaryClientInterceptor(ClientInterceptorWithHost("bufnet"))))
+	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(UnaryClientInterceptor()))
 	defer closeFunc()
 
 	testCases := []testCase{

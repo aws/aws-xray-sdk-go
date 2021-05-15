@@ -29,15 +29,11 @@ func UnaryClientInterceptor(clientInterceptorOptions ...ClientInterceptorOption)
 	}
 
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		host := cc.Target()
-		if option.host != nil {
-			host = *option.host
-		}
 		var segmentName string
 		if option.segmentNamer == nil {
 			segmentName = inferServiceName(method)
 		} else {
-			segmentName = option.segmentNamer.Name(host)
+			segmentName = option.segmentNamer.Name(cc.Target())
 		}
 		return Capture(ctx, segmentName, func(ctx context.Context) error {
 			seg := GetSegment(ctx)
@@ -50,7 +46,7 @@ func UnaryClientInterceptor(clientInterceptorOptions ...ClientInterceptorOption)
 
 			seg.Lock()
 			seg.Namespace = "remote"
-			seg.GetHTTP().GetRequest().URL = "grpc://" + host + method
+			seg.GetHTTP().GetRequest().URL = "grpc://" + cc.Target() + method
 			seg.GetHTTP().GetRequest().Method = http.MethodPost
 			seg.Unlock()
 
@@ -238,7 +234,6 @@ type ClientInterceptorOption interface {
 
 type clientInterceptorOption struct {
 	segmentNamer SegmentNamer
-	host         *string
 }
 
 func newFuncClientInterceptorOption(f func(option *clientInterceptorOption)) ClientInterceptorOption {
@@ -257,13 +252,5 @@ func (f funcClientInterceptorOption) apply(option *clientInterceptorOption) {
 func ClientInterceptorWithSegmentNamer(sn SegmentNamer) ClientInterceptorOption {
 	return newFuncClientInterceptorOption(func(option *clientInterceptorOption) {
 		option.segmentNamer = sn
-	})
-}
-
-// ClientInterceptorWithHost overrides the host of the URL recorded to the segment. It also overrides the host passed into
-// the custom segment namer.
-func ClientInterceptorWithHost(host string) ClientInterceptorOption {
-	return newFuncClientInterceptorOption(func(option *clientInterceptorOption) {
-		option.host = &host
 	})
 }
