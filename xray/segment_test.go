@@ -325,3 +325,11 @@ func BenchmarkIdGeneration_noOpFalse(b *testing.B) {
 	}
 	os.Unsetenv("AWS_XRAY_NOOP_ID")
 }
+
+func TestBeginSegmentNameFromEnv(t *testing.T) {
+	os.Setenv("AWS_XRAY_TRACING_NAME", "test_env")
+	_, n := BeginSegment(context.Background(), "test")
+	assert.Equal(t, "test_env", n.Name)
+	os.Unsetenv("AWS_XRAY_TRACING_NAME")
+	n.Close(nil)
+}
