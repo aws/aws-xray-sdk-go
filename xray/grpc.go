@@ -22,8 +22,8 @@ import (
 )
 
 // UnaryClientInterceptor provides gRPC unary client interceptor.
-func UnaryClientInterceptor(clientInterceptorOptions ...ClientInterceptorOption) grpc.UnaryClientInterceptor {
-	var option clientInterceptorOption
+func UnaryClientInterceptor(clientInterceptorOptions ...GrpcOption) grpc.UnaryClientInterceptor {
+	var option grpcOption
 	for _, interceptorOption := range clientInterceptorOptions {
 		interceptorOption.apply(&option)
 	}
@@ -63,8 +63,8 @@ func UnaryClientInterceptor(clientInterceptorOptions ...ClientInterceptorOption)
 }
 
 // UnaryServerInterceptor provides gRPC unary server interceptor.
-func UnaryServerInterceptor(serverInterceptorOptions ...ServerInterceptorOption) grpc.UnaryServerInterceptor {
-	var interceptorOptions serverInterceptorOption
+func UnaryServerInterceptor(serverInterceptorOptions ...GrpcOption) grpc.UnaryServerInterceptor {
+	var interceptorOptions grpcOption
 	for _, options := range serverInterceptorOptions {
 		options.apply(&interceptorOptions)
 	}
@@ -192,65 +192,37 @@ func inferServiceName(fullMethodName string) string {
 	return fullMethodName[:strings.Index(fullMethodName, "/")]
 }
 
-type ServerInterceptorOption interface {
-	apply(option *serverInterceptorOption)
+type GrpcOption interface {
+	apply(option *grpcOption)
 }
 
-type serverInterceptorOption struct {
+type grpcOption struct {
 	ctx          context.Context
 	segmentNamer SegmentNamer
 }
 
-func newFuncServerInterceptorOption(f func(option *serverInterceptorOption)) ServerInterceptorOption {
-	return funcServerInterceptorOption{f: f}
+func newFuncServerInterceptorOption(f func(option *grpcOption)) GrpcOption {
+	return funcGrpcOption{f: f}
 }
 
-type funcServerInterceptorOption struct {
-	f func(option *serverInterceptorOption)
+type funcGrpcOption struct {
+	f func(option *grpcOption)
 }
 
-func (f funcServerInterceptorOption) apply(option *serverInterceptorOption) {
+func (f funcGrpcOption) apply(option *grpcOption) {
 	f.f(option)
 }
 
-// ServerInterceptorWithContext makes the interceptor inherit xray.Config associated with ctx.
-func ServerInterceptorWithContext(ctx context.Context) ServerInterceptorOption {
-	return newFuncServerInterceptorOption(func(option *serverInterceptorOption) {
+// WithContext makes the interceptor inherit xray.Config associated with ctx.
+func WithContext(ctx context.Context) GrpcOption {
+	return newFuncServerInterceptorOption(func(option *grpcOption) {
 		option.ctx = ctx
 	})
 }
 
-// ServerInterceptorWithSegmentNamer makes the interceptor use the segment namer to name the segment.
-func ServerInterceptorWithSegmentNamer(sn SegmentNamer) ServerInterceptorOption {
-	return newFuncServerInterceptorOption(func(option *serverInterceptorOption) {
-		option.segmentNamer = sn
-	})
-}
-
-// ClientInterceptorOption allows customize ClientUnaryInterceptor.
-type ClientInterceptorOption interface {
-	apply(option *clientInterceptorOption)
-}
-
-type clientInterceptorOption struct {
-	segmentNamer SegmentNamer
-}
-
-func newFuncClientInterceptorOption(f func(option *clientInterceptorOption)) ClientInterceptorOption {
-	return funcClientInterceptorOption{f: f}
-}
-
-type funcClientInterceptorOption struct {
-	f func(option *clientInterceptorOption)
-}
-
-func (f funcClientInterceptorOption) apply(option *clientInterceptorOption) {
-	f.f(option)
-}
-
-// ClientInterceptorWithSegmentNamer makes the interceptor use the segment namer to name the segment.
-func ClientInterceptorWithSegmentNamer(sn SegmentNamer) ClientInterceptorOption {
-	return newFuncClientInterceptorOption(func(option *clientInterceptorOption) {
+// WithSegmentNamer makes the interceptor use the segment namer to name the segment.
+func WithSegmentNamer(sn SegmentNamer) GrpcOption {
+	return newFuncServerInterceptorOption(func(option *grpcOption) {
 		option.segmentNamer = sn
 	})
 }

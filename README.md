@@ -293,7 +293,8 @@ conn, err := grpc.Dial(
     serverAddr,
     // use grpc.WithChainUnaryInterceptor instead to apply multiple interceptors
     grpc.WithUnaryInterceptor(
-        xray.UnaryClientInterceptor(serverAddr),
+        xray.UnaryClientInterceptor(),
+        // or xray.UnaryClientInterceptor(xray.WithSegmentNamer(xray.NewFixedSegmentNamer("myApp"))) to use a custom segment namer
     ),
 )
 ```
@@ -305,7 +306,7 @@ grpcServer := grpc.NewServer(
     // use grpc.ChainUnaryInterceptor instead to apply multiple interceptors
     grpc.UnaryInterceptor(
         xray.UnaryServerInterceptor(),
-        // or xray.UnaryServerInterceptor(xray.ServerInterceptorWithSegmentNamer(xray.NewFixedSegmentNamer("myApp"))) to use a custom segment namer
+        // or xray.UnaryServerInterceptor(xray.WithSegmentNamer(xray.NewFixedSegmentNamer("myApp"))) to use a custom segment namer
     ),
 )
 ```

@@ -233,7 +233,7 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 			lis,
 			grpc.WithUnaryInterceptor(
 				UnaryClientInterceptor(
-					ClientInterceptorWithSegmentNamer(NewFixedSegmentNamer("custom")))))
+					WithSegmentNamer(NewFixedSegmentNamer("custom")))))
 		defer closeFunc()
 
 		ctx, td := NewTestDaemon()
@@ -261,8 +261,8 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		t,
 		grpc.UnaryInterceptor(
 			UnaryServerInterceptor(
-				ServerInterceptorWithContext(ctx),
-				ServerInterceptorWithSegmentNamer(NewFixedSegmentNamer("test")))),
+				WithContext(ctx),
+				WithSegmentNamer(NewFixedSegmentNamer("test")))),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis)
 	defer closeFunc()
@@ -346,7 +346,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 			t,
 			grpc.UnaryInterceptor(
 				UnaryServerInterceptor(
-					ServerInterceptorWithContext(ctx))),
+					WithContext(ctx))),
 		)
 		client, closeFunc := newGrpcClient(context.Background(), t, lis)
 		defer closeFunc()
@@ -366,8 +366,8 @@ func TestUnaryServerAndClientInterceptor(t *testing.T) {
 		t,
 		grpc.UnaryInterceptor(
 			UnaryServerInterceptor(
-				ServerInterceptorWithContext(ctx),
-				ServerInterceptorWithSegmentNamer(NewFixedSegmentNamer("test")))),
+				WithContext(ctx),
+				WithSegmentNamer(NewFixedSegmentNamer("test")))),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		md := metadata.Pairs(TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
