@@ -7,5 +7,6 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/pmezard/go-difflib v0.0.0-20151028094244-d8ed2627bdf0 // indirect
 	github.com/stretchr/testify v1.1.4
-	golang.org/x/net v0.0.0-20190311183353-d8887717615a
+	github.com/valyala/fasthttp v1.24.0
+	golang.org/x/net v0.0.0-20210226101413-39120d07d75e
 )
