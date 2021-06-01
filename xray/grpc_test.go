@@ -261,7 +261,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		t,
 		grpc.UnaryInterceptor(
 			UnaryServerInterceptor(
-				WithContext(ctx),
+				WithRecorder(GetRecorder(ctx)),
 				WithSegmentNamer(NewFixedSegmentNamer("test")))),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis)
@@ -346,7 +346,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 			t,
 			grpc.UnaryInterceptor(
 				UnaryServerInterceptor(
-					WithContext(ctx))),
+					WithRecorder(GetRecorder(ctx)))),
 		)
 		client, closeFunc := newGrpcClient(context.Background(), t, lis)
 		defer closeFunc()
@@ -366,7 +366,7 @@ func TestUnaryServerAndClientInterceptor(t *testing.T) {
 		t,
 		grpc.UnaryInterceptor(
 			UnaryServerInterceptor(
-				WithContext(ctx),
+				WithRecorder(GetRecorder(ctx)),
 				WithSegmentNamer(NewFixedSegmentNamer("test")))),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {

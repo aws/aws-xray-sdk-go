@@ -64,14 +64,9 @@ func UnaryClientInterceptor(clientInterceptorOptions ...GrpcOption) grpc.UnaryCl
 
 // UnaryServerInterceptor provides gRPC unary server interceptor.
 func UnaryServerInterceptor(serverInterceptorOptions ...GrpcOption) grpc.UnaryServerInterceptor {
-	var interceptorOptions grpcOption
+	var option grpcOption
 	for _, options := range serverInterceptorOptions {
-		options.apply(&interceptorOptions)
-	}
-
-	var cfg *Config
-	if interceptorOptions.ctx != nil {
-		cfg = GetRecorder(interceptorOptions.ctx)
+		options.apply(&option)
 	}
 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
@@ -95,14 +90,14 @@ func UnaryServerInterceptor(serverInterceptorOptions ...GrpcOption) grpc.UnarySe
 		}
 
 		var name string
-		if interceptorOptions.segmentNamer == nil {
+		if option.segmentNamer == nil {
 			name = inferServiceName(info.FullMethod)
 		} else {
-			name = interceptorOptions.segmentNamer.Name(host)
+			name = option.segmentNamer.Name(host)
 		}
 
-		if cfg != nil {
-			ctx = context.WithValue(ctx, RecorderContextKey{}, cfg)
+		if option.config != nil {
+			ctx = context.WithValue(ctx, RecorderContextKey{}, option.config)
 		}
 
 		var seg *Segment
@@ -197,7 +192,7 @@ type GrpcOption interface {
 }
 
 type grpcOption struct {
-	ctx          context.Context
+	config       *Config
 	segmentNamer SegmentNamer
 }
 
@@ -213,10 +208,10 @@ func (f funcGrpcOption) apply(option *grpcOption) {
 	f.f(option)
 }
 
-// WithContext makes the interceptor inherit xray.Config associated with ctx.
-func WithContext(ctx context.Context) GrpcOption {
+// WithRecorder configures the instrumentation by given xray.Config.
+func WithRecorder(cfg *Config) GrpcOption {
 	return newFuncServerInterceptorOption(func(option *grpcOption) {
-		option.ctx = ctx
+		option.config = cfg
 	})
 }
 
