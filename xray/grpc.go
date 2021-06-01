@@ -35,6 +35,9 @@ func UnaryClientInterceptor(clientInterceptorOptions ...GrpcOption) grpc.UnaryCl
 		} else {
 			segmentName = option.segmentNamer.Name(cc.Target())
 		}
+		if option.config != nil {
+			ctx = context.WithValue(ctx, RecorderContextKey{}, option.config)
+		}
 		return Capture(ctx, segmentName, func(ctx context.Context) error {
 			seg := GetSegment(ctx)
 			if seg == nil {
