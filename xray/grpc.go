@@ -199,7 +199,7 @@ type grpcOption struct {
 	segmentNamer SegmentNamer
 }
 
-func newFuncServerInterceptorOption(f func(option *grpcOption)) GrpcOption {
+func newFuncGrpcOption(f func(option *grpcOption)) GrpcOption {
 	return funcGrpcOption{f: f}
 }
 
@@ -213,14 +213,14 @@ func (f funcGrpcOption) apply(option *grpcOption) {
 
 // WithRecorder configures the instrumentation by given xray.Config.
 func WithRecorder(cfg *Config) GrpcOption {
-	return newFuncServerInterceptorOption(func(option *grpcOption) {
+	return newFuncGrpcOption(func(option *grpcOption) {
 		option.config = cfg
 	})
 }
 
 // WithSegmentNamer makes the interceptor use the segment namer to name the segment.
 func WithSegmentNamer(sn SegmentNamer) GrpcOption {
-	return newFuncServerInterceptorOption(func(option *grpcOption) {
+	return newFuncGrpcOption(func(option *grpcOption) {
 		option.segmentNamer = sn
 	})
 }
