@@ -12,7 +12,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -26,25 +25,10 @@ func TestNewFixedSegmentName(t *testing.T) {
 	assert.Equal(t, "test", n.FixedName)
 }
 
-func TestNewFixedSegmentNameFromEnv(t *testing.T) {
-	os.Setenv("AWS_XRAY_TRACING_NAME", "test_env")
-	n := NewFixedSegmentNamer("test")
-	assert.Equal(t, "test_env", n.FixedName)
-	os.Unsetenv("AWS_XRAY_TRACING_NAME")
-}
-
 func TestNewDynamicSegmentName(t *testing.T) {
 	n := NewDynamicSegmentNamer("test", "a/b/c")
 	assert.Equal(t, "test", n.FallbackName)
 	assert.Equal(t, "a/b/c", n.RecognizedHosts)
-}
-
-func TestNewDynamicSegmentNameFromEnv(t *testing.T) {
-	os.Setenv("AWS_XRAY_TRACING_NAME", "test_env")
-	n := NewDynamicSegmentNamer("test", "a/b/c")
-	assert.Equal(t, "test_env", n.FallbackName)
-	assert.Equal(t, "a/b/c", n.RecognizedHosts)
-	os.Unsetenv("AWS_XRAY_TRACING_NAME")
 }
 
 func TestHandlerWithContextForRootHandler(t *testing.T) {

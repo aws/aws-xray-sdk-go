@@ -70,10 +70,6 @@ func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (con
 
 // BeginSegment creates a Segment for a given name and context.
 func BeginSegment(ctx context.Context, name string) (context.Context, *Segment) {
-	if dName := os.Getenv("AWS_XRAY_TRACING_NAME"); dName != "" {
-		name = dName
-	}
-
 	return BeginSegmentWithSampling(ctx, name, nil, nil)
 }
 
@@ -82,6 +78,10 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 	if SdkDisabled() {
 		seg := &Segment{}
 		return context.WithValue(ctx, ContextKey, seg), seg
+	}
+
+	if dName := os.Getenv("AWS_XRAY_TRACING_NAME"); dName != "" {
+		name = dName
 	}
 
 	seg := basicSegment(name, nil)
