@@ -13,7 +13,6 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
@@ -36,9 +35,6 @@ type FixedSegmentNamer struct {
 // If the AWS_XRAY_TRACING_NAME environment variable is set,
 // its value will override the provided name argument.
 func NewFixedSegmentNamer(name string) *FixedSegmentNamer {
-	if fName := os.Getenv("AWS_XRAY_TRACING_NAME"); fName != "" {
-		name = fName
-	}
 	return &FixedSegmentNamer{
 		FixedName: name,
 	}
@@ -63,9 +59,6 @@ type DynamicSegmentNamer struct {
 
 // NewDynamicSegmentNamer creates a new dynamic segment namer.
 func NewDynamicSegmentNamer(fallback string, recognized string) *DynamicSegmentNamer {
-	if dName := os.Getenv("AWS_XRAY_TRACING_NAME"); dName != "" {
-		fallback = dName
-	}
 	return &DynamicSegmentNamer{
 		FallbackName:    fallback,
 		RecognizedHosts: recognized,
