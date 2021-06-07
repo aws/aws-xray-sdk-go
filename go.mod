@@ -1,12 +1,17 @@
 module github.com/aws/aws-xray-sdk-go
 
+go 1.15
+
 require (
 	github.com/DATA-DOG/go-sqlmock v1.4.1
 	github.com/aws/aws-sdk-go v1.17.12
-	github.com/davecgh/go-spew v0.0.0-20160907170601-6d212800a42e // indirect
-	github.com/pkg/errors v0.8.1
-	github.com/pmezard/go-difflib v0.0.0-20151028094244-d8ed2627bdf0 // indirect
-	github.com/stretchr/testify v1.1.4
+	github.com/golang/protobuf v1.4.3
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
+	github.com/pkg/errors v0.9.1
+	github.com/stretchr/testify v1.6.1
 	github.com/valyala/fasthttp v1.24.0
 	golang.org/x/net v0.0.0-20210226101413-39120d07d75e
+	google.golang.org/genproto v0.0.0-20210114201628-6edceaf6022f // indirect
+	google.golang.org/grpc v1.35.0
+	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )

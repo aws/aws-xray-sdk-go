@@ -280,6 +280,37 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
 }
 ```
 
+**gRPC**
+
+Note: `aws-xray-sdk-go` doesn't currently support streaming gRPC call.
+
+Apply xray gRPC interceptors (`xray.UnaryServerInterceptor` or `xray.UnaryClientInterceptor`) to instrument gRPC unary requests/responses, and the handling code.
+
+**gRPC Client**
+
+```go
+conn, err := grpc.Dial(
+    serverAddr,
+    // use grpc.WithChainUnaryInterceptor instead to apply multiple interceptors
+    grpc.WithUnaryInterceptor(
+        xray.UnaryClientInterceptor(),
+        // or xray.UnaryClientInterceptor(xray.WithSegmentNamer(xray.NewFixedSegmentNamer("myApp"))) to use a custom segment namer
+    ),
+)
+```
+
+**gRPC Server**
+
+```go
+grpcServer := grpc.NewServer(
+    // use grpc.ChainUnaryInterceptor instead to apply multiple interceptors
+    grpc.UnaryInterceptor(
+        xray.UnaryServerInterceptor(),
+        // or xray.UnaryServerInterceptor(xray.WithSegmentNamer(xray.NewFixedSegmentNamer("myApp"))) to use a custom segment namer
+    ),
+)
+```
+
 ## fasthttp instrumentation 
 
 Support for incoming requests with [valyala/fasthttp](https://github.com/valyala/fasthttp):
