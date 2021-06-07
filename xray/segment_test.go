@@ -147,7 +147,7 @@ func TestParentSegmentTotalCount(t *testing.T) {
 
 func TestSegment_isDummy(t *testing.T) {
 	ctx, root := BeginSegment(context.Background(), "Segment")
-	ctxSubSeg1, subSeg1 := BeginSubsegment(ctx, "Subegment1")
+	ctxSubSeg1, subSeg1 := BeginSubsegment(ctx, "Subsegment1")
 	_, subSeg2 := BeginSubsegment(ctxSubSeg1, "Subsegment2")
 	subSeg2.Close(nil)
 	subSeg1.Close(nil)
@@ -163,7 +163,7 @@ func TestSDKDisable_inOrder(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 	ctx, root := BeginSegment(ctx, "Segment")
-	ctxSubSeg1, subSeg1 := BeginSubsegment(ctx, "Subegment1")
+	ctxSubSeg1, subSeg1 := BeginSubsegment(ctx, "Subsegment1")
 	_, subSeg2 := BeginSubsegment(ctxSubSeg1, "Subsegment2")
 	subSeg2.Close(nil)
 	subSeg1.Close(nil)
@@ -180,7 +180,7 @@ func TestSDKDisable_outOrder(t *testing.T) {
 	os.Setenv("AWS_XRAY_SDK_DISABLED", "TRUE")
 	ctx, td := NewTestDaemon()
 	defer td.Close()
-	_, subSeg := BeginSubsegment(ctx, "Subegment1")
+	_, subSeg := BeginSubsegment(ctx, "Subsegment1")
 	_, seg := BeginSegment(context.Background(), "Segment")
 
 	subSeg.Close(nil)
@@ -196,7 +196,7 @@ func TestSDKDisable_otherMethods(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
 	ctx, seg := BeginSegment(ctx, "Segment")
-	_, subSeg := BeginSubsegment(ctx, "Subegment1")
+	_, subSeg := BeginSubsegment(ctx, "Subsegment1")
 
 	if err := seg.AddAnnotation("key", "value"); err != nil {
 		return
@@ -324,4 +324,12 @@ func BenchmarkIdGeneration_noOpFalse(b *testing.B) {
 		idGeneration(seg)
 	}
 	os.Unsetenv("AWS_XRAY_NOOP_ID")
+}
+
+func TestBeginSegmentNameFromEnv(t *testing.T) {
+	os.Setenv("AWS_XRAY_TRACING_NAME", "test_env")
+	_, n := BeginSegment(context.Background(), "test")
+	assert.Equal(t, "test_env", n.Name)
+	os.Unsetenv("AWS_XRAY_TRACING_NAME")
+	n.Close(nil)
 }
