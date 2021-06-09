@@ -1,3 +1,9 @@
+Release v1.5.0 (2021-06-10)
+================================
+### SDK Enhancements
+* gRPC instrumentation support [PR #292](https://github.com/aws/aws-xray-sdk-go/pull/292)
+* fasthttp handler instrumentation support [PR #299](https://github.com/aws/aws-xray-sdk-go/pull/299)
+
 Release v1.4.0 (2021-05-03)
 ================================
 ### SDK Enhancements
