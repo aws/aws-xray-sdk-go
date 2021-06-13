@@ -370,8 +370,7 @@ func TestUnaryServerAndClientInterceptor(t *testing.T) {
 				WithSegmentNamer(NewFixedSegmentNamer("test")))),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		md := metadata.Pairs(TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
-		ctx = metadata.NewOutgoingContext(ctx, md)
+		ctx = metadata.AppendToOutgoingContext(ctx, TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}))
 	defer closeFunc()
