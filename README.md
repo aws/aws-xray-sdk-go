@@ -207,13 +207,54 @@ func getExample(ctx context.Context) ([]byte, error) {
 }
 ```
 
-**AWS**
+**AWS SDK Instrumentation**
 
 ```go
 sess := session.Must(session.NewSession())
 dynamo := dynamodb.New(sess)
 xray.AWS(dynamo.Client)
 dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
+```
+
+**AWS SDK V2 Instrumentation**
+
+```go
+package main
+
+import (
+	"context"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-xray-sdk-go/xray"
+	"log"
+)
+
+func main() {
+	ctx, root := xray.BeginSegment(context.TODO(), "AWSSDKV2_Dynamodb")
+	defer root.Close(nil)
+
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-west-2"))
+	if err != nil {
+		log.Fatalf("unable to load SDK config, %v", err)
+	}
+
+	// Instrumenting AWS SDK v2
+	xray.AppendMiddlewares(&cfg.APIOptions)
+
+	// Using the Config value, create the DynamoDB client
+	svc := dynamodb.NewFromConfig(cfg)
+
+	// Build the request with its input parameters
+	_, err = svc.ListTables(ctx, &dynamodb.ListTablesInput{
+		Limit: aws.Int32(5),
+	})
+	if err != nil {
+		log.Fatalf("failed to list tables, %v", err)
+	}
+
+	root.Close(nil)
+}
 ```
 
 **S3**
