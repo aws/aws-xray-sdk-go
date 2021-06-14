@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/route53"
 	"github.com/aws/aws-sdk-go-v2/service/route53/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -36,27 +35,27 @@ func TestAWSV2(t *testing.T) {
 		expectedStatusCode int
 	}{
 		"fault response": {
-			responseStatus: 500,
-			responseBody: "Internal Server Error",
-			expectedRegion: "us-east-1",
-			expectedError: "Error",
-			expectedRequestID: "b25f48e8-84fd-11e6-80d9-574e0c4664cb",
+			responseStatus:     500,
+			responseBody:       "Internal Server Error",
+			expectedRegion:     "us-east-1",
+			expectedError:      "Error",
+			expectedRequestID:  "b25f48e8-84fd-11e6-80d9-574e0c4664cb",
 			expectedStatusCode: 500,
 		},
 
 		"error response": {
-			responseStatus: 404,
-			responseBody: "Page Not Found",
-			expectedRegion: "us-west-1",
-			expectedError: "Error",
-			expectedRequestID: "1234567890A",
+			responseStatus:     404,
+			responseBody:       "Page Not Found",
+			expectedRegion:     "us-west-1",
+			expectedError:      "Error",
+			expectedRequestID:  "1234567890A",
 			expectedStatusCode: 404,
 		},
 
 		"success response": {
-			responseStatus: 200,
-			responseBody: "Ok",
-			expectedRegion: "us-west-2",
+			responseStatus:     200,
+			responseBody:       "Ok",
+			expectedRegion:     "us-west-2",
 			expectedStatusCode: 200,
 		},
 	}
@@ -99,7 +98,6 @@ func TestAWSV2(t *testing.T) {
 				AppendMiddlewares(&options.APIOptions)
 			})
 
-
 			if e, a := "Route 53", root.rawSubsegments[0].Name; !strings.EqualFold(e, a) {
 				t.Errorf("expected segment name to be %s, got %s", e, a)
 			}
@@ -131,7 +129,7 @@ func TestAWSV2_S3(t *testing.T) {
 
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-west-2"))
 	if err != nil {
-		panic("configuration error, " + err.Error())
+		fmt.Printf("unable to load SDK config, %v", err)
 	}
 
 	// Instrumenting AWS SDK v2
@@ -142,9 +140,7 @@ func TestAWSV2_S3(t *testing.T) {
 
 	_, err = GetAllBuckets(ctx, client, input)
 	if err != nil {
-		fmt.Println("Got an error retrieving buckets:")
-		fmt.Println(err)
-		return
+		fmt.Printf("failed to list buckets, %v", err)
 	}
 
 	if e, a := "S3", root.rawSubsegments[0].Name; !strings.EqualFold(e, a) {
@@ -174,7 +170,7 @@ func TestAWSV2_Dynamo(t *testing.T) {
 
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-west-2"))
 	if err != nil {
-		log.Fatalf("unable to load SDK config, %v", err)
+		fmt.Printf("unable to load SDK config, %v", err)
 	}
 
 	// Instrumenting AWS SDK v2
@@ -188,7 +184,7 @@ func TestAWSV2_Dynamo(t *testing.T) {
 		Limit: aws.Int32(5),
 	})
 	if err != nil {
-		log.Fatalf("failed to list tables, %v", err)
+		fmt.Printf("failed to list tables, %v", err)
 	}
 
 	if e, a := "DynamoDB", root.rawSubsegments[0].Name; !strings.EqualFold(e, a) {
