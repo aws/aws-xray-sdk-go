@@ -24,15 +24,21 @@ import (
 func TestAWSV2(t *testing.T) {
 	cases := map[string]struct {
 		responseStatus     int
-		responseBody       string
+		responseBody       []byte
 		expectedRegion     string
 		expectedError      string
 		expectedRequestID  string
 		expectedStatusCode int
 	}{
 		"fault response": {
-			responseStatus:     500,
-			responseBody:       "Internal Server Error",
+			responseStatus: 500,
+			responseBody: []byte(`<?xml version="1.0" encoding="UTF-8"?>
+		<InvalidChangeBatch xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+		  <Messages>
+		    <Message>Tried to create resource record set duplicate.example.com. type A, but it already exists</Message>
+		  </Messages>
+		  <RequestId>b25f48e8-84fd-11e6-80d9-574e0c4664cb</RequestId>
+		</InvalidChangeBatch>`),
 			expectedRegion:     "us-east-1",
 			expectedError:      "Error",
 			expectedRequestID:  "b25f48e8-84fd-11e6-80d9-574e0c4664cb",
@@ -40,8 +46,17 @@ func TestAWSV2(t *testing.T) {
 		},
 
 		"error response": {
-			responseStatus:     404,
-			responseBody:       "Page Not Found",
+			responseStatus: 404,
+			responseBody: []byte(`<?xml version="1.0"?>
+		<ErrorResponse xmlns="http://route53.amazonaws.com/doc/2016-09-07/">
+		  <Error>
+		    <Type>Sender</Type>
+		    <Code>MalformedXML</Code>
+		    <Message>1 validation error detected: Value null at 'route53#ChangeSet' failed to satisfy constraint: Member must not be null</Message>
+		  </Error>
+		  <RequestId>1234567890A</RequestId>
+		</ErrorResponse>
+		`),
 			expectedRegion:     "us-west-1",
 			expectedError:      "Error",
 			expectedRequestID:  "1234567890A",
@@ -49,8 +64,14 @@ func TestAWSV2(t *testing.T) {
 		},
 
 		"success response": {
-			responseStatus:     200,
-			responseBody:       "Ok",
+			responseStatus: 200,
+			responseBody: []byte(`<?xml version="1.0" encoding="UTF-8"?>
+		<ChangeResourceRecordSetsResponse>
+   			<ChangeInfo>
+      		<Comment>mockComment</Comment>
+      		<Id>mockID</Id>
+   		</ChangeInfo>
+		</ChangeResourceRecordSetsResponse>`),
 			expectedRegion:     "us-west-2",
 			expectedStatusCode: 200,
 		},
@@ -112,6 +133,12 @@ func TestAWSV2(t *testing.T) {
 
 			if e, a := "aws", root.rawSubsegments[0].Namespace; !strings.EqualFold(e, a) {
 				t.Errorf("expected namespace to be %s, got %s", e, a)
+			}
+
+			if root.rawSubsegments[0].GetAWS()[RequestIDKey] != nil {
+				if e, a := c.expectedRequestID, fmt.Sprintf("%v", root.rawSubsegments[0].GetAWS()[RequestIDKey]); !strings.EqualFold(e, a) {
+					t.Errorf("expected request id to be %s, got %s", e, a)
+				}
 			}
 
 			root.Close(nil)
