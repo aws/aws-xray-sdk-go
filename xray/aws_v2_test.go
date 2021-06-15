@@ -112,7 +112,7 @@ func TestAWSV2(t *testing.T) {
 				},
 				HostedZoneId: aws.String("zone"),
 			}, func(options *route53.Options) {
-				AppendMiddlewares(&options.APIOptions)
+				AWSV2Instrumentor(&options.APIOptions)
 			})
 
 			if e, a := "Route 53", root.rawSubsegments[0].Name; !strings.EqualFold(e, a) {

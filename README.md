@@ -240,7 +240,7 @@ func main() {
 	}
 
 	// Instrumenting AWS SDK v2
-	xray.AppendMiddlewares(&cfg.APIOptions)
+	xray.AWSV2Instrumentor(&cfg.APIOptions)
 
 	// Using the Config value, create the DynamoDB client
 	svc := dynamodb.NewFromConfig(cfg)

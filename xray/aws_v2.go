@@ -62,7 +62,6 @@ func deserializeMiddleware(stack *middleware.Stack) error {
 			return out, metadata, err
 		}
 
-		subseg.GetHTTP().GetResponse().Status = resp.StatusCode
 		subseg.GetHTTP().GetResponse().ContentLength = int(resp.ContentLength)
 		requestID, ok := v2Middleware.GetRequestIDMetadata(metadata)
 
@@ -73,20 +72,12 @@ func deserializeMiddleware(stack *middleware.Stack) error {
 			subseg.GetAWS()[ExtendedRequestIDKey] = extendedRequestID
 		}
 
-		if resp.StatusCode >= 400 && resp.StatusCode <= 499 {
-			subseg.Error = true
-			if resp.StatusCode == 429 {
-				subseg.Throttle = true
-			}
-		} else if resp.StatusCode >= 500 && resp.StatusCode <= 599 {
-			subseg.Fault = true
-		}
-
+		httpCaptureResponse(subseg, resp.StatusCode)
 		return out, metadata, err
 	}),
 		middleware.Before)
 }
 
-func AppendMiddlewares(apiOptions *[]func(*middleware.Stack) error) {
+func AWSV2Instrumentor(apiOptions *[]func(*middleware.Stack) error) {
 	*apiOptions = append(*apiOptions, initializeMiddlewareAfter, deserializeMiddleware)
 }
