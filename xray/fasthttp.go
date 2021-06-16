@@ -1,6 +1,7 @@
 package xray
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -28,7 +29,9 @@ func NewFastHTTPInstrumentor(cfg *Config) FastHTTPHandler {
 // Handler wraps the provided fasthttp.RequestHandler
 func (h *fasthttpHandler) Handler(sn SegmentNamer, handler fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
+		auxCtx := context.Background()
 		if h.cfg != nil {
+			auxCtx = context.WithValue(context.Background(), fasthttpContextConfigKey, h.cfg)
 			ctx.SetUserValue(fasthttpContextConfigKey, h.cfg)
 		}
 
@@ -42,7 +45,7 @@ func (h *fasthttpHandler) Handler(sn SegmentNamer, handler fasthttp.RequestHandl
 			return
 		}
 
-		_, seg := NewSegmentFromHeader(ctx, name, req, traceHeader)
+		_, seg := NewSegmentFromHeader(auxCtx, name, req, traceHeader)
 		defer seg.Close(nil)
 
 		ctx.SetUserValue(fasthttpContextKey, seg)
