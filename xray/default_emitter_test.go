@@ -29,7 +29,7 @@ func TestNoNeedStreamingStrategy(t *testing.T) {
 	seg.ParentSegment = seg
 	seg.Sampled = true
 	seg.totalSubSegments = 1
-	seg.rawSubsegments = append(seg.rawSubsegments, subSeg)
+	seg.RawSubsegments = append(seg.RawSubsegments, subSeg)
 	assert.Equal(t, 1, len(packSegments(seg, nil)))
 }
 
@@ -45,7 +45,7 @@ func TestStreamingSegmentsOnChildNode(t *testing.T) {
 	seg.totalSubSegments = 22
 
 	for i := 0; i < 22; i++ {
-		seg.rawSubsegments = append(seg.rawSubsegments, subSeg)
+		seg.RawSubsegments = append(seg.RawSubsegments, subSeg)
 	}
 
 	out := packSegments(seg, nil)
@@ -78,14 +78,14 @@ func TestStreamingSegmentsOnGrandchildNode(t *testing.T) {
 	c.parent = a
 	d.parent = b
 	root.totalSubSegments = 42
-	root.rawSubsegments = append(root.rawSubsegments, a)
-	root.rawSubsegments = append(root.rawSubsegments, b)
+	root.RawSubsegments = append(root.RawSubsegments, a)
+	root.RawSubsegments = append(root.RawSubsegments, b)
 
 	for i := 0; i < 20; i++ {
-		a.rawSubsegments = append(a.rawSubsegments, c)
+		a.RawSubsegments = append(a.RawSubsegments, c)
 	}
 	for i := 0; i < 20; i++ {
-		b.rawSubsegments = append(b.rawSubsegments, d)
+		b.RawSubsegments = append(b.RawSubsegments, d)
 	}
 	assert.Equal(t, 23, len(packSegments(root, nil)))
 }
@@ -112,9 +112,9 @@ func TestStreamingSegmentsTreeHasOnlyOneBranch(t *testing.T) {
 	segFour.parent = segThree
 
 	segOne.totalSubSegments = 3
-	segOne.rawSubsegments = append(segOne.rawSubsegments, segTwo)
-	segTwo.rawSubsegments = append(segTwo.rawSubsegments, segThree)
-	segThree.rawSubsegments = append(segThree.rawSubsegments, segFour)
+	segOne.RawSubsegments = append(segOne.RawSubsegments, segTwo)
+	segTwo.RawSubsegments = append(segTwo.RawSubsegments, segThree)
+	segThree.RawSubsegments = append(segThree.RawSubsegments, segFour)
 
 	assert.Equal(t, 3, len(packSegments(segOne, nil)))
 	ResetConfig()
@@ -153,7 +153,7 @@ func BenchmarkDefaultEmitter_packSegments(b *testing.B) {
 	seg.totalSubSegments = 22
 
 	for i := 0; i < 22; i++ {
-		seg.rawSubsegments = append(seg.rawSubsegments, subSeg)
+		seg.RawSubsegments = append(seg.RawSubsegments, subSeg)
 	}
 
 	for i := 0; i < b.N; i++ {

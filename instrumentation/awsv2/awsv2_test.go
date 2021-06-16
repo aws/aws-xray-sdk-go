@@ -6,7 +6,7 @@
 //
 // or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package xray
+package awsv2
 
 import (
 	"context"
@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/route53"
 	"github.com/aws/aws-sdk-go-v2/service/route53/types"
+	"github.com/aws/aws-xray-sdk-go/xray"
 )
 
 func TestAWSV2(t *testing.T) {
@@ -90,7 +91,7 @@ func TestAWSV2(t *testing.T) {
 		defer server.Close()
 
 		t.Run(name, func(t *testing.T) {
-			ctx, root := BeginSegment(context.TODO(), "AWSSDKV2_Route53")
+			ctx, root := xray.BeginSegment(context.TODO(), "AWSSDKV2_Route53")
 
 			svc := route53.NewFromConfig(aws.Config{
 				Region: c.expectedRegion,
@@ -115,28 +116,28 @@ func TestAWSV2(t *testing.T) {
 				AWSV2Instrumentor(&options.APIOptions)
 			})
 
-			if e, a := "Route 53", root.rawSubsegments[0].Name; !strings.EqualFold(e, a) {
+			if e, a := "Route 53", root.RawSubsegments[0].Name; !strings.EqualFold(e, a) {
 				t.Errorf("expected segment name to be %s, got %s", e, a)
 			}
 
-			if e, a := c.expectedRegion, fmt.Sprintf("%v", root.rawSubsegments[0].GetAWS()["region"]); !strings.EqualFold(e, a) {
+			if e, a := c.expectedRegion, fmt.Sprintf("%v", root.RawSubsegments[0].GetAWS()["region"]); !strings.EqualFold(e, a) {
 				t.Errorf("expected subsegment name to be %s, got %s", e, a)
 			}
 
-			if e, a := "ChangeResourceRecordSets", fmt.Sprintf("%v", root.rawSubsegments[0].GetAWS()["operation"]); !strings.EqualFold(e, a) {
+			if e, a := "ChangeResourceRecordSets", fmt.Sprintf("%v", root.RawSubsegments[0].GetAWS()["operation"]); !strings.EqualFold(e, a) {
 				t.Errorf("expected operation to be %s, got %s", e, a)
 			}
 
-			if e, a := fmt.Sprint(c.expectedStatusCode), fmt.Sprintf("%v", root.rawSubsegments[0].GetHTTP().GetResponse().Status); !strings.EqualFold(e, a) {
+			if e, a := fmt.Sprint(c.expectedStatusCode), fmt.Sprintf("%v", root.RawSubsegments[0].GetHTTP().GetResponse().Status); !strings.EqualFold(e, a) {
 				t.Errorf("expected status code to be %s, got %s", e, a)
 			}
 
-			if e, a := "aws", root.rawSubsegments[0].Namespace; !strings.EqualFold(e, a) {
+			if e, a := "aws", root.RawSubsegments[0].Namespace; !strings.EqualFold(e, a) {
 				t.Errorf("expected namespace to be %s, got %s", e, a)
 			}
 
-			if root.rawSubsegments[0].GetAWS()[RequestIDKey] != nil {
-				if e, a := c.expectedRequestID, fmt.Sprintf("%v", root.rawSubsegments[0].GetAWS()[RequestIDKey]); !strings.EqualFold(e, a) {
+			if root.RawSubsegments[0].GetAWS()[xray.RequestIDKey] != nil {
+				if e, a := c.expectedRequestID, fmt.Sprintf("%v", root.RawSubsegments[0].GetAWS()[xray.RequestIDKey]); !strings.EqualFold(e, a) {
 					t.Errorf("expected request id to be %s, got %s", e, a)
 				}
 			}

@@ -91,5 +91,5 @@ func fasthttpTrace(seg *Segment, h fasthttp.RequestHandler, ctx *fasthttp.Reques
 	seg.Lock()
 	seg.GetHTTP().GetResponse().ContentLength = ctx.Response.Header.ContentLength()
 	seg.Unlock()
-	httpCaptureResponse(seg, ctx.Response.StatusCode())
+	HttpCaptureResponse(seg, ctx.Response.StatusCode())
 }

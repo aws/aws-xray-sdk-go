@@ -104,8 +104,8 @@ var xRayAfterSendHandler = request.NamedHandler{
 			// An error could have prevented the connect subsegment from closing,
 			// so clean it up here.
 			curseg.RLock()
-			temp := make([]*Segment, len(curseg.rawSubsegments))
-			copy(temp, curseg.rawSubsegments)
+			temp := make([]*Segment, len(curseg.RawSubsegments))
+			copy(temp, curseg.RawSubsegments)
 			curseg.RUnlock()
 
 			for _, subsegment := range temp {

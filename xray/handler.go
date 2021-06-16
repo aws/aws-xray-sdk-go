@@ -121,7 +121,7 @@ func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Requ
 	seg.Lock()
 	seg.GetHTTP().GetResponse().ContentLength, _ = strconv.Atoi(capturer.Header().Get("Content-Length"))
 	seg.Unlock()
-	httpCaptureResponse(seg, capturer.status)
+	HttpCaptureResponse(seg, capturer.status)
 }
 
 func clientIP(r *http.Request) (string, bool) {
@@ -160,8 +160,8 @@ func generateTraceIDHeaderValue(seg *Segment, traceHeader *header.Header) string
 	return respHeader.String()
 }
 
-// httpCaptureResponse fill response by http status code
-func httpCaptureResponse(seg *Segment, statusCode int) {
+// HttpCaptureResponse fill response by http status code
+func HttpCaptureResponse(seg *Segment, statusCode int) {
 	seg.Lock()
 	defer seg.Unlock()
 

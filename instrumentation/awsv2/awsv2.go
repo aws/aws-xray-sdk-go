@@ -1,4 +1,4 @@
-// Copyright 2017-2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright 2017-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at
 //
@@ -6,12 +6,13 @@
 //
 // or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package xray
+package awsv2
 
 import (
 	"context"
 
 	v2Middleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
+	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
@@ -25,7 +26,7 @@ func initializeMiddlewareAfter(stack *middleware.Stack) error {
 
 		serviceName := v2Middleware.GetServiceID(ctx)
 		// Start the subsegment
-		ctx, subseg := BeginSubsegment(ctx, serviceName)
+		ctx, subseg := xray.BeginSubsegment(ctx, serviceName)
 		if subseg == nil {
 			return
 		}
@@ -51,8 +52,8 @@ func deserializeMiddleware(stack *middleware.Stack) error {
 		ctx context.Context, in middleware.DeserializeInput, next middleware.DeserializeHandler) (
 		out middleware.DeserializeOutput, metadata middleware.Metadata, err error) {
 
-		subseg := ctx.Value(awsV2SubsegmentKey{}).(*Segment)
-		in.Request.(*smithyhttp.Request).Header.Set(TraceIDHeaderKey, subseg.DownstreamHeader().String())
+		subseg := ctx.Value(awsV2SubsegmentKey{}).(*xray.Segment)
+		in.Request.(*smithyhttp.Request).Header.Set(xray.TraceIDHeaderKey, subseg.DownstreamHeader().String())
 
 		out, metadata, err = next.HandleDeserialize(ctx, in)
 
@@ -66,13 +67,13 @@ func deserializeMiddleware(stack *middleware.Stack) error {
 		requestID, ok := v2Middleware.GetRequestIDMetadata(metadata)
 
 		if ok {
-			subseg.GetAWS()[RequestIDKey] = requestID
+			subseg.GetAWS()[xray.RequestIDKey] = requestID
 		}
-		if extendedRequestID := resp.Header.Get(S3ExtendedRequestIDHeaderKey); extendedRequestID != "" {
-			subseg.GetAWS()[ExtendedRequestIDKey] = extendedRequestID
+		if extendedRequestID := resp.Header.Get(xray.S3ExtendedRequestIDHeaderKey); extendedRequestID != "" {
+			subseg.GetAWS()[xray.ExtendedRequestIDKey] = extendedRequestID
 		}
 
-		httpCaptureResponse(subseg, resp.StatusCode)
+		xray.HttpCaptureResponse(subseg, resp.StatusCode)
 		return out, metadata, err
 	}),
 		middleware.Before)
