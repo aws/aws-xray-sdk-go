@@ -56,11 +56,11 @@ func (dSS *DefaultStreamingStrategy) RequiresStreaming(seg *Segment) bool {
 func (dSS *DefaultStreamingStrategy) StreamCompletedSubsegments(seg *Segment) [][]byte {
 	logger.Debug("Beginning to stream subsegments.")
 	var outSegments [][]byte
-	for i := 0; i < len(seg.RawSubsegments); i++ {
-		child := seg.RawSubsegments[i]
-		seg.RawSubsegments[i] = seg.RawSubsegments[len(seg.RawSubsegments)-1]
-		seg.RawSubsegments[len(seg.RawSubsegments)-1] = nil
-		seg.RawSubsegments = seg.RawSubsegments[:len(seg.RawSubsegments)-1]
+	for i := 0; i < len(seg.rawSubsegments); i++ {
+		child := seg.rawSubsegments[i]
+		seg.rawSubsegments[i] = seg.rawSubsegments[len(seg.rawSubsegments)-1]
+		seg.rawSubsegments[len(seg.rawSubsegments)-1] = nil
+		seg.rawSubsegments = seg.rawSubsegments[:len(seg.rawSubsegments)-1]
 
 		seg.Subsegments[i] = seg.Subsegments[len(seg.Subsegments)-1]
 		seg.Subsegments[len(seg.Subsegments)-1] = nil

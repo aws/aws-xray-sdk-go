@@ -10,11 +10,13 @@ package awsv2
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/route53"
@@ -35,10 +37,10 @@ func TestAWSV2(t *testing.T) {
 			responseStatus: 500,
 			responseBody: []byte(`<?xml version="1.0" encoding="UTF-8"?>
 		<InvalidChangeBatch xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
-		  <Messages>
-		    <Message>Tried to create resource record set duplicate.example.com. type A, but it already exists</Message>
-		  </Messages>
-		  <RequestId>b25f48e8-84fd-11e6-80d9-574e0c4664cb</RequestId>
+		<Messages>
+		  <Message>Tried to create resource record set duplicate.example.com. type A, but it already exists</Message>
+		</Messages>
+		<RequestId>b25f48e8-84fd-11e6-80d9-574e0c4664cb</RequestId>
 		</InvalidChangeBatch>`),
 			expectedRegion:     "us-east-1",
 			expectedError:      "Error",
@@ -50,12 +52,12 @@ func TestAWSV2(t *testing.T) {
 			responseStatus: 404,
 			responseBody: []byte(`<?xml version="1.0"?>
 		<ErrorResponse xmlns="http://route53.amazonaws.com/doc/2016-09-07/">
-		  <Error>
-		    <Type>Sender</Type>
-		    <Code>MalformedXML</Code>
-		    <Message>1 validation error detected: Value null at 'route53#ChangeSet' failed to satisfy constraint: Member must not be null</Message>
-		  </Error>
-		  <RequestId>1234567890A</RequestId>
+		<Error>
+		  <Type>Sender</Type>
+		  <Code>MalformedXML</Code>
+		  <Message>1 validation error detected: Value null at 'route53#ChangeSet' failed to satisfy constraint: Member must not be null</Message>
+		</Error>
+		<RequestId>1234567890A</RequestId>
 		</ErrorResponse>
 		`),
 			expectedRegion:     "us-west-1",
@@ -68,10 +70,10 @@ func TestAWSV2(t *testing.T) {
 			responseStatus: 200,
 			responseBody: []byte(`<?xml version="1.0" encoding="UTF-8"?>
 		<ChangeResourceRecordSetsResponse>
-   			<ChangeInfo>
-      		<Comment>mockComment</Comment>
-      		<Id>mockID</Id>
-   		</ChangeInfo>
+			<ChangeInfo>
+			<Comment>mockComment</Comment>
+			<Id>mockID</Id>
+		</ChangeInfo>
 		</ChangeResourceRecordSetsResponse>`),
 			expectedRegion:     "us-west-2",
 			expectedStatusCode: 200,
@@ -79,19 +81,19 @@ func TestAWSV2(t *testing.T) {
 	}
 
 	for name, c := range cases {
+		fmt.Printf(name)
 		server := httptest.NewServer(http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(c.responseStatus)
-				_, err := w.Write([]byte(c.responseBody))
+				_, err := w.Write(c.responseBody)
 				if err != nil {
 					t.Fatal(err)
 				}
 			}))
-
 		defer server.Close()
 
 		t.Run(name, func(t *testing.T) {
-			ctx, root := xray.BeginSegment(context.TODO(), "AWSSDKV2_Route53")
+			ctx, root := xray.BeginSegment(context.Background(), "AWSSDKV2_Route53")
 
 			svc := route53.NewFromConfig(aws.Config{
 				Region: c.expectedRegion,
@@ -116,33 +118,37 @@ func TestAWSV2(t *testing.T) {
 				AWSV2Instrumentor(&options.APIOptions)
 			})
 
-			if e, a := "Route 53", root.RawSubsegments[0].Name; !strings.EqualFold(e, a) {
+			root.Close(nil)
+			seg := xray.GetSegment(ctx)
+			var subseg *xray.Segment
+			_ = json.Unmarshal(seg.Subsegments[0], &subseg)
+
+			if e, a := "Route 53", subseg.Name; !strings.EqualFold(e, a) {
 				t.Errorf("expected segment name to be %s, got %s", e, a)
 			}
 
-			if e, a := c.expectedRegion, fmt.Sprintf("%v", root.RawSubsegments[0].GetAWS()["region"]); !strings.EqualFold(e, a) {
+			if e, a := c.expectedRegion, fmt.Sprintf("%v", subseg.GetAWS()["region"]); !strings.EqualFold(e, a) {
 				t.Errorf("expected subsegment name to be %s, got %s", e, a)
 			}
 
-			if e, a := "ChangeResourceRecordSets", fmt.Sprintf("%v", root.RawSubsegments[0].GetAWS()["operation"]); !strings.EqualFold(e, a) {
+			if e, a := "ChangeResourceRecordSets", fmt.Sprintf("%v", subseg.GetAWS()["operation"]); !strings.EqualFold(e, a) {
 				t.Errorf("expected operation to be %s, got %s", e, a)
 			}
 
-			if e, a := fmt.Sprint(c.expectedStatusCode), fmt.Sprintf("%v", root.RawSubsegments[0].GetHTTP().GetResponse().Status); !strings.EqualFold(e, a) {
+			if e, a := fmt.Sprint(c.expectedStatusCode), fmt.Sprintf("%v", subseg.GetHTTP().GetResponse().Status); !strings.EqualFold(e, a) {
 				t.Errorf("expected status code to be %s, got %s", e, a)
 			}
 
-			if e, a := "aws", root.RawSubsegments[0].Namespace; !strings.EqualFold(e, a) {
+			if e, a := "aws", subseg.Namespace; !strings.EqualFold(e, a) {
 				t.Errorf("expected namespace to be %s, got %s", e, a)
 			}
 
-			if root.RawSubsegments[0].GetAWS()[xray.RequestIDKey] != nil {
-				if e, a := c.expectedRequestID, fmt.Sprintf("%v", root.RawSubsegments[0].GetAWS()[xray.RequestIDKey]); !strings.EqualFold(e, a) {
+			if subseg.GetAWS()[xray.RequestIDKey] != nil {
+				if e, a := c.expectedRequestID, fmt.Sprintf("%v", subseg.GetAWS()[xray.RequestIDKey]); !strings.EqualFold(e, a) {
 					t.Errorf("expected request id to be %s, got %s", e, a)
 				}
 			}
-
-			root.Close(nil)
 		})
+		time.Sleep(1 * time.Second)
 	}
 }

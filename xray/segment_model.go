@@ -66,7 +66,7 @@ type Segment struct {
 
 	// Children
 	Subsegments    []json.RawMessage `json:"subsegments,omitempty"`
-	RawSubsegments []*Segment
+	rawSubsegments []*Segment
 
 	// Configuration
 	Configuration *Config `json:"-"`
