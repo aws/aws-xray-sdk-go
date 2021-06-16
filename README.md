@@ -223,11 +223,13 @@ package main
 
 import (
 	"context"
+	"log"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-xray-sdk-go/instrumentation/awsv2"
 	"github.com/aws/aws-xray-sdk-go/xray"
-	"log"
 )
 
 func main() {
@@ -240,7 +242,7 @@ func main() {
 	}
 
 	// Instrumenting AWS SDK v2
-	xray.AWSV2Instrumentor(&cfg.APIOptions)
+	awsv2.AWSV2Instrumentor(&cfg.APIOptions)
 
 	// Using the Config value, create the DynamoDB client
 	svc := dynamodb.NewFromConfig(cfg)
