@@ -235,18 +235,14 @@ import (
 func main() {
 	ctx, root := xray.BeginSegment(context.TODO(), "AWSSDKV2_Dynamodb")
 	defer root.Close(nil)
-
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-west-2"))
 	if err != nil {
 		log.Fatalf("unable to load SDK config, %v", err)
 	}
-
 	// Instrumenting AWS SDK v2
 	awsv2.AWSV2Instrumentor(&cfg.APIOptions)
-
 	// Using the Config value, create the DynamoDB client
 	svc := dynamodb.NewFromConfig(cfg)
-
 	// Build the request with its input parameters
 	_, err = svc.ListTables(ctx, &dynamodb.ListTablesInput{
 		Limit: aws.Int32(5),
