@@ -44,8 +44,7 @@ func UnaryClientInterceptor(clientInterceptorOptions ...GrpcOption) grpc.UnaryCl
 				return errors.New("failed to record gRPC transaction: segment cannot be found")
 			}
 
-			md := metadata.Pairs(TraceIDHeaderKey, seg.DownstreamHeader().String())
-			ctx = metadata.NewOutgoingContext(ctx, md)
+			ctx = metadata.AppendToOutgoingContext(ctx, TraceIDHeaderKey, seg.DownstreamHeader().String())
 
 			seg.Lock()
 			seg.Namespace = "remote"
