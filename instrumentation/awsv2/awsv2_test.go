@@ -81,7 +81,6 @@ func TestAWSV2(t *testing.T) {
 	}
 
 	for name, c := range cases {
-		fmt.Printf(name)
 		server := httptest.NewServer(http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(c.responseStatus)
