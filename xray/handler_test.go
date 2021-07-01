@@ -274,7 +274,7 @@ func TestHTTPCaptureResponse(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tArgs := tt.args(t)
 
-			httpCaptureResponse(tArgs.seg, tArgs.statusCode)
+			HttpCaptureResponse(tArgs.seg, tArgs.statusCode)
 
 			if tt.inspect != nil {
 				tt.inspect(tArgs.seg, t)
