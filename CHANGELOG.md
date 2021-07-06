@@ -1,3 +1,13 @@
+Release v1.6.0 (2021-07-06)
+================================
+### SDK Enhancements
+* AWS SDK v2 instrumentation support [PR #309](https://github.com/aws/aws-xray-sdk-go/pull/309)
+
+### SDK Bugs
+* Fixed appending to existing gRPC context [PR #308](https://github.com/aws/aws-xray-sdk-go/pull/308)
+* Fixed memory leak issue on fasthttp handler [PR #311](https://github.com/aws/aws-xray-sdk-go/pull/311)
+
+
 Release v1.5.0 (2021-06-10)
 ================================
 ### SDK Enhancements
