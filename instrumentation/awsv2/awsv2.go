@@ -28,7 +28,7 @@ func initializeMiddlewareAfter(stack *middleware.Stack) error {
 		// Start the subsegment
 		ctx, subseg := xray.BeginSubsegment(ctx, serviceName)
 		if subseg == nil {
-			return
+			return next.HandleInitialize(ctx, in)
 		}
 		subseg.Namespace = "aws"
 		subseg.GetAWS()["region"] = v2Middleware.GetRegion(ctx)
@@ -52,7 +52,11 @@ func deserializeMiddleware(stack *middleware.Stack) error {
 		ctx context.Context, in middleware.DeserializeInput, next middleware.DeserializeHandler) (
 		out middleware.DeserializeOutput, metadata middleware.Metadata, err error) {
 
-		subseg := ctx.Value(awsV2SubsegmentKey{}).(*xray.Segment)
+		subseg, ok := ctx.Value(awsV2SubsegmentKey{}).(*xray.Segment)
+		if !ok {
+			return next.HandleDeserialize(ctx, in)
+		}
+
 		in.Request.(*smithyhttp.Request).Header.Set(xray.TraceIDHeaderKey, subseg.DownstreamHeader().String())
 
 		out, metadata, err = next.HandleDeserialize(ctx, in)
