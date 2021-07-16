@@ -9,10 +9,11 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.6.2
 	github.com/aws/smithy-go v1.4.0
 	github.com/golang/protobuf v1.4.3
-	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.6.1
 	github.com/valyala/fasthttp v1.24.0
+	golang.org/x/exp v0.0.0-20200331195152-e8c3332aa8e5 // indirect
 	golang.org/x/net v0.0.0-20210226101413-39120d07d75e
 	google.golang.org/genproto v0.0.0-20210114201628-6edceaf6022f // indirect
 	google.golang.org/grpc v1.35.0
