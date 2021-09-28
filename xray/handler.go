@@ -88,7 +88,7 @@ func HandlerWithContext(ctx context.Context, sn SegmentNamer, h http.Handler) ht
 		defer seg.Close(nil)
 		r = r.WithContext(c)
 
-		httpTrace(seg, h, w, r, traceHeader)
+		HttpTrace(seg, h, w, r, traceHeader)
 	})
 }
 
@@ -105,11 +105,11 @@ func Handler(sn SegmentNamer, h http.Handler) http.Handler {
 		defer seg.Close(nil)
 		r = r.WithContext(ctx)
 
-		httpTrace(seg, h, w, r, traceHeader)
+		HttpTrace(seg, h, w, r, traceHeader)
 	})
 }
 
-func httpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Request, traceHeader *header.Header) {
+func HttpTrace(seg *Segment, h http.Handler, w http.ResponseWriter, r *http.Request, traceHeader *header.Header) {
 	httpCaptureRequest(seg, r)
 	traceIDHeaderValue := generateTraceIDHeaderValue(seg, traceHeader)
 	w.Header().Set(TraceIDHeaderKey, traceIDHeaderValue)
