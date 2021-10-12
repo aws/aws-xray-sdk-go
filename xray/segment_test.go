@@ -146,7 +146,9 @@ func TestParentSegmentTotalCount(t *testing.T) {
 }
 
 func TestSegment_Close(t *testing.T) {
-	ctx, seg := BeginSegment(context.Background(), "Segment")
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+	ctx, seg := BeginSegment(ctx, "test")
 	seg.Close(nil)
 
 	// for backwards compatibility, closing the Segment should not cancel the returned Context
