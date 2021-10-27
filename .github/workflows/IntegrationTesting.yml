@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - bhautikpip-patch-11
 
 jobs:
   package_SDK:
