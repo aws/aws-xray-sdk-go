@@ -1,4 +1,4 @@
-![Test](https://github.com/aws/aws-xray-sdk-go/workflows/Test/badge.svg)
+![Test](https://github.com/aws/aws-xray-sdk-go/workflows/Test/badge.svg)[![Go Report Card](https://goreportcard.com/badge/github.com/aws/aws-xray-sdk-go)](https://goreportcard.com/report/github.com/aws/aws-xray-sdk-go)
 
 # AWS X-Ray SDK for Go
 
