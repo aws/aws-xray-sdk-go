@@ -54,7 +54,7 @@ func noOpSegmentID() string {
 }
 
 // BeginFacadeSegment creates a Segment for a given name and context.
-// Caution: This is an internal API only to be used in Lambda context within the SDK. Consider using BeginSegment instead.
+// Note: This is an internal API only to be used in Lambda context within the SDK. Consider using BeginSegment instead.
 func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (context.Context, *Segment) {
 	seg := basicSegment(name, h)
 
