@@ -184,11 +184,6 @@ func (conn *driverConn) Exec(query string, args []driver.Value) (driver.Result, 
 }
 
 func (conn *driverConn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	execer, ok := conn.Conn.(driver.Execer)
-	if !ok {
-		return nil, driver.ErrSkip
-	}
-
 	var err error
 	var result driver.Result
 	if execerCtx, ok := conn.Conn.(driver.ExecerContext); ok {
@@ -206,6 +201,10 @@ func (conn *driverConn) ExecContext(ctx context.Context, query string, args []dr
 		default:
 		case <-ctx.Done():
 			return nil, ctx.Err()
+		}
+		execer, ok := conn.Conn.(driver.Execer)
+		if !ok {
+			return nil, driver.ErrSkip
 		}
 		dargs, err0 := namedValuesToValues(args)
 		if err0 != nil {
@@ -230,11 +229,6 @@ func (conn *driverConn) Query(query string, args []driver.Value) (driver.Rows, e
 }
 
 func (conn *driverConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	queryer, ok := conn.Conn.(driver.Queryer)
-	if !ok {
-		return nil, driver.ErrSkip
-	}
-
 	var err error
 	var rows driver.Rows
 	if queryerCtx, ok := conn.Conn.(driver.QueryerContext); ok {
@@ -252,6 +246,10 @@ func (conn *driverConn) QueryContext(ctx context.Context, query string, args []d
 		default:
 		case <-ctx.Done():
 			return nil, ctx.Err()
+		}
+		queryer, ok := conn.Conn.(driver.Queryer)
+		if !ok {
+			return nil, driver.ErrSkip
 		}
 		dargs, err0 := namedValuesToValues(args)
 		if err0 != nil {
