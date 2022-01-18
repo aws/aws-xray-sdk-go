@@ -1,3 +1,9 @@
+Unreleased
+===============================
+### SDK Breaking Changes
+* Removes support for go [dep](https://github.com/golang/dep). [PR #343](https://github.com/aws/aws-xray-sdk-go/pull/343)
+
+
 Release v1.6.0 (2021-07-07)
 ================================
 ### SDK Enhancements
