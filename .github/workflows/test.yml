@@ -27,16 +27,6 @@ jobs:
         uses: actions/setup-go@v1
         with:
           go-version: ${{ matrix.go }}
-        id: go
-      - name: Set up INSTALL_DIRECTORY
-        run: |
-
-          mkdir -p "bin"
-          mkdir -p "pkg"
-          mkdir -p "src"
-          # for bash and Windows
-          echo "INSTALL_DIRECTORY=$(pwd)/bin" >> $GITHUB_ENV
-        shell: bash
       - name: Check out code
         uses: actions/checkout@v2
         with:
@@ -62,15 +52,6 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
         id: go
-      - name: Set up INSTALL_DIRECTORY
-        run: |
-
-          mkdir -p "bin"
-          mkdir -p "pkg"
-          mkdir -p "src"
-          # for bash and Windows
-          echo "INSTALL_DIRECTORY=$(pwd)/bin" >> $GITHUB_ENV
-        shell: bash
       - name: Check out code
         uses: actions/checkout@v2
         with:
