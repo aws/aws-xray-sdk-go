@@ -43,16 +43,6 @@ To get a different specific release version of the SDK use `@<tag>` in your `go 
 go get github.com/aws/aws-xray-sdk-go@v1.0.0
 ```
 
-## Installing using Dep
-If you are using Go 1.9 and above, you can also use [Dep](https://github.com/golang/dep) to add the SDK to your application's dependencies.
-Using Dep will help your application stay pinned to a specific version of the SDK.
-
-To add the SDK to your application using Dep, run:
-
-```
-dep ensure -add github.com/aws/aws-xray-sdk-go
-```
-
 ## Getting Help
 
 Please use these community resources for getting help. We use the GitHub issues for tracking bugs and feature requests.
