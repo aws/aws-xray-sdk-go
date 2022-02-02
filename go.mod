@@ -14,7 +14,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/valyala/fasthttp v1.31.0
 	golang.org/x/exp v0.0.0-20200331195152-e8c3332aa8e5 // indirect
-	golang.org/x/net v0.0.0-20210510120150-4163338589ed
+	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
 	google.golang.org/genproto v0.0.0-20210114201628-6edceaf6022f // indirect
 	google.golang.org/grpc v1.35.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
