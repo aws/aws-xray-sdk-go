@@ -1,4 +1,4 @@
-![Test](https://github.com/aws/aws-xray-sdk-go/workflows/Test/badge.svg)
+![Test](https://github.com/aws/aws-xray-sdk-go/workflows/Test/badge.svg)[![Go Report Card](https://goreportcard.com/badge/github.com/aws/aws-xray-sdk-go)](https://goreportcard.com/report/github.com/aws/aws-xray-sdk-go)
 
 # AWS X-Ray SDK for Go
 
@@ -41,16 +41,6 @@ To get a different specific release version of the SDK use `@<tag>` in your `go 
 
 ```
 go get github.com/aws/aws-xray-sdk-go@v1.0.0
-```
-
-## Installing using Dep
-If you are using Go 1.9 and above, you can also use [Dep](https://github.com/golang/dep) to add the SDK to your application's dependencies.
-Using Dep will help your application stay pinned to a specific version of the SDK.
-
-To add the SDK to your application using Dep, run:
-
-```
-dep ensure -add github.com/aws/aws-xray-sdk-go
 ```
 
 ## Getting Help
@@ -207,13 +197,50 @@ func getExample(ctx context.Context) ([]byte, error) {
 }
 ```
 
-**AWS**
+**AWS SDK Instrumentation**
 
 ```go
 sess := session.Must(session.NewSession())
 dynamo := dynamodb.New(sess)
 xray.AWS(dynamo.Client)
 dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
+```
+
+**AWS SDK V2 Instrumentation**
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-xray-sdk-go/instrumentation/awsv2"
+	"github.com/aws/aws-xray-sdk-go/xray"
+)
+
+func main() {
+	ctx, root := xray.BeginSegment(context.TODO(), "AWSSDKV2_Dynamodb")
+	defer root.Close(nil)
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-west-2"))
+	if err != nil {
+		log.Fatalf("unable to load SDK config, %v", err)
+	}
+	// Instrumenting AWS SDK v2
+	awsv2.AWSV2Instrumentor(&cfg.APIOptions)
+	// Using the Config value, create the DynamoDB client
+	svc := dynamodb.NewFromConfig(cfg)
+	// Build the request with its input parameters
+	_, err = svc.ListTables(ctx, &dynamodb.ListTablesInput{
+		Limit: aws.Int32(5),
+	})
+	if err != nil {
+		log.Fatalf("failed to list tables, %v", err)
+	}
+}
 ```
 
 **S3**

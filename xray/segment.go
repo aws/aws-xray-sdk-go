@@ -54,6 +54,7 @@ func noOpSegmentID() string {
 }
 
 // BeginFacadeSegment creates a Segment for a given name and context.
+// NOTE: This is an internal API only to be used in Lambda context within the SDK. Consider using BeginSegment instead.
 func BeginFacadeSegment(ctx context.Context, name string, h *header.Header) (context.Context, *Segment) {
 	seg := basicSegment(name, h)
 
@@ -130,17 +131,19 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 		}
 	}
 
-	if ctx.Done() != nil {
-		go func() {
-			<-ctx.Done()
-			seg.handleContextDone()
-		}()
-	}
-
 	// check whether segment is dummy or not based on sampling decision
 	if !seg.ParentSegment.Sampled {
 		seg.Dummy = true
 	}
+
+	// create a new context to close it on segment close;
+	// this makes sure the closing of the segment won't affect the client's code, that uses the returned context
+	ctx1, cancelCtx := context.WithCancel(ctx)
+	seg.cancelCtx = cancelCtx
+	go func() {
+		<-ctx1.Done()
+		seg.handleContextDone()
+	}()
 
 	// generates segment and trace id based on sampling decision and AWS_XRAY_NOOP_ID env variable
 	idGeneration(seg)
@@ -360,8 +363,15 @@ func (seg *Segment) Close(err error) {
 		return
 	}
 
+	cancelSegCtx := seg.cancelCtx
+
 	seg.Unlock()
 	seg.send()
+
+	// makes sure the goroutine, that waits for possible top-level context cancellation gets closed on segment close
+	if cancelSegCtx != nil {
+		cancelSegCtx()
+	}
 }
 
 // CloseAndStream closes a subsegment and sends it.

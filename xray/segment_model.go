@@ -9,6 +9,7 @@
 package xray
 
 import (
+	"context"
 	"encoding/json"
 	"sync"
 
@@ -29,6 +30,9 @@ type Segment struct {
 	Emitted          bool           `json:"-"`
 	IncomingHeader   *header.Header `json:"-"`
 	ParentSegment    *Segment       `json:"-"` // The root of the Segment tree, the parent Segment (not Subsegment).
+
+	// cancels the context bound to this Segment, after Segment is closed
+	cancelCtx context.CancelFunc
 
 	// Required
 	TraceID   string  `json:"trace_id,omitempty"`
@@ -109,7 +113,7 @@ type ResponseData struct {
 
 // ServiceData provides the shape for unmarshalling service version.
 type ServiceData struct {
-	Version         string `json:"version,omitempty"`
+	Version        string `json:"version,omitempty"`
 	RuntimeVersion string `json:"runtime_version,omitempty"`
 	Runtime        string `json:"runtime,omitempty"`
 }

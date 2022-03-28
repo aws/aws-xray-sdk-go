@@ -356,6 +356,30 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "mwitkow.testproto.TestService", segment.Name)
 	})
+
+	t.Run("chained interceptor", func(t *testing.T) {
+		ctx, td := NewTestDaemon()
+		defer td.Close()
+
+		lis := newGrpcServer(
+			t,
+			grpc.ChainUnaryInterceptor(
+				func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+					resp, err := handler(ctx, req)
+					assert.NoError(t, grpc.SetHeader(ctx, metadata.Pairs("foo", "bar")))
+					return resp, err
+				},
+				UnaryServerInterceptor(WithRecorder(GetRecorder(ctx))),
+			),
+		)
+		client, closeFunc := newGrpcClient(context.Background(), t, lis)
+		defer closeFunc()
+		var respHeaders metadata.MD
+		_, err := client.Ping(context.Background(), &pb.PingRequest{Value: "something", SleepTimeMs: 9999}, grpc.Header(&respHeaders))
+		require.NoError(t, err)
+		assert.Equal(t, []string{"bar"}, respHeaders["foo"])
+		assert.NotNil(t, respHeaders[TraceIDHeaderKey])
+	})
 }
 
 func TestUnaryServerAndClientInterceptor(t *testing.T) {
@@ -370,8 +394,7 @@ func TestUnaryServerAndClientInterceptor(t *testing.T) {
 				WithSegmentNamer(NewFixedSegmentNamer("test")))),
 	)
 	client, closeFunc := newGrpcClient(context.Background(), t, lis, grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		md := metadata.Pairs(TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
-		ctx = metadata.NewOutgoingContext(ctx, md)
+		ctx = metadata.AppendToOutgoingContext(ctx, TraceIDHeaderKey, "Root=fakeid; Parent=reqid; Sampled=1")
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}))
 	defer closeFunc()

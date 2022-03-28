@@ -44,8 +44,7 @@ func UnaryClientInterceptor(clientInterceptorOptions ...GrpcOption) grpc.UnaryCl
 				return errors.New("failed to record gRPC transaction: segment cannot be found")
 			}
 
-			md := metadata.Pairs(TraceIDHeaderKey, seg.DownstreamHeader().String())
-			ctx = metadata.NewOutgoingContext(ctx, md)
+			ctx = metadata.AppendToOutgoingContext(ctx, TraceIDHeaderKey, seg.DownstreamHeader().String())
 
 			seg.Lock()
 			seg.Namespace = "remote"
@@ -126,7 +125,7 @@ func UnaryServerInterceptor(serverInterceptorOptions ...GrpcOption) grpc.UnarySe
 		}
 		recordContentLength(seg, resp)
 		if headerErr := addResponseTraceHeader(ctx, seg, traceHeader); headerErr != nil {
-			logger.Debug("fail to send the grpc trace header")
+			logger.Debug("fail to set the grpc trace header")
 		}
 
 		return resp, err
@@ -182,7 +181,7 @@ func addResponseTraceHeader(ctx context.Context, seg *Segment, incomingTraceHead
 	headers := metadata.New(map[string]string{
 		TraceIDHeaderKey: respHeader.String(),
 	})
-	return grpc.SendHeader(ctx, headers)
+	return grpc.SetHeader(ctx, headers)
 }
 
 func inferServiceName(fullMethodName string) string {

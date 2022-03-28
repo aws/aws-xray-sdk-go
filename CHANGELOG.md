@@ -1,3 +1,20 @@
+Unreleased
+===============================
+### SDK Breaking Changes
+* Removes support for go [dep](https://github.com/golang/dep). [PR #343](https://github.com/aws/aws-xray-sdk-go/pull/343)
+
+
+Release v1.6.0 (2021-07-07)
+================================
+### SDK Enhancements
+* AWS SDK v2 instrumentation support [PR #309](https://github.com/aws/aws-xray-sdk-go/pull/309)
+
+### SDK Bugs
+* Fixed appending to existing gRPC context [PR #308](https://github.com/aws/aws-xray-sdk-go/pull/308)
+* Fixed memory leak issue on fasthttp handler [PR #311](https://github.com/aws/aws-xray-sdk-go/pull/311)
+* Fixed panic issue when segment is not present [PR #316](https://github.com/aws/aws-xray-sdk-go/pull/316)
+
+
 Release v1.5.0 (2021-06-10)
 ================================
 ### SDK Enhancements
