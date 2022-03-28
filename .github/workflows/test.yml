@@ -45,7 +45,7 @@ jobs:
         os:
           - ubuntu-latest
         go:
-          - '1.14'
+          - '1.17'
     steps:
       - name: Set up Go ${{ matrix.go }}
         uses: actions/setup-go@v1
