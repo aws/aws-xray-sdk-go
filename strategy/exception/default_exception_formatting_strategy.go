@@ -11,6 +11,7 @@ package exception
 import (
 	"bytes"
 	"crypto/rand"
+	goerrors "errors"
 	"fmt"
 	"runtime"
 	"strings"
@@ -115,7 +116,8 @@ func (dEFS *DefaultFormattingStrategy) Panicf(formatString string, args ...inter
 // ExceptionFromError takes an error and returns value of Exception
 func (dEFS *DefaultFormattingStrategy) ExceptionFromError(err error) Exception {
 	var isRemote bool
-	if reqErr, ok := err.(awserr.RequestFailure); ok {
+	var reqErr awserr.RequestFailure
+	if goerrors.As(err, &reqErr) {
 		// A service error occurs
 		if reqErr.RequestID() != "" {
 			isRemote = true
@@ -133,22 +135,25 @@ func (dEFS *DefaultFormattingStrategy) ExceptionFromError(err error) Exception {
 		Remote:  isRemote,
 	}
 
-	if err, ok := err.(*XRayError); ok {
-		e.Type = err.Type
+	xRayErr := &XRayError{}
+	if goerrors.As(err, &xRayErr) {
+		e.Type = xRayErr.Type
 	}
 
 	var s []uintptr
 
 	// This is our publicly supported interface for passing along stack traces
-	if err, ok := err.(StackTracer); ok {
-		s = err.StackTrace()
+	var st StackTracer
+	if goerrors.As(err, &st) {
+		s = st.StackTrace()
 	}
 
 	// We also accept github.com/pkg/errors style stack traces for ease of use
-	if err, ok := err.(interface {
+	var est interface {
 		StackTrace() errors.StackTrace
-	}); ok {
-		for _, frame := range err.StackTrace() {
+	}
+	if goerrors.As(err, &est) {
+		for _, frame := range est.StackTrace() {
 			s = append(s, uintptr(frame))
 		}
 	}
