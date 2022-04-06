@@ -10,13 +10,14 @@ Unreleased
 Release v1.7.0 (2021-04-07)
 ================================
 ### SDK Enhancements
-* Removed deprecated method checks in SQL instrumentation [PR #341](https://github.com/aws/aws-xray-sdk-go/pull/341)
-* Migrated private API named httpTrace public [PR #329](https://github.com/aws/aws-xray-sdk-go/pull/329)
-* Migrated to use `grpc.SetHeader` API [PR #312](https://github.com/aws/aws-xray-sdk-go/pull/312)
+* Removes deprecated method checks in SQL instrumentation [PR #341](https://github.com/aws/aws-xray-sdk-go/pull/341)
+* Migrates private API named httpTrace public [PR #329](https://github.com/aws/aws-xray-sdk-go/pull/329)
+* Migrates to use `grpc.SetHeader` API [PR #312](https://github.com/aws/aws-xray-sdk-go/pull/312)
+* Removes support for go dep [PR #343](https://github.com/aws/aws-xray-sdk-go/pull/343)
 
 ### SDK Bugs
-* Fixed segment leaking issues in `BeginSegmentWithSampling` API [PR #327](https://github.com/aws/aws-xray-sdk-go/pull/327)
-* Updated github.com/valyala/fasthttp dependency to v1.34.0 to fix security vulnerability issue [PR #351](https://github.com/aws/aws-xray-sdk-go/pull/351)
+* Fixes segment leaking issues in `BeginSegmentWithSampling` API [PR #327](https://github.com/aws/aws-xray-sdk-go/pull/327)
+* Updates github.com/valyala/fasthttp dependency to v1.34.0 to fix security vulnerability issue [PR #351](https://github.com/aws/aws-xray-sdk-go/pull/351)
 
 
 Release v1.6.0 (2021-07-07)
