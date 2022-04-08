@@ -12,6 +12,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -103,6 +104,30 @@ func TestExceptionFromError(t *testing.T) {
 	assert.NotNil(t, err.ID)
 	assert.Equal(t, "new error", err.Message)
 	assert.Equal(t, "errors.errorString", err.Type)
+}
+
+func TestExceptionFromErrorRequestFailure(t *testing.T) {
+	defaultStrategy := &DefaultFormattingStrategy{}
+	reqErr := awserr.NewRequestFailure(awserr.New("error code", "error message", errors.New("new error")), 400, "1234")
+
+	err := defaultStrategy.ExceptionFromError(reqErr)
+
+	assert.NotNil(t, err.ID)
+	assert.Contains(t, err.Message, "new error")
+	assert.Contains(t, err.Message, "1234")
+	assert.Equal(t, "awserr.requestError", err.Type)
+	assert.Equal(t, true, err.Remote)
+}
+
+func TestExceptionFromErrorXRayError(t *testing.T) {
+	defaultStrategy := &DefaultFormattingStrategy{}
+	xRayErr := defaultStrategy.Error("new XRayError")
+
+	err := defaultStrategy.ExceptionFromError(xRayErr)
+
+	assert.NotNil(t, err.ID)
+	assert.Equal(t, "new XRayError", err.Message)
+	assert.Equal(t, "error", err.Type)
 }
 
 // Benchmarks
