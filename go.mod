@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.6.0
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.6.2
 	github.com/aws/smithy-go v1.4.0
+	github.com/gofiber/fiber/v2 v2.31.0
 	github.com/golang/protobuf v1.4.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/pkg/errors v0.9.1
