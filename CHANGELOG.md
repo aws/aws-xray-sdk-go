@@ -14,6 +14,7 @@ Release v1.7.0 (2021-04-07)
 * Migrates private API named httpTrace public [PR #329](https://github.com/aws/aws-xray-sdk-go/pull/329)
 * Migrates to use `grpc.SetHeader` API [PR #312](https://github.com/aws/aws-xray-sdk-go/pull/312)
 * Removes support for go dep [PR #343](https://github.com/aws/aws-xray-sdk-go/pull/343)
+* Replace error type assertions with `errors.As` [PR #353](https://github.com/aws/aws-xray-sdk-go/pull/353)
 
 ### SDK Bugs
 * Fixes segment leaking issues in `BeginSegmentWithSampling` API [PR #327](https://github.com/aws/aws-xray-sdk-go/pull/327)
