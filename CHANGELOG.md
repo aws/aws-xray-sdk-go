@@ -7,7 +7,7 @@ Unreleased
 ### SDK Bugs
 
 
-Release v1.7.0 (2021-04-11)
+Release v1.7.0 (2022-04-11)
 ================================
 ### SDK Enhancements
 * Removes deprecated method checks in SQL instrumentation [PR #341](https://github.com/aws/aws-xray-sdk-go/pull/341)
