@@ -357,21 +357,21 @@ func (seg *Segment) Close(err error) {
 		seg.addError(err)
 	}
 
+	defer func() {
+		// makes sure the goroutine, that waits for possible top-level context cancellation gets closed on segment close
+		if seg.cancelCtx != nil {
+			seg.cancelCtx()
+		}
+	}()
+
+	seg.Unlock()
+
 	// If segment is dummy we return
 	if seg.Dummy {
-		seg.Unlock()
 		return
 	}
 
-	cancelSegCtx := seg.cancelCtx
-
-	seg.Unlock()
 	seg.send()
-
-	// makes sure the goroutine, that waits for possible top-level context cancellation gets closed on segment close
-	if cancelSegCtx != nil {
-		cancelSegCtx()
-	}
 }
 
 // CloseAndStream closes a subsegment and sends it.
