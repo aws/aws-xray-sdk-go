@@ -25,7 +25,9 @@ jobs:
       
       - name: Run distribution test
         id: distribution-availability
-        run: go test distributioncheck
+        run: |
+          go mod tidy
+          go test distributioncheck
         working-directory: integration-tests/distributioncheck
       
       - name: Publish metric on X-Ray Go SDK distribution availability
