@@ -136,14 +136,17 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 		seg.Dummy = true
 	}
 
-	// create a new context to close it on segment close;
-	// this makes sure the closing of the segment won't affect the client's code, that uses the returned context
-	ctx1, cancelCtx := context.WithCancel(ctx)
-	seg.cancelCtx = cancelCtx
-	go func() {
-		<-ctx1.Done()
-		seg.handleContextDone()
-	}()
+	// don't allocate resources for dummy segments
+	if !seg.Dummy {
+		// create a new context to close it on segment close;
+		// this makes sure the closing of the segment won't affect the client's code, that uses the returned context
+		ctx1, cancelCtx := context.WithCancel(ctx)
+		seg.cancelCtx = cancelCtx
+		go func() {
+			<-ctx1.Done()
+			seg.handleContextDone()
+		}()
+	}
 
 	// generates segment and trace id based on sampling decision and AWS_XRAY_NOOP_ID env variable
 	idGeneration(seg)
