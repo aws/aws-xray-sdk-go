@@ -136,14 +136,22 @@ func BeginSegmentWithSampling(ctx context.Context, name string, r *http.Request,
 		seg.Dummy = true
 	}
 
-	// create a new context to close it on segment close;
-	// this makes sure the closing of the segment won't affect the client's code, that uses the returned context
-	ctx1, cancelCtx := context.WithCancel(ctx)
-	seg.cancelCtx = cancelCtx
-	go func() {
-		<-ctx1.Done()
-		seg.handleContextDone()
-	}()
+	// Dummy segments don't get sent and don't need a goroutine to cancel them.
+	if !seg.Dummy {
+		// Create a new context for to cancel segment.
+		// Start new goroutine to listen for segment close/cancel events.
+		// Cancel simply calls `segment.Close()`.
+		//
+		// This way, even if the client consumes the `ctx.Done()` event, the
+		// X-Ray SDK has a way of canceling (closing) the segment in the
+		// `segment.Close()` method using this new cancellation context.
+		ctx1, cancelCtx := context.WithCancel(ctx)
+		seg.cancelCtx = cancelCtx
+		go func() {
+			<-ctx1.Done()
+			seg.handleContextDone()
+		}()
+	}
 
 	// generates segment and trace id based on sampling decision and AWS_XRAY_NOOP_ID env variable
 	idGeneration(seg)
@@ -357,21 +365,23 @@ func (seg *Segment) Close(err error) {
 		seg.addError(err)
 	}
 
-	// If segment is dummy we return
-	if seg.Dummy {
-		seg.Unlock()
-		return
-	}
-
 	cancelSegCtx := seg.cancelCtx
 
 	seg.Unlock()
-	seg.send()
 
-	// makes sure the goroutine, that waits for possible top-level context cancellation gets closed on segment close
+	// If a goroutine was started to close the extra context (made for
+	// cancelling the segment), stop the goroutine before we close the segment
+	// and lose access to it.
 	if cancelSegCtx != nil {
 		cancelSegCtx()
 	}
+
+	// If segment is dummy we return
+	if seg.Dummy {
+		return
+	}
+
+	seg.send()
 }
 
 // CloseAndStream closes a subsegment and sends it.
