@@ -336,9 +336,10 @@ func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, con
 			u.User = url.User(uname)
 		}
 
-		// Strip password from query parameters
+		// Strip password and X-Amz-Security-Token (present in RDS IAM authentication) from query parameters
 		q := u.Query()
 		q.Del("password")
+		q.Del("X-Amz-Security-Token")
 		u.RawQuery = q.Encode()
 
 		// In the case of known DSL sub segment name will be dbname@host
