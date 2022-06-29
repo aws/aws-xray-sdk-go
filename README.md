@@ -1,4 +1,11 @@
-![Test](https://github.com/aws/aws-xray-sdk-go/workflows/Test/badge.svg)[![Go Report Card](https://goreportcard.com/badge/github.com/aws/aws-xray-sdk-go)](https://goreportcard.com/report/github.com/aws/aws-xray-sdk-go)
+![Test](https://github.com/aws/aws-xray-sdk-go/workflows/Test/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/aws/aws-xray-sdk-go)](https://goreportcard.com/report/github.com/aws/aws-xray-sdk-go)
+
+### :mega: OpenTelemetry Go with AWS X-Ray
+
+AWS X-Ray recommends using AWS Distro for OpenTelemetry (ADOT) to instrument your application **instead of this X-Ray SDK** due to its wider range of features and instrumentations. See the [AWS X-Ray docs on Working with Go](https://docs.aws.amazon.com/xray/latest/devguide/xray-go.html) for more help with choosing between ADOT and X-Ray SDK.
+
+If you want additional features when tracing your Go applications, please [open an issue on the OpenTelemetry Go Instrumentation repository](https://github.com/open-telemetry/opentelemetry-go-contrib/issues/new?title=X-Ray%20Compatible%20Feature%20Request).
 
 # AWS X-Ray SDK for Go
 
