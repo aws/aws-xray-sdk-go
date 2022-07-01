@@ -129,6 +129,16 @@ func TestDSN(t *testing.T) {
 			str:  "odbc:server=localhost;user id=sa;otherthing=thing",
 			name: "test database",
 		},
+		{
+			dsn:  "postgres://host:5432/database?X-Amz-Security-Token=token",
+			url:  "postgres://host:5432/database",
+			name: "test database@host",
+		},
+		{
+			dsn:  "host:5432/database?X-Amz-Security-Token=token",
+			url:  "host:5432/database",
+			name: "test database@host",
+		},
 	}
 
 	for _, tt := range tc {
