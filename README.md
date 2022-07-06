@@ -196,22 +196,33 @@ func main() {
 
 ```go
 func getExample(ctx context.Context) ([]byte, error) {
-    resp, err := ctxhttp.Get(ctx, xray.Client(nil), "https://aws.amazon.com/")
-    if err != nil {
-      return nil, err
-    }
-    return ioutil.ReadAll(resp.Body)
+  resp, err := ctxhttp.Get(ctx, xray.Client(nil), "https://aws.amazon.com/")
+  if err != nil {
+    return nil, err
+  }
+  return ioutil.ReadAll(resp.Body)
 }
 ```
 
 **AWS SDK Instrumentation**
 
 ```go
-sess := session.Must(session.NewSession())
-dynamo := dynamodb.New(sess)
-xray.AWS(dynamo.Client)
-dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
+func main() {
+  // Create a segment
+  ctx, root := xray.BeginSegment(context.TODO(), "AWSSDKV1_Dynamodb")
+  defer root.Close(nil)
+
+  sess := session.Must(session.NewSession())
+  dynamo := dynamodb.New(sess)
+  // Instrumenting with AWS SDK v1:
+  // Wrap the client object with the xray.AWS()
+  xray.AWS(dynamo.Client)
+  // Use the withContext version of the ListTables call method
+  output := dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
+  doSomething(output)
+}
 ```
+*Segment creation is not necessary in environments where segments are boostrapped automatically (e.g. AWS Lambda)*
 
 **AWS SDK V2 Instrumentation**
 
@@ -219,36 +230,39 @@ dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
 package main
 
 import (
-	"context"
-	"log"
+  "context"
+  "log"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-xray-sdk-go/instrumentation/awsv2"
-	"github.com/aws/aws-xray-sdk-go/xray"
+  "github.com/aws/aws-sdk-go-v2/aws"
+  "github.com/aws/aws-sdk-go-v2/config"
+  "github.com/aws/aws-sdk-go-v2/service/dynamodb"
+  "github.com/aws/aws-xray-sdk-go/instrumentation/awsv2"
+  "github.com/aws/aws-xray-sdk-go/xray"
 )
 
 func main() {
-	ctx, root := xray.BeginSegment(context.TODO(), "AWSSDKV2_Dynamodb")
-	defer root.Close(nil)
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-west-2"))
-	if err != nil {
-		log.Fatalf("unable to load SDK config, %v", err)
-	}
-	// Instrumenting AWS SDK v2
-	awsv2.AWSV2Instrumentor(&cfg.APIOptions)
-	// Using the Config value, create the DynamoDB client
-	svc := dynamodb.NewFromConfig(cfg)
-	// Build the request with its input parameters
-	_, err = svc.ListTables(ctx, &dynamodb.ListTablesInput{
-		Limit: aws.Int32(5),
-	})
-	if err != nil {
-		log.Fatalf("failed to list tables, %v", err)
-	}
+  // Create a segment
+  ctx, root := xray.BeginSegment(context.TODO(), "AWSSDKV2_Dynamodb")
+  defer root.Close(nil)
+
+  cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-west-2"))
+  if err != nil {
+    log.Fatalf("unable to load SDK config, %v", err)
+  }
+  // Instrumenting AWS SDK v2
+  awsv2.AWSV2Instrumentor(&cfg.APIOptions)
+  // Using the Config value, create the DynamoDB client
+  svc := dynamodb.NewFromConfig(cfg)
+  // Build the request with its input parameters
+  _, err = svc.ListTables(ctx, &dynamodb.ListTablesInput{
+    Limit: aws.Int32(5),
+  })
+  if err != nil {
+    log.Fatalf("failed to list tables, %v", err)
+  }
 }
 ```
+*Segment creation is not necessary in environments where segments are boostrapped automatically (e.g. AWS Lambda)*
 
 **S3**
 
