@@ -222,7 +222,7 @@ func main() {
 	doSomething(output)
 }
 ```
-*Segment creation is not necessary in environments where segments are bootstrapped automatically (e.g. AWS Lambda)*
+*Segment creation is not necessary in AWS Lambda functions, where segments are created automatically*
 
 **AWS SDK V2 Instrumentation**
 
@@ -262,7 +262,7 @@ func main() {
 	}
 }
 ```
-*Segment creation is not necessary in environments where segments are bootstrapped automatically (e.g. AWS Lambda)*
+*Segment creation is not necessary in AWS Lambda functions, where segments are created automatically*
 
 **S3**
 
