@@ -208,21 +208,21 @@ func getExample(ctx context.Context) ([]byte, error) {
 
 ```go
 func main() {
-	// Create a segment
-	ctx, root := xray.BeginSegment(context.TODO(), "AWSSDKV1_Dynamodb")
-	defer root.Close(nil)
+  // Create a segment
+  ctx, root := xray.BeginSegment(context.TODO(), "AWSSDKV1_Dynamodb")
+  defer root.Close(nil)
 
-	sess := session.Must(session.NewSession())
-	dynamo := dynamodb.New(sess)
-	// Instrumenting with AWS SDK v1:
-	// Wrap the client object with the xray.AWS()
-	xray.AWS(dynamo.Client)
-	// Use the withContext version of the ListTables call method
-	output := dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
-	doSomething(output)
+  sess := session.Must(session.NewSession())
+  dynamo := dynamodb.New(sess)
+  // Instrumenting with AWS SDK v1:
+  // Wrap the client object with `xray.AWS()`
+  xray.AWS(dynamo.Client)
+  // Use the `-WithContext` version of the `ListTables` method
+  output := dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
+  doSomething(output)
 }
 ```
-*Segment creation is not necessary in AWS Lambda functions, where segments are created automatically*
+*Segment creation is not necessary in an AWS Lambda function, where the segment is created automatically*
 
 **AWS SDK V2 Instrumentation**
 
@@ -262,7 +262,7 @@ func main() {
 	}
 }
 ```
-*Segment creation is not necessary in AWS Lambda functions, where segments are created automatically*
+*Segment creation is not necessary in an AWS Lambda function, where the segment is created automatically*
 
 **S3**
 
