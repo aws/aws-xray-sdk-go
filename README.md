@@ -196,22 +196,33 @@ func main() {
 
 ```go
 func getExample(ctx context.Context) ([]byte, error) {
-    resp, err := ctxhttp.Get(ctx, xray.Client(nil), "https://aws.amazon.com/")
-    if err != nil {
-      return nil, err
-    }
-    return ioutil.ReadAll(resp.Body)
+  resp, err := ctxhttp.Get(ctx, xray.Client(nil), "https://aws.amazon.com/")
+  if err != nil {
+    return nil, err
+  }
+  return ioutil.ReadAll(resp.Body)
 }
 ```
 
 **AWS SDK Instrumentation**
 
 ```go
-sess := session.Must(session.NewSession())
-dynamo := dynamodb.New(sess)
-xray.AWS(dynamo.Client)
-dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
+func main() {
+  // Create a segment
+  ctx, root := xray.BeginSegment(context.TODO(), "AWSSDKV1_Dynamodb")
+  defer root.Close(nil)
+
+  sess := session.Must(session.NewSession())
+  dynamo := dynamodb.New(sess)
+  // Instrumenting with AWS SDK v1:
+  // Wrap the client object with `xray.AWS()`
+  xray.AWS(dynamo.Client)
+  // Use the `-WithContext` version of the `ListTables` method
+  output := dynamo.ListTablesWithContext(ctx, &dynamodb.ListTablesInput{})
+  doSomething(output)
+}
 ```
+*Segment creation is not necessary in an AWS Lambda function, where the segment is created automatically*
 
 **AWS SDK V2 Instrumentation**
 
@@ -230,8 +241,10 @@ import (
 )
 
 func main() {
+	// Create a segment
 	ctx, root := xray.BeginSegment(context.TODO(), "AWSSDKV2_Dynamodb")
 	defer root.Close(nil)
+  
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-west-2"))
 	if err != nil {
 		log.Fatalf("unable to load SDK config, %v", err)
@@ -249,6 +262,7 @@ func main() {
 	}
 }
 ```
+*Segment creation is not necessary in an AWS Lambda function, where the segment is created automatically*
 
 **S3**
 
