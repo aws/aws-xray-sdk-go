@@ -254,19 +254,6 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 }
 
 func TestUnaryServerInterceptor(t *testing.T) {
-	ctx, td := NewTestDaemon()
-	defer td.Close()
-
-	lis := newGrpcServer(
-		t,
-		grpc.UnaryInterceptor(
-			UnaryServerInterceptor(
-				WithRecorder(GetRecorder(ctx)),
-				WithSegmentNamer(NewFixedSegmentNamer("test")))),
-	)
-	client, closeFunc := newGrpcClient(context.Background(), t, lis)
-	defer closeFunc()
-
 	testCases := []testCase{
 		{
 			name:                    "success response",
@@ -300,6 +287,24 @@ func TestUnaryServerInterceptor(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+
+			// Ideally we shouldn't be creating a local test daemon for each test case.
+			// However, how the shared channel in the test daemon doesn't guarantee
+			// segment isolation across test cases. Therefore, for now a local test daemon
+			// is a workaround.
+			ctx, td := NewTestDaemon()
+			defer td.Close()
+
+			lis := newGrpcServer(
+				t,
+				grpc.UnaryInterceptor(
+					UnaryServerInterceptor(
+						WithRecorder(GetRecorder(ctx)),
+						WithSegmentNamer(NewFixedSegmentNamer("test")))),
+			)
+			client, closeFunc := newGrpcClient(context.Background(), t, lis)
+			defer closeFunc()
+
 			var respHeaders metadata.MD
 			if tc.isTestForSuccessResponse() {
 				_, err := client.Ping(
