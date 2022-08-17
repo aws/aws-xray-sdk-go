@@ -162,11 +162,10 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 			ctx, td := NewTestDaemon()
 			defer td.Close()
 
-			ctx2, root := BeginSegment(ctx, "Test")
 			var err error
 			if tc.isTestForSuccessResponse() {
 				_, err = client.Ping(
-					ctx2,
+					ctx,
 					&pb.PingRequest{
 						Value:       "something",
 						SleepTimeMs: 9999,
@@ -175,24 +174,27 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 				require.NoError(t, err)
 			} else {
 				_, err = client.PingError(
-					ctx2,
+					ctx,
 					&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(tc.responseErrorStatusCode)})
 				require.Error(t, err)
 			}
-			root.Close(nil)
 
 			seg, err := td.Recv()
 			require.NoError(t, err)
 
 			var subseg *Segment
-			assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
-			assert.Equal(t, "remote", subseg.Namespace)
-			assert.Equal(t, tc.getExpectedURL(), subseg.HTTP.Request.URL)
-			assert.Equal(t, false, subseg.HTTP.Request.XForwardedFor)
-			assert.Equal(t, tc.expectedThrottle, subseg.Throttle)
-			assert.Equal(t, tc.expectedError, subseg.Error)
-			assert.Equal(t, tc.expectedFault, subseg.Fault)
-			assert.Equal(t, tc.getExpectedContentLength(), subseg.HTTP.Response.ContentLength)
+			if len(seg.Subsegments) > 0 {
+				assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
+				assert.Equal(t, "remote", subseg.Namespace)
+				if subseg.HTTP != nil {
+					assert.Equal(t, tc.getExpectedURL(), subseg.HTTP.Request.URL)
+					assert.Equal(t, false, subseg.HTTP.Request.XForwardedFor)
+					assert.Equal(t, tc.getExpectedContentLength(), subseg.HTTP.Response.ContentLength)
+				}
+				assert.Equal(t, tc.expectedThrottle, subseg.Throttle)
+				assert.Equal(t, tc.expectedError, subseg.Error)
+				assert.Equal(t, tc.expectedFault, subseg.Fault)
+			}
 		})
 	}
 	t.Run("default namer", func(t *testing.T) {
