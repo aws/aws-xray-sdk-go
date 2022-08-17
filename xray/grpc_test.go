@@ -162,10 +162,11 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 			ctx, td := NewTestDaemon()
 			defer td.Close()
 
+			ctx2, root := BeginSegment(ctx, "Test")
 			var err error
 			if tc.isTestForSuccessResponse() {
 				_, err = client.Ping(
-					ctx,
+					ctx2,
 					&pb.PingRequest{
 						Value:       "something",
 						SleepTimeMs: 9999,
@@ -174,10 +175,11 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 				require.NoError(t, err)
 			} else {
 				_, err = client.PingError(
-					ctx,
+					ctx2,
 					&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(tc.responseErrorStatusCode)})
 				require.Error(t, err)
 			}
+			root.Close(nil)
 
 			seg, err := td.Recv()
 			require.NoError(t, err)
