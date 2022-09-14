@@ -7,18 +7,15 @@ Unreleased
 ### SDK Bugs
 
 
-Release v1.8.0 (2022-09-13)
+Release v1.7.1 (2022-09-14)
 ================================
 ### SDK Enhancements
 * Replace error type assertions with errors.As in DefaultFormattingStrategy [#PR 353](https://github.com/aws/aws-xray-sdk-go/pull/353)
 * Dummy segments don't need cancel go routine [#PR 365](https://github.com/aws/aws-xray-sdk-go/pull/365)
 * Strip X-Amz-Security-Token from SQL URIs [#PR 367](https://github.com/aws/aws-xray-sdk-go/pull/367)
-* Added OTel Go links to readme [#PR 369](https://github.com/aws/aws-xray-sdk-go/pull/369)
-* Added segment creation in instrumentation example [#PR 370](https://github.com/aws/aws-xray-sdk-go/pull/370)
 * Upgrading Go Version [#PR 379](https://github.com/aws/aws-xray-sdk-go/pull/379)
 
 ### SDK Bugs
-* Local test daemon for grpc server test cases [#PR 375](https://github.com/aws/aws-xray-sdk-go/pull/375)
 
 
 Release v1.7.0 (2022-04-11)
