@@ -15,6 +15,7 @@ Release v1.8.0 (2022-09-13)
 * Strip X-Amz-Security-Token from SQL URIs [#PR 367](https://github.com/aws/aws-xray-sdk-go/pull/367)
 * Added OTel Go links to readme [#PR 369](https://github.com/aws/aws-xray-sdk-go/pull/369)
 * Added segment creation in instrumentation example [#PR 370](https://github.com/aws/aws-xray-sdk-go/pull/370)
+* Upgrading Go Version [#PR 379](https://github.com/aws/aws-xray-sdk-go/pull/379)
 
 ### SDK Bugs
 * Local test daemon for grpc server test cases [#PR 375](https://github.com/aws/aws-xray-sdk-go/pull/375)
