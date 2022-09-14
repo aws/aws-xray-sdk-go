@@ -10,12 +10,12 @@ Unreleased
 Release v1.7.1 (2022-09-14)
 ================================
 ### SDK Enhancements
+
+### SDK Bugs
 * Replace error type assertions with errors.As in DefaultFormattingStrategy [#PR 353](https://github.com/aws/aws-xray-sdk-go/pull/353)
 * Dummy segments don't need cancel go routine [#PR 365](https://github.com/aws/aws-xray-sdk-go/pull/365)
 * Strip X-Amz-Security-Token from SQL URIs [#PR 367](https://github.com/aws/aws-xray-sdk-go/pull/367)
 * Upgrading Go Version [#PR 379](https://github.com/aws/aws-xray-sdk-go/pull/379)
-
-### SDK Bugs
 
 
 Release v1.7.0 (2022-04-11)
