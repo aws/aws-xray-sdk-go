@@ -1,7 +1,7 @@
 module distributioncheck
 
 require (
-	github.com/aws/aws-xray-sdk-go v1.7.1
+	github.com/aws/aws-xray-sdk-go latest
 	github.com/stretchr/testify v1.6.1
 )
 
