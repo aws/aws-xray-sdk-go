@@ -7,6 +7,17 @@ Unreleased
 ### SDK Bugs
 
 
+Release v1.7.1 (2022-09-14)
+================================
+### SDK Enhancements
+
+### SDK Bugs
+* Replace error type assertions with errors.As in DefaultFormattingStrategy [#PR 353](https://github.com/aws/aws-xray-sdk-go/pull/353)
+* Dummy segments don't need cancel go routine [#PR 365](https://github.com/aws/aws-xray-sdk-go/pull/365)
+* Strip X-Amz-Security-Token from SQL URIs [#PR 367](https://github.com/aws/aws-xray-sdk-go/pull/367)
+* Upgrading Go Version [#PR 379](https://github.com/aws/aws-xray-sdk-go/pull/379)
+
+
 Release v1.7.0 (2022-04-11)
 ================================
 ### SDK Enhancements
@@ -212,7 +223,7 @@ Release v1.0.0-rc.7 (2018-09-27)
 Release v1.0.0-rc.6 (2018-09-25)
 ================================
 ### SDK Breaking changes
-* The default sampling strategy is `CentralizedStrategy` that launches background tasks to poll sampling rules from X-Ray backend. See the new default sampling strategy in more details 
+* The default sampling strategy is `CentralizedStrategy` that launches background tasks to poll sampling rules from X-Ray backend. See the new default sampling strategy in more details
 here: [Link](https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-go-configuration.html#xray-sdk-go-configuration-sampling)
 * The `ShouldTrace()` function in the `Strategy` interface now takes a `Request` structure for sampling rule matching and returns `Decision` object
 * Updated `aws-sdk-go` version in `glide.yaml` file to `1.15.23`.
@@ -266,7 +277,7 @@ Release v1.0.0-rc.1 (2018-01-15)
 * Remove attempt number when AWS SDK retries.
 * Make HTTP requests if segment doesn't exist.
 * Add Go SDK Version, Go Compiler and X-Ray SDK information in segment document.
-* Set remote value when AWS request fails due to a service-side error. 
+* Set remote value when AWS request fails due to a service-side error.
 
 Release v0.9.4 (2017-09-08)
 ===========================
@@ -274,4 +285,3 @@ Release v0.9.4 (2017-09-08)
 * Refactor code to fit Go Coding Standard.
 * Update README.
 * `aws-xray-sdk-go/xray`: make HTTP request if segment cannot be found.
-
