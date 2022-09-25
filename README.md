@@ -414,6 +414,51 @@ func main() {
 }
 ```
 
+## gofiber instrumentation
+
+Support for incoming requests with [gofiber/fiber](https://github.com/gofiber/fiber):
+
+```go
+package main
+
+import (
+	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/aws/aws-xray-sdk-go/xraylog"
+	"github.com/gofiber/fiber/v2"
+	"log"
+	"os"
+)
+
+func index(ctx *fiber.Ctx) error {
+	_, err := ctx.WriteString("Welcome!")
+	return err
+}
+
+func init() {
+	if err := xray.Configure(xray.Config{
+		DaemonAddr:     "xray:2000",
+		ServiceVersion: "0.1",
+	}); err != nil {
+		panic(err)
+	}
+
+	xray.SetLogger(xraylog.NewDefaultLogger(os.Stdout, xraylog.LogLevelDebug))
+}
+
+func main() {
+	app := fiber.New()
+	fh := xray.NewFiberInstrumentor(nil)
+
+	middleware := func(name string, handler fiber.Handler) fiber.Handler {
+		return fh.Handler(xray.NewFixedSegmentNamer(name), handler)
+	}
+
+	app.Get("/", middleware("index", index))
+
+	log.Fatal(app.Listen(":8080"))
+}
+```
+
 ## License
 
 The AWS X-Ray SDK for Go is licensed under the Apache 2.0 License. See LICENSE and NOTICE.txt for more information.
