@@ -105,18 +105,7 @@ func testHelper(t *testing.T, ctx context.Context) *http.Response {
 
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, ts.URL, strings.NewReader(""))
 
-	var samplingDecision = header.Sampled
-	if !subseg.Sampled {
-		samplingDecision = header.NotSampled
-	}
-
-	req.Header.Add(TraceIDHeaderKey, header.Header{
-		TraceID:          subseg.TraceID,
-		ParentID:         subseg.ID,
-		SamplingDecision: samplingDecision,
-
-		AdditionalData: make(map[string]string),
-	}.String())
+	req.Header.Add(TraceIDHeaderKey, generateHeader(subseg).String())
 
 	resp, _ := http.DefaultClient.Do(req)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -128,4 +117,19 @@ func testHelper(t *testing.T, ctx context.Context) *http.Response {
 	subseg.Close(nil)
 
 	return resp
+}
+
+func generateHeader(seg *Segment) header.Header {
+	var samplingDecision = header.Sampled
+	if !seg.Sampled {
+		samplingDecision = header.NotSampled
+	}
+
+	return header.Header{
+		TraceID:          seg.TraceID,
+		ParentID:         seg.ID,
+		SamplingDecision: samplingDecision,
+
+		AdditionalData: make(map[string]string),
+	}
 }
