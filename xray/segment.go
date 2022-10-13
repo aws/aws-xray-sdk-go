@@ -253,6 +253,13 @@ func (seg *Segment) assignConfiguration(cfg *Config) {
 	seg.Unlock()
 }
 
+func BeginSubsegmentWithoutSampling(ctx context.Context, name string) (context.Context, *Segment) {
+	newCtx, subseg := BeginSubsegment(ctx, name)
+	subseg.Dummy = true
+	subseg.Sampled = false
+	return newCtx, subseg
+}
+
 // BeginSubsegment creates a subsegment for a given name and context.
 func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segment) {
 	// If SDK is disabled then return with an empty segment
@@ -318,6 +325,9 @@ func BeginSubsegment(ctx context.Context, name string) (context.Context, *Segmen
 	seg.Name = name
 	seg.StartTime = float64(time.Now().UnixNano()) / float64(time.Second)
 	seg.InProgress = true
+	seg.Sampled = seg.ParentSegment.Sampled
+	seg.TraceID = seg.ParentSegment.TraceID
+	seg.ParentID = seg.ParentSegment.ID
 
 	return context.WithValue(ctx, ContextKey, seg), seg
 }
