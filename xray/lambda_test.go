@@ -37,15 +37,15 @@ func TestLambdaMix(t *testing.T) {
 	// Setup
 	ctx, td := NewTestDaemon()
 	defer td.Close()
+
 	ctx = context.WithValue(ctx, LambdaTraceHeaderKey, ExampleTraceHeader)
 
 	// First
 	newCtx1, subseg1 := BeginSubsegment(ctx, "test-lambda-1")
-	var resp1 = testHelper(t, newCtx1)
+	var resp1 = testHelper(t, newCtx1, td)
 	assert.Equal(t, header.Sampled, header.FromString(resp1.Header.Get("x-amzn-trace-id")).SamplingDecision)
 	assert.Equal(t, subseg1.TraceID, header.FromString(resp1.Header.Get("x-amzn-trace-id")).TraceID)
 	assert.Equal(t, subseg1.ID, header.FromString(resp1.Header.Get("x-amzn-trace-id")).ParentID)
-	td.Recv()
 	seg1, e := td.Recv()
 	assert.NoError(t, e)
 	assert.Equal(t, true, seg1.Sampled)
@@ -53,21 +53,19 @@ func TestLambdaMix(t *testing.T) {
 
 	// Second
 	newCtx2, subseg2 := BeginSubsegmentWithoutSampling(ctx, "test-lambda-2")
-	var resp2 = testHelper(t, newCtx2)
+	var resp2 = testHelper(t, newCtx2, td)
 	assert.Equal(t, header.NotSampled, header.FromString(resp2.Header.Get("x-amzn-trace-id")).SamplingDecision)
 	assert.Equal(t, subseg2.TraceID, header.FromString(resp2.Header.Get("x-amzn-trace-id")).TraceID)
 	assert.Equal(t, subseg2.ID, header.FromString(resp2.Header.Get("x-amzn-trace-id")).ParentID)
-	td.Recv()
 	seg2, _ := td.Recv()
 	assert.Equal(t, (*Segment)(nil), seg2)
 
 	// Third
 	newCtx3, subseg3 := BeginSubsegment(ctx, "test-lambda-3")
-	var resp3 = testHelper(t, newCtx3)
+	var resp3 = testHelper(t, newCtx3, td)
 	assert.Equal(t, header.Sampled, header.FromString(resp3.Header.Get("x-amzn-trace-id")).SamplingDecision)
 	assert.Equal(t, subseg3.TraceID, header.FromString(resp3.Header.Get("x-amzn-trace-id")).TraceID)
 	assert.Equal(t, subseg3.ID, header.FromString(resp3.Header.Get("x-amzn-trace-id")).ParentID)
-	td.Recv()
 	seg3, e3 := td.Recv()
 	assert.NoError(t, e3)
 	assert.Equal(t, true, seg3.Sampled)
@@ -75,11 +73,10 @@ func TestLambdaMix(t *testing.T) {
 
 	// Forth
 	newCtx4, subseg4 := BeginSubsegmentWithoutSampling(ctx, "test-lambda-4")
-	var resp4 = testHelper(t, newCtx4)
+	var resp4 = testHelper(t, newCtx4, td)
 	assert.Equal(t, header.NotSampled, header.FromString(resp4.Header.Get("x-amzn-trace-id")).SamplingDecision)
 	assert.Equal(t, subseg4.TraceID, header.FromString(resp4.Header.Get("x-amzn-trace-id")).TraceID)
 	assert.Equal(t, subseg4.ID, header.FromString(resp4.Header.Get("x-amzn-trace-id")).ParentID)
-	td.Recv()
 	seg4, _ := td.Recv()
 	assert.Equal(t, (*Segment)(nil), seg4)
 }
@@ -89,7 +86,7 @@ func TestLambdaMix(t *testing.T) {
 	It returns the response from the local server.
 	It also closes down the segment created for the "downstream" call.
 */
-func testHelper(t *testing.T, ctx context.Context) *http.Response {
+func testHelper(t *testing.T, ctx context.Context, td *TestDaemon) *http.Response {
 
 	var subseg = GetSegment(ctx)
 
@@ -115,6 +112,7 @@ func testHelper(t *testing.T, ctx context.Context) *http.Response {
 	ts.Close()
 
 	subseg.Close(nil)
+	_, _ = td.Recv()
 
 	return resp
 }

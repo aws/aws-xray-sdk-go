@@ -1,8 +1,9 @@
 package lambda
 
 import (
-	"github.com/aws/aws-lambda-go/events"
 	"strings"
+
+	"github.com/aws/aws-lambda-go/events"
 )
 
 func IsSampled(sqsMessge *events.SQSMessage) bool {
@@ -10,7 +11,7 @@ func IsSampled(sqsMessge *events.SQSMessage) bool {
 
 	if !ok {
 		return false
-	} else {
-		return strings.Contains(value, "Sampled=1")
 	}
+
+	return strings.Contains(value, "Sampled=1")
 }

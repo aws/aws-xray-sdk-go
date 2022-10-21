@@ -47,11 +47,6 @@ const (
 	responseKeyword
 )
 
-func beginSubsegmentWithoutSampling(r *request.Request, name string) {
-	ctx, _ := BeginSubsegmentWithoutSampling(r.HTTPRequest.Context(), name)
-	r.HTTPRequest = r.HTTPRequest.WithContext(ctx)
-}
-
 func beginSubsegment(r *request.Request, name string) {
 	ctx, _ := BeginSubsegment(r.HTTPRequest.Context(), name)
 	r.HTTPRequest = r.HTTPRequest.WithContext(ctx)
