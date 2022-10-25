@@ -113,20 +113,9 @@ func TestPanicCapture(t *testing.T) {
 }
 
 func TestNoSegmentCapture(t *testing.T) {
-	var err error
-	func() {
-		defer func() {
-			if p := recover(); p != nil {
-				err = errors.New(p.(string))
-			}
-		}()
-		_ = Capture(context.Background(), "PanicService", func(context.Context) error {
-			panic("MyPanic")
-		})
-	}()
-
-	assert.NotNil(t, err)
-	assert.Equal(t, "failed to begin subsegment named 'PanicService': segment cannot be found.", err.Error())
+	ctx, _ := NewTestDaemon()
+	_, seg := BeginSubsegment(ctx, "Name")
+	seg.Close(nil)
 }
 
 func TestCaptureAsync(t *testing.T) {
@@ -162,8 +151,8 @@ func TestCaptureAsync(t *testing.T) {
 
 // Benchmarks
 func BenchmarkCapture(b *testing.B) {
-	ctx, seg:= BeginSegment(context.Background(), "TestCaptureSeg")
-	for i:=0; i<b.N; i++ {
+	ctx, seg := BeginSegment(context.Background(), "TestCaptureSeg")
+	for i := 0; i < b.N; i++ {
 		Capture(ctx, "TestCaptureSubSeg", func(ctx context.Context) error {
 			return nil
 		})
