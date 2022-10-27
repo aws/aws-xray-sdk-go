@@ -33,61 +33,34 @@ func TestLambdaSegmentEmit(t *testing.T) {
 }
 
 func TestLambdaMix(t *testing.T) {
-
 	// Setup
 	ctx, td := NewTestDaemon()
 	defer td.Close()
-
 	ctx = context.WithValue(ctx, LambdaTraceHeaderKey, ExampleTraceHeader)
 
 	// First
-	newCtx1, subseg1 := BeginSubsegment(ctx, "test-lambda-1")
-	var resp1 = testHelper(newCtx1, t, td)
-	assert.Equal(t, header.Sampled, header.FromString(resp1.Header.Get("x-amzn-trace-id")).SamplingDecision)
-	assert.Equal(t, subseg1.TraceID, header.FromString(resp1.Header.Get("x-amzn-trace-id")).TraceID)
-	assert.Equal(t, subseg1.ID, header.FromString(resp1.Header.Get("x-amzn-trace-id")).ParentID)
-	seg1, e := td.Recv()
-	assert.NoError(t, e)
-	assert.Equal(t, true, seg1.Sampled)
-	assert.Equal(t, "test-lambda-1", seg1.Name)
+	newCtx1, _ := BeginSubsegment(ctx, "test-lambda-1")
+	testHelper(newCtx1, t, td, true)
 
 	// Second
-	newCtx2, subseg2 := BeginSubsegmentWithoutSampling(ctx, "test-lambda-2")
-	var resp2 = testHelper(newCtx2, t, td)
-	assert.Equal(t, header.NotSampled, header.FromString(resp2.Header.Get("x-amzn-trace-id")).SamplingDecision)
-	assert.Equal(t, subseg2.TraceID, header.FromString(resp2.Header.Get("x-amzn-trace-id")).TraceID)
-	assert.Equal(t, subseg2.ID, header.FromString(resp2.Header.Get("x-amzn-trace-id")).ParentID)
-	seg2, _ := td.Recv()
-	assert.Equal(t, (*Segment)(nil), seg2)
+	newCtx2, _ := BeginSubsegmentWithoutSampling(ctx, "test-lambda-2")
+	testHelper(newCtx2, t, td, false)
 
 	// Third
-	newCtx3, subseg3 := BeginSubsegment(ctx, "test-lambda-3")
-	var resp3 = testHelper(newCtx3, t, td)
-	assert.Equal(t, header.Sampled, header.FromString(resp3.Header.Get("x-amzn-trace-id")).SamplingDecision)
-	assert.Equal(t, subseg3.TraceID, header.FromString(resp3.Header.Get("x-amzn-trace-id")).TraceID)
-	assert.Equal(t, subseg3.ID, header.FromString(resp3.Header.Get("x-amzn-trace-id")).ParentID)
-	seg3, e3 := td.Recv()
-	assert.NoError(t, e3)
-	assert.Equal(t, true, seg3.Sampled)
-	assert.Equal(t, "test-lambda-3", seg3.Name)
+	newCtx3, _ := BeginSubsegment(ctx, "test-lambda-3")
+	testHelper(newCtx3, t, td, true)
 
 	// Forth
-	newCtx4, subseg4 := BeginSubsegmentWithoutSampling(ctx, "test-lambda-4")
-	var resp4 = testHelper(newCtx4, t, td)
-	assert.Equal(t, header.NotSampled, header.FromString(resp4.Header.Get("x-amzn-trace-id")).SamplingDecision)
-	assert.Equal(t, subseg4.TraceID, header.FromString(resp4.Header.Get("x-amzn-trace-id")).TraceID)
-	assert.Equal(t, subseg4.ID, header.FromString(resp4.Header.Get("x-amzn-trace-id")).ParentID)
-	seg4, _ := td.Recv()
-	assert.Equal(t, (*Segment)(nil), seg4)
+	newCtx4, _ := BeginSubsegmentWithoutSampling(ctx, "test-lambda-4")
+	testHelper(newCtx4, t, td, false)
 }
 
 /*
-	This helper function creates a request and reads the resonse using the context provided.
+	This helper function creates a request and reads the response using the context provided.
 	It returns the response from the local server.
 	It also closes down the segment created for the "downstream" call.
 */
-func testHelper(ctx context.Context, t *testing.T, td *TestDaemon) *http.Response {
-
+func testHelper(ctx context.Context, t *testing.T, td *TestDaemon, sampled bool) {
 	var subseg = GetSegment(ctx)
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -97,24 +70,44 @@ func testHelper(ctx context.Context, t *testing.T, td *TestDaemon) *http.Respons
 		}
 	})
 
-	ts := httptest.NewServer(HandlerWithContext(ctx, NewFixedSegmentNamer("test"), handler))
+	// Create Test Server
+	ts := httptest.NewServer(HandlerWithContext(ctx, NewFixedSegmentNamer("RequestSegment"), handler))
 	defer ts.Close()
 
+	// Perform Request
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, ts.URL, strings.NewReader(""))
-
 	req.Header.Add(TraceIDHeaderKey, generateHeader(subseg).String())
-
 	resp, _ := http.DefaultClient.Do(req)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	GetSegment(req.Context()).Close(nil)
-	resp.Body.Close()
 
+	// Close the test server down
 	ts.Close()
 
-	subseg.Close(nil)
-	_, _ = td.Recv()
+	// Ensure the return value is valid
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	return resp
+	// This pops the request segment from the emitter
+	reqSubseg, _ := td.Recv()
+
+	if sampled {
+		assert.Equal(t, reqSubseg.Name, "RequestSegment")
+	}
+
+	GetSegment(req.Context()).Close(nil)
+
+	assert.Equal(t, subseg.TraceID, header.FromString(resp.Header.Get("x-amzn-trace-id")).TraceID)
+	assert.Equal(t, subseg.ID, header.FromString(resp.Header.Get("x-amzn-trace-id")).ParentID)
+
+	if sampled {
+		assert.Equal(t, header.Sampled, header.FromString(resp.Header.Get("x-amzn-trace-id")).SamplingDecision)
+		emittedSeg, e := td.Recv()
+		assert.NoError(t, e)
+		assert.Equal(t, true, emittedSeg.Sampled)
+		assert.Equal(t, subseg.Name, emittedSeg.Name)
+	} else {
+		assert.Equal(t, header.NotSampled, header.FromString(resp.Header.Get("x-amzn-trace-id")).SamplingDecision)
+		emittedSeg, _ := td.Recv()
+		assert.Equal(t, (*Segment)(nil), emittedSeg)
+	}
 }
 
 func generateHeader(seg *Segment) header.Header {
