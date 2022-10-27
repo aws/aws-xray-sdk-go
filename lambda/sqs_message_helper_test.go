@@ -22,12 +22,12 @@ func testTrue(t *testing.T, header string) {
 	var sqsMessage events.SQSMessage
 	sqsMessage.Attributes = make(map[string]string)
 	sqsMessage.Attributes["AWSTraceHeader"] = header
-	assert.True(t, IsSampled(&sqsMessage))
+	assert.True(t, IsSampled(sqsMessage))
 }
 
 func testFalse(t *testing.T, header string) {
 	var sqsMessage events.SQSMessage
 	sqsMessage.Attributes = make(map[string]string)
 	sqsMessage.Attributes["AWSTraceHeader"] = header
-	assert.False(t, IsSampled(&sqsMessage))
+	assert.False(t, IsSampled(sqsMessage))
 }

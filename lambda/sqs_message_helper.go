@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func IsSampled(sqsMessge *events.SQSMessage) bool {
+func IsSampled(sqsMessge events.SQSMessage) bool {
 	value, ok := sqsMessge.Attributes["AWSTraceHeader"]
 
 	if !ok {
