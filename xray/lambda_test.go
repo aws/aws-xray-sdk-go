@@ -39,20 +39,20 @@ func TestLambdaMix(t *testing.T) {
 	ctx = context.WithValue(ctx, LambdaTraceHeaderKey, ExampleTraceHeader)
 
 	// First
-	newCtx1, _ := BeginSubsegment(ctx, "test-lambda-1")
-	testHelper(newCtx1, t, td, true)
+	ctx1, _ := BeginSubsegment(ctx, "test-lambda-1")
+	testHelper(ctx1, t, td, true)
 
 	// Second
-	newCtx2, _ := BeginSubsegmentWithoutSampling(ctx, "test-lambda-2")
-	testHelper(newCtx2, t, td, false)
+	ctx2, _ := BeginSubsegmentWithoutSampling(ctx, "test-lambda-2")
+	testHelper(ctx2, t, td, false)
 
 	// Third
-	newCtx3, _ := BeginSubsegment(ctx, "test-lambda-3")
-	testHelper(newCtx3, t, td, true)
+	ctx3, _ := BeginSubsegment(ctx, "test-lambda-3")
+	testHelper(ctx3, t, td, true)
 
 	// Forth
-	newCtx4, _ := BeginSubsegmentWithoutSampling(ctx, "test-lambda-4")
-	testHelper(newCtx4, t, td, false)
+	ctx4, _ := BeginSubsegmentWithoutSampling(ctx, "test-lambda-4")
+	testHelper(ctx4, t, td, false)
 }
 
 /*
@@ -85,27 +85,26 @@ func testHelper(ctx context.Context, t *testing.T, td *TestDaemon, sampled bool)
 	// Ensure the return value is valid
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	// This pops the request segment from the emitter
+	GetSegment(req.Context()).Close(nil)
 	reqSubseg, _ := td.Recv()
 
 	if sampled {
 		assert.Equal(t, reqSubseg.Name, "RequestSegment")
 	}
 
-	GetSegment(req.Context()).Close(nil)
-
 	assert.Equal(t, subseg.TraceID, header.FromString(resp.Header.Get("x-amzn-trace-id")).TraceID)
 	assert.Equal(t, subseg.ID, header.FromString(resp.Header.Get("x-amzn-trace-id")).ParentID)
 
+	subseg.Close(nil)
+	emittedSeg, e := td.Recv()
+
 	if sampled {
 		assert.Equal(t, header.Sampled, header.FromString(resp.Header.Get("x-amzn-trace-id")).SamplingDecision)
-		emittedSeg, e := td.Recv()
 		assert.NoError(t, e)
 		assert.Equal(t, true, emittedSeg.Sampled)
 		assert.Equal(t, subseg.Name, emittedSeg.Name)
 	} else {
 		assert.Equal(t, header.NotSampled, header.FromString(resp.Header.Get("x-amzn-trace-id")).SamplingDecision)
-		emittedSeg, _ := td.Recv()
 		assert.Equal(t, (*Segment)(nil), emittedSeg)
 	}
 }
