@@ -71,7 +71,7 @@ func testHelper(ctx context.Context, t *testing.T, td *TestDaemon, sampled bool)
 	})
 
 	// Create Test Server
-	ts := httptest.NewServer(HandlerWithContext(ctx, NewFixedSegmentNamer("RequestSegment"), handler))
+	ts := httptest.NewServer(HandlerWithContext(context.Background(), NewFixedSegmentNamer("RequestSegment"), handler))
 	defer ts.Close()
 
 	// Perform Request
@@ -84,13 +84,6 @@ func testHelper(ctx context.Context, t *testing.T, td *TestDaemon, sampled bool)
 
 	// Ensure the return value is valid
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-	GetSegment(req.Context()).Close(nil)
-	reqSubseg, _ := td.Recv()
-
-	if sampled {
-		assert.Equal(t, reqSubseg.Name, "RequestSegment")
-	}
 
 	assert.Equal(t, subseg.TraceID, header.FromString(resp.Header.Get("x-amzn-trace-id")).TraceID)
 	assert.Equal(t, subseg.ID, header.FromString(resp.Header.Get("x-amzn-trace-id")).ParentID)
