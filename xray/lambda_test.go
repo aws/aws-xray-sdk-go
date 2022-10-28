@@ -56,9 +56,7 @@ func TestLambdaMix(t *testing.T) {
 }
 
 /*
-	This helper function creates a request and reads the response using the context provided.
-	It returns the response from the local server.
-	It also closes down the segment created for the "downstream" call.
+	This helper function creates a request and validates the response using the context provided.
 */
 func testHelper(ctx context.Context, t *testing.T, td *TestDaemon, sampled bool) {
 	var subseg = GetSegment(ctx)
