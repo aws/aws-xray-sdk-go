@@ -14,7 +14,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.2
 	github.com/valyala/fasthttp v1.34.0
-	golang.org/x/net v0.1.0
+	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	google.golang.org/grpc v1.35.0
 )
 
