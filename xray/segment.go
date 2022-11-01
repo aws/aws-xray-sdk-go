@@ -362,6 +362,11 @@ func (seg *Segment) Close(err error) {
 		return
 	}
 
+	if seg == nil {
+		logger.Debugf("No input subsegment to end. No-op")
+		return
+	}
+
 	seg.Lock()
 	if seg.parent != nil {
 		logger.Debugf("Closing subsegment named %s", seg.Name)

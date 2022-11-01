@@ -134,7 +134,7 @@ func TestDefaultConfigureParameters(t *testing.T) {
 	daemonAddr := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 2000}
 	efs, _ := exception.NewDefaultFormattingStrategy()
 	sms, _ := NewDefaultStreamingStrategy()
-	cms := ctxmissing.NewDefaultRuntimeErrorStrategy()
+	cms := ctxmissing.NewDefaultLogErrorStrategy()
 
 	assert.Equal(t, daemonAddr, globalCfg.daemonAddr)
 	assert.Equal(t, efs, globalCfg.exceptionFormattingStrategy)
@@ -271,13 +271,13 @@ func BenchmarkConfigure(b *testing.B) {
 	cms := &TestContextMissingStrategy{}
 
 	configure := Config{
-		ServiceVersion: serviceVersion,
-		SamplingStrategy: ss,
+		ServiceVersion:              serviceVersion,
+		SamplingStrategy:            ss,
 		ExceptionFormattingStrategy: efs,
-		StreamingStrategy: sms,
-		ContextMissingStrategy: cms,
-		LogLevel: logLevel,
-		LogFormat: logFormat,
+		StreamingStrategy:           sms,
+		ContextMissingStrategy:      cms,
+		LogLevel:                    logLevel,
+		LogFormat:                   logFormat,
 	}
 	for i := 0; i < b.N; i++ {
 		Configure(configure)
