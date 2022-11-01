@@ -152,7 +152,16 @@ func generateTraceIDHeaderValue(seg *Segment, traceHeader *header.Header) string
 	respHeader.WriteString("Root=")
 	respHeader.WriteString(seg.TraceID)
 
-	if traceHeader.SamplingDecision == header.Requested {
+	if traceHeader.ParentID != "" {
+		respHeader.WriteString(";Parent=")
+		respHeader.WriteString(traceHeader.ParentID)
+	}
+
+	if traceHeader.SamplingDecision == header.NotSampled {
+		respHeader.WriteString(";Sampled=0")
+	} else if traceHeader.SamplingDecision == header.Sampled {
+		respHeader.WriteString(";Sampled=1")
+	} else if traceHeader.SamplingDecision == header.Requested {
 		respHeader.WriteString(";Sampled=")
 		respHeader.WriteString(strconv.Itoa(btoi(seg.Sampled)))
 	}
