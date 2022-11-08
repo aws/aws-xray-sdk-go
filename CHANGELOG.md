@@ -6,6 +6,14 @@ Unreleased
 
 ### SDK Bugs
 
+Release v1.8.0 (2022-11-08)
+================================
+### SDK Enhancements
+* Oversampling Mitigation [#PR381](https://github.com/aws/aws-xray-sdk-go/pull/381)
+
+### SDK Bugs
+* Changed Missing Context default strategy to log [#PR382](https://github.com/aws/aws-xray-sdk-go/pull/382)
+
 
 Release v1.7.1 (2022-09-14)
 ================================
