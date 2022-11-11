@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - TestingIntegration
 
 jobs:
   package_SDK:
