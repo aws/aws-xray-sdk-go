@@ -5,6 +5,7 @@ COPY . .
 ENV GOPROXY direct
 
 RUN go mod download
+RUN go mod download github.com/aws/aws-lambda-go
 RUN cd sample-apps/http-server/ && go install .
 
 # Build Golang sample app
