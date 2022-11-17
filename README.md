@@ -328,6 +328,49 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
 }
 ```
 
+**Oversampling Mitigation**
+Oversampling mitigation allows you to ignore a parent segment/subsegment's sample flag and instead set it to false.
+
+```go
+import (
+    "context"
+    "fmt"
+    "github.com/aws/aws-lambda-go/events"
+    "github.com/aws/aws-lambda-go/lambda"
+    xrayLambda "github.com/aws/aws-xray-sdk-go/lambda"
+    "github.com/aws/aws-xray-sdk-go/xray"
+)
+
+func HandleRequest(ctx context.Context, event events.SQSEvent) (string, error) {
+    // Check to see if any messages upstream are sampled.
+    var toSample = false
+    for _, message := range event.Records {
+        if xrayLambda.IsSampled(message) {
+            toSample = true
+        }
+    }
+
+    // Create a new subsegment
+    if toSample {
+        ctx, _ = xray.BeginSubsegment(ctx, "Processing Message")
+    } else {
+        ctx, _ = xray.BeginSubsegmentWithoutSampling(ctx, "Processing Message")
+    }
+
+    // Do your procesing work here
+    fmt.Println("Doing processing work")
+    
+    // End your subsegment
+    xray.GetSegment(ctx).Close(nil)
+
+    return "Success", nil
+}
+
+func main() {
+    lambda.Start(HandleRequest)
+}
+```
+
 **gRPC**
 
 Note: `aws-xray-sdk-go` doesn't currently support streaming gRPC call.
