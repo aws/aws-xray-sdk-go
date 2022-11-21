@@ -328,49 +328,6 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
 }
 ```
 
-The code below demonstrates overriding the sampled flag based on the SQS messages sent to Lambda.
-
-```go
-import (
-    "context"
-    "fmt"
-    "strconv"
-    "github.com/aws/aws-lambda-go/events"
-    "github.com/aws/aws-lambda-go/lambda"
-    xrayLambda "github.com/aws/aws-xray-sdk-go/lambda"
-    "github.com/aws/aws-xray-sdk-go/xray"
-)
-
-func HandleRequest(ctx context.Context, event events.SQSEvent) (string, error) {
-
-    var i = 1
-
-    for _, message := range event.Records {
-        var subseg *xray.Segment
-
-        if xrayLambda.IsSampled(message) {
-            _, subseg = xray.BeginSubsegment(ctx, "Processing Message - " + strconv.Itoa(i))
-        } else {
-            _, subseg = xray.BeginSubsegmentWithoutSampling(ctx, "Processing Message - " + strconv.Itoa(i))
-        }
-
-        i++;
-
-        // Do your procesing work here
-        fmt.Println("Doing processing work")
-
-        // End your subsegment
-        subseg.Close(nil)
-    }
-
-    return "Success", nil
-}
-
-func main() {
-    lambda.Start(HandleRequest)
-}
-```
-
 **gRPC**
 
 Note: `aws-xray-sdk-go` doesn't currently support streaming gRPC call.
@@ -488,6 +445,49 @@ func HandleRequest(ctx context.Context, event events.SQSEvent) (string, error) {
     }
 
     subseg.Close(nil)
+
+    return "Success", nil
+}
+
+func main() {
+    lambda.Start(HandleRequest)
+}
+```
+
+The code below demonstrates overriding the sampled flag based on the SQS messages sent to Lambda.
+
+```go
+import (
+    "context"
+    "fmt"
+    "strconv"
+    "github.com/aws/aws-lambda-go/events"
+    "github.com/aws/aws-lambda-go/lambda"
+    xrayLambda "github.com/aws/aws-xray-sdk-go/lambda"
+    "github.com/aws/aws-xray-sdk-go/xray"
+)
+
+func HandleRequest(ctx context.Context, event events.SQSEvent) (string, error) {
+
+    var i = 1
+
+    for _, message := range event.Records {
+        var subseg *xray.Segment
+
+        if xrayLambda.IsSampled(message) {
+            _, subseg = xray.BeginSubsegment(ctx, "Processing Message - " + strconv.Itoa(i))
+        } else {
+            _, subseg = xray.BeginSubsegmentWithoutSampling(ctx, "Processing Message - " + strconv.Itoa(i))
+        }
+
+        i++;
+
+        // Do your procesing work here
+        fmt.Println("Doing processing work")
+
+        // End your subsegment
+        subseg.Close(nil)
+    }
 
     return "Success", nil
 }
