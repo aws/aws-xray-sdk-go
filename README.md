@@ -330,12 +330,19 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
 
 **Oversampling Mitigation**
 Oversampling mitigation allows you to ignore a parent segment/subsegment's sampled flag and instead set it to false.
+This ensures that downstream calls are not sampled and this subsegment is not emitted.
+
+```go
+
+```
+
 The code below demonstrates overriding the sampled flag based on the SQS messages sent to Lambda.
 
 ```go
 import (
     "context"
     "fmt"
+    "strconv"
     "github.com/aws/aws-lambda-go/events"
     "github.com/aws/aws-lambda-go/lambda"
     xrayLambda "github.com/aws/aws-xray-sdk-go/lambda"
@@ -343,26 +350,26 @@ import (
 )
 
 func HandleRequest(ctx context.Context, event events.SQSEvent) (string, error) {
-    // Check to see if any messages upstream are sampled.
-    var toSample = false
+
+    var i = 1
+
     for _, message := range event.Records {
+        var subseg *xray.Segment
+
         if xrayLambda.IsSampled(message) {
-            toSample = true
+            _, subseg = xray.BeginSubsegment(ctx, "Processing Message - " + strconv.Itoa(i))
+        } else {
+            _, subseg = xray.BeginSubsegmentWithoutSampling(ctx, "Processing Message - " + strconv.Itoa(i))
         }
-    }
 
-    // Create a new subsegment
-    if toSample {
-        ctx, _ = xray.BeginSubsegment(ctx, "Processing Message")
-    } else {
-        ctx, _ = xray.BeginSubsegmentWithoutSampling(ctx, "Processing Message")
-    }
+        i++;
 
-    // Do your procesing work here
-    fmt.Println("Doing processing work")
-    
-    // End your subsegment
-    xray.GetSegment(ctx).Close(nil)
+        // Do your procesing work here
+        fmt.Println("Doing processing work")
+
+        // End your subsegment
+        subseg.Close(nil)
+    }
 
     return "Success", nil
 }
