@@ -333,7 +333,39 @@ Oversampling mitigation allows you to ignore a parent segment/subsegment's sampl
 This ensures that downstream calls are not sampled and this subsegment is not emitted.
 
 ```go
+import (
+    "context"
+    "fmt"
+    "github.com/aws/aws-lambda-go/events"
+    "github.com/aws/aws-lambda-go/lambda"
+    "github.com/aws/aws-sdk-go/aws/session"
+    "github.com/aws/aws-sdk-go/service/sqs"
+    "github.com/aws/aws-xray-sdk-go/xray"
+)
 
+func HandleRequest(ctx context.Context, event events.SQSEvent) (string, error) {
+    _, subseg := xray.BeginSubsegmentWithoutSampling(ctx, "Processing Event")
+
+    sess := session.Must(session.NewSessionWithOptions(session.Options{
+        SharedConfigState: session.SharedConfigEnable,
+    }))
+
+    svc := sqs.New(sess)
+
+    result, _ := svc.ListQueues(nil)
+
+    for _, url := range result.QueueUrls {
+        fmt.Printf("%s\n", *url)
+    }
+
+    subseg.Close(nil)
+
+    return "Success", nil
+}
+
+func main() {
+    lambda.Start(HandleRequest)
+}
 ```
 
 The code below demonstrates overriding the sampled flag based on the SQS messages sent to Lambda.
