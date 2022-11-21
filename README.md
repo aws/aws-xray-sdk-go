@@ -329,7 +329,7 @@ func HandleRequest(ctx context.Context, name string) (string, error) {
 ```
 
 **Oversampling Mitigation**
-Oversampling mitigation allows you to ignore a parent segment/subsegment's sampled flag and instead set it to false.
+Oversampling mitigation allows you to ignore a parent segment/subsegment's sampled flag and instead sets the subsegment's sampled flag to false.
 This ensures that downstream calls are not sampled and this subsegment is not emitted.
 
 ```go
