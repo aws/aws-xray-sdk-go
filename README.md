@@ -414,6 +414,89 @@ func main() {
 }
 ```
 
+## Oversampling Mitigation
+Oversampling mitigation allows you to ignore a parent segment/subsegment's sampled flag and instead sets the subsegment's sampled flag to false.
+This ensures that downstream calls are not sampled and this subsegment is not emitted.
+
+```go
+import (
+    "context"
+    "fmt"
+    "github.com/aws/aws-lambda-go/events"
+    "github.com/aws/aws-lambda-go/lambda"
+    "github.com/aws/aws-sdk-go/aws/session"
+    "github.com/aws/aws-sdk-go/service/sqs"
+    "github.com/aws/aws-xray-sdk-go/xray"
+)
+
+func HandleRequest(ctx context.Context, event events.SQSEvent) (string, error) {
+    _, subseg := xray.BeginSubsegmentWithoutSampling(ctx, "Processing Event")
+
+    sess := session.Must(session.NewSessionWithOptions(session.Options{
+        SharedConfigState: session.SharedConfigEnable,
+    }))
+
+    svc := sqs.New(sess)
+
+    result, _ := svc.ListQueues(nil)
+
+    for _, url := range result.QueueUrls {
+        fmt.Printf("%s\n", *url)
+    }
+
+    subseg.Close(nil)
+
+    return "Success", nil
+}
+
+func main() {
+    lambda.Start(HandleRequest)
+}
+```
+
+The code below demonstrates overriding the sampled flag based on the SQS messages sent to Lambda.
+
+```go
+import (
+    "context"
+    "fmt"
+    "strconv"
+    "github.com/aws/aws-lambda-go/events"
+    "github.com/aws/aws-lambda-go/lambda"
+    xrayLambda "github.com/aws/aws-xray-sdk-go/lambda"
+    "github.com/aws/aws-xray-sdk-go/xray"
+)
+
+func HandleRequest(ctx context.Context, event events.SQSEvent) (string, error) {
+
+    var i = 1
+
+    for _, message := range event.Records {
+        var subseg *xray.Segment
+
+        if xrayLambda.IsSampled(message) {
+            _, subseg = xray.BeginSubsegment(ctx, "Processing Message - " + strconv.Itoa(i))
+        } else {
+            _, subseg = xray.BeginSubsegmentWithoutSampling(ctx, "Processing Message - " + strconv.Itoa(i))
+        }
+
+        i++;
+
+        // Do your procesing work here
+        fmt.Println("Doing processing work")
+
+        // End your subsegment
+        subseg.Close(nil)
+    }
+
+    return "Success", nil
+}
+
+func main() {
+    lambda.Start(HandleRequest)
+}
+```
+
 ## License
 
 The AWS X-Ray SDK for Go is licensed under the Apache 2.0 License. See LICENSE and NOTICE.txt for more information.
