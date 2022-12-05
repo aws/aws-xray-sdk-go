@@ -185,7 +185,6 @@ func testClientFailedConnection(ctx context.Context, td *TestDaemon, t *testing.
 	if !assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg)) {
 		return
 	}
-
 	assert.True(t, subseg.Fault)
 	// Should contain 'marshal' and 'attempt' subsegments only.
 	assert.Len(t, subseg.Subsegments, 3)
