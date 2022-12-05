@@ -174,7 +174,7 @@ func testClientFailedConnection(ctx context.Context, td *TestDaemon, t *testing.
 	assert.Error(t, err)
 
 	seg, err := td.Recv()
-	if assert.Error(t, err) {
+	if !assert.NoError(t, err) {
 		return
 	}
 
