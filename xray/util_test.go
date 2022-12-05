@@ -113,7 +113,7 @@ func (td *TestDaemon) run(c chan *result) {
 }
 
 func (td *TestDaemon) Recv() (*Segment, error) {
-	ctx, cancel := context.WithTimeout(td.ctx, time.Second)
+	ctx, cancel := context.WithTimeout(td.ctx, 5*60*time.Second)
 	defer cancel()
 	select {
 	case r := <-td.ch:
