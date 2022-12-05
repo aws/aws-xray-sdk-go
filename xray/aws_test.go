@@ -126,7 +126,7 @@ func testClientSuccessfulConnection(ctx context.Context, td *TestDaemon, t *test
 	if !assert.NoError(t, err) {
 		return
 	}
-	
+
 	var subseg *Segment
 	if !assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg)) {
 		return
