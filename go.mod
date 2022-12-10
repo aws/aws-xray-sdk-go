@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/DATA-DOG/go-sqlmock v1.4.1
 	github.com/aws/aws-lambda-go v1.34.1
-	github.com/aws/aws-sdk-go v1.17.12
+	github.com/aws/aws-sdk-go v1.44.114
 	github.com/aws/aws-sdk-go-v2 v1.6.0
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.6.2
 	github.com/aws/smithy-go v1.4.0
