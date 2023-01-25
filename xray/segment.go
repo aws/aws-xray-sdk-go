@@ -405,19 +405,21 @@ func (seg *Segment) CloseAndStream(err error) {
 	if SdkDisabled() {
 		return
 	}
-
-	seg.Lock()
-	defer seg.Unlock()
-
+	
 	if seg.parent != nil {
 		logger.Debugf("Ending subsegment named: %s", seg.Name)
+		seg.Lock()
 		seg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
 		seg.InProgress = false
 		seg.Emitted = true
+		seg.Unlock()
 		if seg.parent.RemoveSubsegment(seg) {
 			logger.Debugf("Removing subsegment named: %s", seg.Name)
 		}
 	}
+	
+	seg.Lock()
+	defer seg.Unlock()
 
 	if err != nil {
 		seg.addError(err)
