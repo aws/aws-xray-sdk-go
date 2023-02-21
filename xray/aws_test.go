@@ -93,12 +93,9 @@ func TestAWS(t *testing.T) {
 }
 
 func fakeSession(t *testing.T, failConn bool) (*session.Session, func()) {
-	var maxRetries = 0
-
 	cfg := &aws.Config{
 		Region:      aws.String("fake-moon-1"),
 		Credentials: credentials.NewStaticCredentials("akid", "secret", "noop"),
-		MaxRetries:  &maxRetries,
 	}
 
 	var ts *httptest.Server
@@ -187,7 +184,7 @@ func testClientFailedConnection(ctx context.Context, td *TestDaemon, t *testing.
 	}
 	assert.True(t, subseg.Fault)
 	// Should contain 'marshal' and 'attempt' subsegments only.
-	assert.Len(t, subseg.Subsegments, 3)
+	assert.Len(t, subseg.Subsegments, 2)
 
 	attemptSubseg := &Segment{}
 	assert.NoError(t, json.Unmarshal(subseg.Subsegments[1], &attemptSubseg))

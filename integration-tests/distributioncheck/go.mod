@@ -1,15 +1,13 @@
 module distributioncheck
 
-replace github.com/aws/aws-xray-sdk-go => ../../
-
 require (
-	github.com/aws/aws-xray-sdk-go v1.8.0
-	github.com/stretchr/testify v1.7.2
+	github.com/aws/aws-xray-sdk-go latest
+	github.com/stretchr/testify v1.6.1
 )
 
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
-	github.com/aws/aws-sdk-go v1.44.114 // indirect
+	github.com/aws/aws-sdk-go v1.17.12 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -24,7 +22,7 @@ require (
 	google.golang.org/genproto v0.0.0-20210114201628-6edceaf6022f // indirect
 	google.golang.org/grpc v1.35.0 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )
 
 go 1.18
