@@ -242,6 +242,14 @@ func TestGetDaemonEndpointsForHostname1(t *testing.T) { // parsing hostname - si
 	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
 	dEndpt, _ := GetDaemonEndpointsFromString("localhost:2000")
 
+	// Keep dEndpt.UDPAddr.IP as the IPv6 representation of an IPv4 address
+	if (len(dEndpt.UDPAddr.IP) == 4) {
+		dEndpt.UDPAddr.IP = dEndpt.UDPAddr.IP.To16()
+	}
+	if (len(dEndpt.TCPAddr.IP) == 4) {
+		dEndpt.TCPAddr.IP = dEndpt.TCPAddr.IP.To16()
+	}
+
 	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
 	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
 }
@@ -258,6 +266,14 @@ func TestGetDaemonEndpointsForHostname3(t *testing.T) { // parsing hostname - do
 	udpEndpt, _ := resolveUDPAddr(udpAddr)
 	tcpEndpt, _ := resolveTCPAddr(tcpAddr)
 	dEndpt, _ := GetDaemonEndpointsFromString("tcp:localhost:2000 udp:localhost:2000")
+
+	// Keep dEndpt.UDPAddr.IP as the IPv6 representation of an IPv4 address
+	if (len(dEndpt.UDPAddr.IP) == 4) {
+		dEndpt.UDPAddr.IP = dEndpt.UDPAddr.IP.To16()
+	}
+	if (len(dEndpt.TCPAddr.IP) == 4) {
+		dEndpt.TCPAddr.IP = dEndpt.TCPAddr.IP.To16()
+	}
 
 	assert.Equal(t, dEndpt.UDPAddr, udpEndpt)
 	assert.Equal(t, dEndpt.TCPAddr, tcpEndpt)
