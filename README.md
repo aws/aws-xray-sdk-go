@@ -13,7 +13,7 @@ If you want additional features when tracing your Go applications, please [open 
 
 ## Installing into GOPATH
 
-The AWS X-Ray SDK for Go is compatible with Go 1.9 and above.
+The AWS X-Ray SDK for Go is compatible with Go 1.16 and above.
 
 Install the SDK using the following command (The SDK's non-testing dependencies will be installed):
 Use `go get` to retrieve the SDK to add it to your `GOPATH` workspace:
