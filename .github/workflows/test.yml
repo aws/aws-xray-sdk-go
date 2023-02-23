@@ -19,8 +19,8 @@ jobs:
           - windows-latest
           - macos-latest
         go:
-          - '1.16'
-          - '1.17'
+          - '1.19'
+          - '1.20'
           - '1'
     steps:
       - name: Set up Go ${{ matrix.go }}
@@ -45,7 +45,7 @@ jobs:
         os:
           - ubuntu-latest
         go:
-          - '1.17'
+          - '1.20'
     steps:
       - name: Set up Go ${{ matrix.go }}
         uses: actions/setup-go@v1
