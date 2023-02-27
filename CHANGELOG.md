@@ -6,11 +6,25 @@ Unreleased
 
 ### SDK Bugs
 
+Release v1.8.1 (2023-02-27)
+================================
+### SDK Enhancements
+
+### SDK Bugs
+* Fix Sample App Solution Stack and GO version [#PR 388](https://github.com/aws/aws-xray-sdk-go/pull/388)
+* Fix AWS GO SDK Vulnerability [#PR 390](https://github.com/aws/aws-xray-sdk-go/pull/390)
+* Fix mutex deadlock [#PR 393](https://github.com/aws/aws-xray-sdk-go/pull/393)
+* Update golang.org/x/text to fix CVEs [#PR 400](https://github.com/aws/aws-xray-sdk-go/pull/400)
+* Fix CVEs in integration tests [#PR 401](https://github.com/aws/aws-xray-sdk-go/pull/401)
+* Update sample app dependencies [#PR 405](https://github.com/aws/aws-xray-sdk-go/pull/405)
+* Update golang.org/x/net to fix CVEs [#PR 406](https://github.com/aws/aws-xray-sdk-go/pull/406)
+
+
 Release v1.8.0 (2022-11-08)
 ================================
 ### SDK Enhancements
-* Oversampling Mitigation [#PR381](https://github.com/aws/aws-xray-sdk-go/pull/381)
-* Changed Missing Context default strategy to log [#PR382](https://github.com/aws/aws-xray-sdk-go/pull/382)
+* Oversampling Mitigation [#PR 381](https://github.com/aws/aws-xray-sdk-go/pull/381)
+* Changed Missing Context default strategy to log [#PR 382](https://github.com/aws/aws-xray-sdk-go/pull/382)
 
 ### SDK Bugs
 
