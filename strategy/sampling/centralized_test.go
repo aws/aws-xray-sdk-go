@@ -2763,3 +2763,30 @@ func BenchmarkCentralizedStrategy_refreshTargets(b *testing.B) {
 		}
 	})
 }
+
+func TestTargetPollerJitter(t *testing.T) {
+	timer := GetTargetPollerTimer()
+
+	var nineSecondBucket = false
+	var tenSecondBucket = false
+	var elevenSecondBucket = false
+
+	for i := 0; i < 1000; i++ {
+		var duration = utils.GetJitterDurationByTimer(timer)
+
+		if duration/time.Second == 9 {
+			nineSecondBucket = true
+		} else if duration/time.Second == 10 {
+			tenSecondBucket = true
+		} else if duration/time.Second == 11 {
+			elevenSecondBucket = true
+		}
+
+		assert.LessOrEqual(t, duration, time.Second*12)
+		assert.GreaterOrEqual(t, duration, time.Second*9)
+	}
+
+	assert.Equal(t, nineSecondBucket, true)
+	assert.Equal(t, tenSecondBucket, true)
+	assert.Equal(t, elevenSecondBucket, true)
+}

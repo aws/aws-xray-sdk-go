@@ -22,7 +22,7 @@ type Timer struct {
 
 // NewTimer creates a new Timer that will send the current time on its channel.
 func NewTimer(d, jitter time.Duration) *Timer {
-	t := time.NewTimer(d - time.Duration(globalRand.Int63n(int64(jitter))))
+	t := time.NewTimer(GetJitterDuration(d, jitter))
 
 	jitteredTimer := Timer{
 		t:      t,
@@ -41,5 +41,13 @@ func (j *Timer) C() <-chan time.Time {
 // Reset resets the timer.
 // Reset should be invoked only on stopped or expired timers with drained channels.
 func (j *Timer) Reset() {
-	j.t.Reset(j.d - time.Duration(globalRand.Int63n(int64(j.jitter))))
+	j.t.Reset(GetJitterDurationByTimer(j))
+}
+
+func GetJitterDurationByTimer(t *Timer) time.Duration {
+	return GetJitterDuration(t.d, t.jitter)
+}
+
+func GetJitterDuration(d time.Duration, jitter time.Duration) time.Duration {
+	return d - time.Duration(globalRand.Int63n(int64(jitter)))
 }

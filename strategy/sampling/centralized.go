@@ -231,8 +231,8 @@ func (ss *CentralizedStrategy) startRulePoller() {
 func (ss *CentralizedStrategy) startTargetPoller() {
 	// Periodic quota refresh
 	go func() {
-		// Period = 10.1s, Jitter = 100ms
-		t := utils.NewTimer(10*time.Second+100*time.Millisecond, 100*time.Millisecond)
+		// Period = 12s, Jitter = 3s
+		t := GetTargetPollerTimer()
 
 		for range t.C() {
 			t.Reset()
@@ -241,6 +241,11 @@ func (ss *CentralizedStrategy) startTargetPoller() {
 			}
 		}
 	}()
+}
+
+func GetTargetPollerTimer() *utils.Timer {
+	t := utils.NewTimer(12*time.Second, 3*time.Second)
+	return t
 }
 
 // refreshManifest refreshes the manifest by calling the XRay service proxy for sampling rules
