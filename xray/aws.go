@@ -49,7 +49,7 @@ const (
 
 func beginSubsegment(r *request.Request, name string) {
 	ctx, _ := BeginSubsegment(r.HTTPRequest.Context(), name)
-	r.HTTPRequest = r.HTTPRequest.WithContext(ctx)
+	r.SetContext(ctx)
 }
 
 func endSubsegment(r *request.Request) {
@@ -58,7 +58,7 @@ func endSubsegment(r *request.Request) {
 		return
 	}
 	seg.Close(r.Error)
-	r.HTTPRequest = r.HTTPRequest.WithContext(context.WithValue(r.HTTPRequest.Context(), ContextKey, seg.parent))
+	r.SetContext(context.WithValue(r.HTTPRequest.Context(), ContextKey, seg.parent))
 }
 
 var xRayBeforeValidateHandler = request.NamedHandler{
@@ -71,7 +71,7 @@ var xRayBeforeValidateHandler = request.NamedHandler{
 		opseg.Namespace = "aws"
 		marshalctx, _ := BeginSubsegment(ctx, "marshal")
 
-		r.HTTPRequest = r.HTTPRequest.WithContext(marshalctx)
+		r.SetContext(marshalctx)
 		r.HTTPRequest.Header.Set(TraceIDHeaderKey, opseg.DownstreamHeader().String())
 	},
 }
@@ -91,7 +91,7 @@ var xRayBeforeSignHandler = request.NamedHandler{
 			return
 		}
 		ct, _ := NewClientTrace(ctx)
-		r.HTTPRequest = r.HTTPRequest.WithContext(httptrace.WithClientTrace(ctx, ct.httpTrace))
+		r.SetContext(httptrace.WithClientTrace(ctx, ct.httpTrace))
 	},
 }
 
@@ -139,7 +139,7 @@ var xRayBeforeRetryHandler = request.NamedHandler{
 		endSubsegment(r) // end attempt subsegment
 		ctx, _ := BeginSubsegment(r.HTTPRequest.Context(), "wait")
 
-		r.HTTPRequest = r.HTTPRequest.WithContext(ctx)
+		r.SetContext(ctx)
 	},
 }
 
