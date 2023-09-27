@@ -11,6 +11,7 @@ package xray
 import (
 	"encoding/json"
 	"net"
+	"runtime/debug"
 	"sync"
 
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
@@ -57,6 +58,11 @@ func (de *DefaultEmitter) refresh(raddr *net.UDPAddr) (err error) {
 // Emit segment or subsegment if root segment is sampled.
 // seg has a write lock acquired by the caller.
 func (de *DefaultEmitter) Emit(seg *Segment) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Errorf("Panic emitting segment: %s\n%s", r, string(debug.Stack()))
+		}
+	}()
 	HeaderBytes := []byte(Header)
 
 	if seg == nil || !seg.ParentSegment.Sampled {
