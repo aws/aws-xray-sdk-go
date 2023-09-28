@@ -180,3 +180,17 @@ func BenchmarkDefaultEmitter(b *testing.B) {
 		}
 	})
 }
+
+func TestDefaultEmitterWithPanic(t *testing.T) {
+	seg := &Segment{
+		ParentSegment: nil, // cause Panic
+	}
+	emitter, err := NewDefaultEmitter(&net.UDPAddr{
+		IP:   net.IPv4(127, 0, 0, 1),
+		Port: 3000,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	emitter.Emit(seg)
+}
