@@ -6,6 +6,15 @@ Unreleased
 
 ### SDK Bugs
 
+Release v1.8.2 (2023-09-28)
+================================
+### SDK Enhancements
+* Change how SDK sets the context for AWS SDK calls [#PR 418](https://github.com/aws/aws-xray-sdk-go/pull/418)
+
+### SDK Bugs
+*  Suppress Panic in Emitter [#PR 419](https://github.com/aws/aws-xray-sdk-go/pull/419)
+
+
 Release v1.8.1 (2023-02-27)
 ================================
 ### SDK Enhancements
