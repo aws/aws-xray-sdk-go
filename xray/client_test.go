@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync"
 	"testing"
 
@@ -167,6 +168,62 @@ func TestRoundTripWithQueryParameter(t *testing.T) {
 		assert.Equal(t, "remote", subseg.Namespace)
 		assert.Equal(t, http.MethodGet, subseg.HTTP.Request.Method)
 		assert.Equal(t, ts.URL, subseg.HTTP.Request.URL)
+		assert.Equal(t, http.StatusOK, subseg.HTTP.Response.Status)
+		assert.Equal(t, responseContentLength, subseg.HTTP.Response.ContentLength)
+		assert.False(t, subseg.Throttle)
+		assert.False(t, subseg.Error)
+		assert.False(t, subseg.Fault)
+	}
+	headers := <-ch
+	assert.Equal(t, headers.RootTraceID, seg.TraceID)
+}
+
+func TestRoundTripWithBasicAuth(t *testing.T) {
+	ctx, td := NewTestDaemon()
+	defer td.Close()
+
+	const content = `200 - Nothing to see`
+	const responseContentLength = len(content)
+
+	var userInfo = url.UserPassword("user", "pass")
+
+	ch := make(chan XRayHeaders, 1)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username, password, ok := r.BasicAuth()
+		pass, _ := userInfo.Password()
+		assert.Equal(t, ok, true)
+		assert.Equal(t, username, userInfo.Username())
+		assert.Equal(t, password, pass)
+		ch <- ParseHeadersForTest(r.Header)
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write([]byte(content)); err != nil {
+			panic(err)
+		}
+	}))
+	defer ts.Close()
+
+	client := Client(nil)
+
+	u, err := url.Parse(ts.URL)
+	if !assert.NoError(t, err) {
+		return
+	}
+	u.User = userInfo
+
+	err = httpDoTest(ctx, client, http.MethodGet, u.String(), nil)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	seg, err := td.Recv()
+	if !assert.NoError(t, err) {
+		return
+	}
+	var subseg *Segment
+	if assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg)) {
+		assert.Equal(t, "remote", subseg.Namespace)
+		assert.Equal(t, http.MethodGet, subseg.HTTP.Request.Method)
+		assert.Equal(t, stripURL(*u), subseg.HTTP.Request.URL)
 		assert.Equal(t, http.StatusOK, subseg.HTTP.Response.Status)
 		assert.Equal(t, responseContentLength, subseg.HTTP.Response.ContentLength)
 		assert.False(t, subseg.Throttle)
