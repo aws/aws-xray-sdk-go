@@ -223,7 +223,7 @@ func TestRoundTripWithBasicAuth(t *testing.T) {
 	if assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg)) {
 		assert.Equal(t, "remote", subseg.Namespace)
 		assert.Equal(t, http.MethodGet, subseg.HTTP.Request.Method)
-		assert.Equal(t, stripURL(*u), subseg.HTTP.Request.URL)
+		assert.Equal(t, "http://user:***@127.0.0.1:"+u.Port(), subseg.HTTP.Request.URL)
 		assert.Equal(t, http.StatusOK, subseg.HTTP.Response.Status)
 		assert.Equal(t, responseContentLength, subseg.HTTP.Response.ContentLength)
 		assert.False(t, subseg.Throttle)
