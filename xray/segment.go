@@ -373,7 +373,9 @@ func (seg *Segment) Close(err error) {
 	} else {
 		logger.Debugf("Closing segment named %s", seg.Name)
 	}
-	seg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
+	if seg.EndTime == 0 {
+		seg.EndTime = float64(time.Now().UnixNano()) / float64(time.Second)
+	}
 	seg.InProgress = false
 
 	if err != nil {
