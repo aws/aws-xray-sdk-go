@@ -14,6 +14,7 @@ import (
 	"net/http/httptrace"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 )
@@ -87,7 +88,7 @@ func (rt *roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
 		}
 
 		seg.GetHTTP().GetRequest().Method = r.Method
-		seg.GetHTTP().GetRequest().URL = stripQueryFromURL(*r.URL)
+		seg.GetHTTP().GetRequest().URL = stripURL(*r.URL)
 
 		r.Header.Set(TraceIDHeaderKey, seg.DownstreamHeader().String())
 		seg.Unlock()
@@ -119,7 +120,11 @@ func (rt *roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	return resp, err
 }
 
-func stripQueryFromURL(u url.URL) string {
+func stripURL(u url.URL) string {
 	u.RawQuery = ""
+	_, passSet := u.User.Password()
+	if passSet {
+		return strings.Replace(u.String(), u.User.String()+"@", u.User.Username()+":***@", 1)
+	}
 	return u.String()
 }
