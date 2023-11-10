@@ -11,7 +11,7 @@ Release v1.8.3 (2023-11-13)
 ### SDK Enhancements
 
 ### SDK Bugs
-*  Update AWS SDK for Go SDK depdencies [#PR 430](https://github.com/aws/aws-xray-sdk-go/pull/430)
+*  Update AWS SDK for Go depdencies [#PR 430](https://github.com/aws/aws-xray-sdk-go/pull/430)
 *  Fix HTTP2 rapid reset vulnerability [#PR 428](https://github.com/aws/aws-xray-sdk-go/pull/428)
 *  Omit URL's password when stringifying URL for segment name [#PR 422](https://github.com/aws/aws-xray-sdk-go/pull/422)
 
