@@ -36,6 +36,9 @@ jobs:
         with:
           name: deployment-package
 
+      - name: Make sample-app directory
+        run: mkdir ./terraform/sample-apps/http-server
+
       - name: Copy deployment package to terraform directory
         run: cp deploy.zip ./terraform/sample-apps/http-server
 
