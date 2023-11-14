@@ -1,7 +1,6 @@
 module application.go
 
-replace github.com/aws/aws-xray-sdk-go => ./aws-xray-sdk-go
-
+replace github.com/aws/aws-xray-sdk-go => ../../
 require (
 	github.com/aws/aws-sdk-go v1.47.9
 	github.com/aws/aws-xray-sdk-go v1.8.2
