@@ -17,9 +17,6 @@ jobs:
       - name: Create a directory
         run: mkdir sample-apps/http-server/aws-xray-sdk-go
 
-      - name: Copy X-Ray SDK to deployment package with Sample App
-        run: rsync -r * sample-apps/http-server/aws-xray-sdk-go --exclude sample-apps/
-
       - name: Zip up the deployment package
         run: zip -r deploy.zip . -x '*.git*'
 
@@ -27,7 +24,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: deployment-package
-          path: sample-apps/http-server/deploy.zip
+          path: deploy.zip
 
   deploy_WebApp:
     name: Deploy X-Ray Instrumented Web App
