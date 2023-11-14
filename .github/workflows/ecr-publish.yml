@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - master
+      - IntegrationTest
 jobs:
   build_push_sample_app_image:
     name: Build and Push Sample App docker image
