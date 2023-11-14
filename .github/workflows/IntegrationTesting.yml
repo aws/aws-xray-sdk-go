@@ -21,7 +21,7 @@ jobs:
         run: rsync -r * sample-apps/http-server/aws-xray-sdk-go --exclude sample-apps/
 
       - name: The application.go file must be at the working directory level in EB Go. We need to change the redirection to the folder we copied in the previous step.
-        run: sed -i '' 's|replace github.com/aws/aws-xray-sdk-go => ../../|replace github.com/aws/aws-xray-sdk-go => ./aws-xray-sdk-go|g' go.mod
+        run: sed -i '' 's|replace github.com/aws/aws-xray-sdk-go => ../../|replace github.com/aws/aws-xray-sdk-go => ./aws-xray-sdk-go|g' sample-apps/http-server/go.mod
 
       - name: Zip up the deployment package
         run: zip -r deploy.zip . -x '*.git*'
