@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - IntegrationTest
+      - master
 
 jobs:
   package_SDK:
