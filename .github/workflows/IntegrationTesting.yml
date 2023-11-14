@@ -112,7 +112,6 @@ jobs:
 
       - name: Run testing suite
         run: ./gradlew :validator:run --args='-c default-xray-trace-validation.yml --endpoint http://${{ github.run_id }}-${{ github.run_number }}-eb-app-env.us-west-2.elasticbeanstalk.com'
-        working-directory: ./sample-apps/http-server
 
   cleanup:
     name: Resource tear down
