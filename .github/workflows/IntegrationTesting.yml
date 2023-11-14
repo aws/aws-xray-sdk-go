@@ -14,9 +14,6 @@ jobs:
       - name: Checkout X-Ray Go SDK
         uses: actions/checkout@v2
 
-      - name: Create a directory
-        run: mkdir sample-apps/http-server/aws-xray-sdk-go
-
       - name: Zip up the deployment package
         run: zip -r deploy.zip . -x '*.git*'
 
