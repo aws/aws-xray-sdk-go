@@ -54,7 +54,7 @@ func mockSnowflakeDB(mock sqlmock.Sqlmock, err error) {
 }
 
 func registerSnowflakeDriver() {
-	RegisterSQLDetector("snowflake", func(ctx context.Context, conn driver.Conn, attr *dbAttribute) error {
+	RegisterSQLDetector("snowflake", func(ctx context.Context, conn driver.Conn, attr *DBAttribute) error {
 		attr.databaseType = "Snowflake"
 		return queryRow(
 			ctx, conn,

@@ -47,7 +47,7 @@ type driverConnector struct {
 	name     string
 
 	mu   sync.RWMutex
-	attr *dbAttribute
+	attr *DBAttribute
 }
 
 func (c *driverConnector) Connect(ctx context.Context) (driver.Conn, error) {
@@ -73,7 +73,7 @@ func (c *driverConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	return conn, nil
 }
 
-func (c *driverConnector) getAttr(ctx context.Context) (*dbAttribute, error) {
+func (c *driverConnector) getAttr(ctx context.Context) (*DBAttribute, error) {
 	c.mu.RLock()
 	attr := c.attr
 	c.mu.RUnlock()
