@@ -24,6 +24,8 @@ import (
 	"time"
 )
 
+const detectorDefaultKey = "default"
+
 // we can't know that the original driver will return driver.ErrSkip in advance.
 // so we add this message to the query if it returns driver.ErrSkip.
 const msgErrSkip = " -- skip fast-path; continue as if unimplemented"
@@ -41,7 +43,25 @@ var (
 	muInitializedDrivers sync.Mutex
 	initializedDrivers   map[string]struct{}
 	attrHook             func(attr *dbAttribute) // for testing
+	registeredDetectors  map[string][]Detector
 )
+
+func initDetectors() {
+	RegisterSQLDetector("mysql", mysqlDetector)
+	RegisterSQLDetector("postgres", postgresDetector)
+	RegisterSQLDetector(detectorDefaultKey, postgresDetector, mysqlDetector, mssqlDetector, oracleDetector)
+}
+
+// RegisterSQLDetector - Register a detector for a specific SQL driver.
+func RegisterSQLDetector(
+	driverName string,
+	detector ...Detector,
+) {
+	if registeredDetectors == nil {
+		registeredDetectors = make(map[string][]Detector)
+	}
+	registeredDetectors[driverName] = append(registeredDetectors[driverName], detector...)
+}
 
 func initXRayDriver(driver, dsn string) error {
 	muInitializedDrivers.Lock()
@@ -64,6 +84,7 @@ func initXRayDriver(driver, dsn string) error {
 	})
 	initializedDrivers[driver] = struct{}{}
 	db.Close()
+	initDetectors()
 	return nil
 }
 
@@ -82,6 +103,8 @@ type driverDriver struct {
 	driver.Driver
 	baseName string // the name of the base driver
 }
+
+type Detector func(ctx context.Context, conn driver.Conn, attr *dbAttribute) error
 
 func (d *driverDriver) Open(dsn string) (driver.Conn, error) {
 	rawConn, err := d.Driver.Open(dsn)
@@ -367,16 +390,13 @@ func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, con
 	}
 
 	// Detect database type and use that to populate attributes
-	var detectors []func(ctx context.Context, conn driver.Conn, attr *dbAttribute) error
-	switch driverName {
-	case "postgres":
-		detectors = append(detectors, postgresDetector)
-	case "mysql":
-		detectors = append(detectors, mysqlDetector)
-	default:
-		detectors = append(detectors, postgresDetector, mysqlDetector, mssqlDetector, oracleDetector)
+	var driverDetectors []Detector
+	if v, ok := registeredDetectors[driverName]; ok {
+		driverDetectors = v
+	} else {
+		driverDetectors = registeredDetectors["default"]
 	}
-	for _, detector := range detectors {
+	for _, detector := range driverDetectors {
 		if detector(ctx, conn, &attr) == nil {
 			break
 		}
