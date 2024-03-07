@@ -9,6 +9,8 @@
 package xray
 
 import (
+	"context"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"testing"
@@ -42,6 +44,24 @@ func mockOracle(mock sqlmock.Sqlmock, err error) {
 		AddRow("test version", "test user", "test database").
 		RowError(0, err)
 	mock.ExpectPrepare(`SELECT version FROM v\$instance UNION SELECT user, ora_database_name FROM dual`).ExpectQuery().WillReturnRows(row)
+}
+
+func mockSnowflakeDB(mock sqlmock.Sqlmock, err error) {
+	row := sqlmock.NewRows([]string{"current_version()", "current_user()", "current_database()"}).
+		AddRow("test version", "test user", "test database").
+		RowError(0, err)
+	mock.ExpectPrepare(`SELECT current_version\(\), current_user\(\), current_database\(\)`).ExpectQuery().WillReturnRows(row)
+}
+
+func registerSnowflakeDriver() {
+	RegisterSQLDetector("snowflake", func(ctx context.Context, conn driver.Conn, attr *dbAttribute) error {
+		attr.databaseType = "Snowflake"
+		return queryRow(
+			ctx, conn,
+			"SELECT current_version(), current_user(), current_database()",
+			&attr.databaseVersion, &attr.user, &attr.dbname,
+		)
+	})
 }
 
 func capturePing(dsn string) (*Segment, error) {
@@ -272,6 +292,37 @@ func TestOracle(t *testing.T) {
 
 	assert.Equal(t, "remote", subseg.Namespace)
 	assert.Equal(t, "Oracle", subseg.SQL.DatabaseType)
+	assert.Equal(t, "", subseg.SQL.URL)
+	assert.Equal(t, dsn, subseg.SQL.ConnectionString)
+	assert.Equal(t, "test version", subseg.SQL.DatabaseVersion)
+	assert.Equal(t, "test user", subseg.SQL.User)
+	assert.False(t, subseg.Throttle)
+	assert.False(t, subseg.Error)
+	assert.False(t, subseg.Fault)
+}
+
+func TestCustomRegisteredDriver(t *testing.T) {
+	dsn := "test-snowflake"
+	db, mock, err := sqlmock.NewWithDSN(dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	mockPostgreSQL(mock, errors.New("syntax error"))
+	mockMySQL(mock, errors.New("syntax error"))
+	mockMSSQL(mock, errors.New("syntax error"))
+	mockOracle(mock, errors.New("syntax error"))
+	mockSnowflakeDB(mock, nil)
+
+	registerSnowflakeDriver()
+	subseg, err := capturePing(dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	assert.Equal(t, "remote", subseg.Namespace)
+	assert.Equal(t, "Snowflake", subseg.SQL.DatabaseType)
 	assert.Equal(t, "", subseg.SQL.URL)
 	assert.Equal(t, dsn, subseg.SQL.ConnectionString)
 	assert.Equal(t, "test version", subseg.SQL.DatabaseVersion)
