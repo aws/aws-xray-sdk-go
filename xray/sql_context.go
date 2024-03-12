@@ -24,6 +24,8 @@ import (
 	"time"
 )
 
+const detectorDefaultKey = "default"
+
 // we can't know that the original driver will return driver.ErrSkip in advance.
 // so we add this message to the query if it returns driver.ErrSkip.
 const msgErrSkip = " -- skip fast-path; continue as if unimplemented"
@@ -40,8 +42,26 @@ type namedValueChecker interface {
 var (
 	muInitializedDrivers sync.Mutex
 	initializedDrivers   map[string]struct{}
-	attrHook             func(attr *dbAttribute) // for testing
+	attrHook             func(attr *DBAttribute) // for testing
+	registeredDetectors  map[string][]Detector
 )
+
+func initDetectors() {
+	RegisterSQLDetector("mysql", mysqlDetector)
+	RegisterSQLDetector("postgres", postgresDetector)
+	RegisterSQLDetector(detectorDefaultKey, postgresDetector, mysqlDetector, mssqlDetector, oracleDetector)
+}
+
+// RegisterSQLDetector - Register a detector for a specific SQL driver.
+func RegisterSQLDetector(
+	driverName string,
+	detector ...Detector,
+) {
+	if registeredDetectors == nil {
+		registeredDetectors = make(map[string][]Detector)
+	}
+	registeredDetectors[driverName] = append(registeredDetectors[driverName], detector...)
+}
 
 func initXRayDriver(driver, dsn string) error {
 	muInitializedDrivers.Lock()
@@ -64,6 +84,7 @@ func initXRayDriver(driver, dsn string) error {
 	})
 	initializedDrivers[driver] = struct{}{}
 	db.Close()
+	initDetectors()
 	return nil
 }
 
@@ -82,6 +103,8 @@ type driverDriver struct {
 	driver.Driver
 	baseName string // the name of the base driver
 }
+
+type Detector func(ctx context.Context, conn driver.Conn, attr *DBAttribute) error
 
 func (d *driverDriver) Open(dsn string) (driver.Conn, error) {
 	rawConn, err := d.Driver.Open(dsn)
@@ -103,7 +126,7 @@ func (d *driverDriver) Open(dsn string) (driver.Conn, error) {
 
 type driverConn struct {
 	driver.Conn
-	attr *dbAttribute
+	attr *DBAttribute
 }
 
 func (conn *driverConn) Ping(ctx context.Context) error {
@@ -292,7 +315,7 @@ func (conn *driverConn) CheckNamedValue(nv *driver.NamedValue) (err error) {
 	return defaultCheckNamedValue(nv)
 }
 
-type dbAttribute struct {
+type DBAttribute struct {
 	connectionString string
 	url              string
 	databaseType     string
@@ -303,8 +326,8 @@ type dbAttribute struct {
 	host             string
 }
 
-func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, conn driver.Conn, dsn string, filtered bool) (*dbAttribute, error) {
-	var attr dbAttribute
+func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, conn driver.Conn, dsn string, filtered bool) (*DBAttribute, error) {
+	var attr DBAttribute
 
 	// Detect if DSN is a URL or not, set appropriate attribute
 	urlDsn := dsn
@@ -367,16 +390,13 @@ func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, con
 	}
 
 	// Detect database type and use that to populate attributes
-	var detectors []func(ctx context.Context, conn driver.Conn, attr *dbAttribute) error
-	switch driverName {
-	case "postgres":
-		detectors = append(detectors, postgresDetector)
-	case "mysql":
-		detectors = append(detectors, mysqlDetector)
-	default:
-		detectors = append(detectors, postgresDetector, mysqlDetector, mssqlDetector, oracleDetector)
+	var driverDetectors []Detector
+	if v, ok := registeredDetectors[driverName]; ok {
+		driverDetectors = v
+	} else {
+		driverDetectors = registeredDetectors["default"]
 	}
-	for _, detector := range detectors {
+	for _, detector := range driverDetectors {
 		if detector(ctx, conn, &attr) == nil {
 			break
 		}
@@ -408,7 +428,7 @@ func newDBAttribute(ctx context.Context, driverName string, d driver.Driver, con
 	return &attr, nil
 }
 
-func postgresDetector(ctx context.Context, conn driver.Conn, attr *dbAttribute) error {
+func postgresDetector(ctx context.Context, conn driver.Conn, attr *DBAttribute) error {
 	attr.databaseType = "Postgres"
 	return queryRow(
 		ctx, conn,
@@ -417,7 +437,7 @@ func postgresDetector(ctx context.Context, conn driver.Conn, attr *dbAttribute) 
 	)
 }
 
-func mysqlDetector(ctx context.Context, conn driver.Conn, attr *dbAttribute) error {
+func mysqlDetector(ctx context.Context, conn driver.Conn, attr *DBAttribute) error {
 	attr.databaseType = "MySQL"
 	return queryRow(
 		ctx, conn,
@@ -426,7 +446,7 @@ func mysqlDetector(ctx context.Context, conn driver.Conn, attr *dbAttribute) err
 	)
 }
 
-func mssqlDetector(ctx context.Context, conn driver.Conn, attr *dbAttribute) error {
+func mssqlDetector(ctx context.Context, conn driver.Conn, attr *DBAttribute) error {
 	attr.databaseType = "MS SQL"
 	return queryRow(
 		ctx, conn,
@@ -435,7 +455,7 @@ func mssqlDetector(ctx context.Context, conn driver.Conn, attr *dbAttribute) err
 	)
 }
 
-func oracleDetector(ctx context.Context, conn driver.Conn, attr *dbAttribute) error {
+func oracleDetector(ctx context.Context, conn driver.Conn, attr *DBAttribute) error {
 	attr.databaseType = "Oracle"
 	return queryRow(
 		ctx, conn,
@@ -516,7 +536,7 @@ func queryRow(ctx context.Context, conn driver.Conn, query string, dest ...*stri
 	return nil
 }
 
-func (attr *dbAttribute) populate(ctx context.Context, query string) {
+func (attr *DBAttribute) populate(ctx context.Context, query string) {
 	seg := GetSegment(ctx)
 
 	if seg == nil {
@@ -551,7 +571,7 @@ func (tx *driverTx) Rollback() error {
 type driverStmt struct {
 	driver.Stmt
 	conn  *driverConn
-	attr  *dbAttribute
+	attr  *DBAttribute
 	query string
 }
 
