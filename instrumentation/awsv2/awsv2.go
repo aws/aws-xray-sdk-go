@@ -67,6 +67,9 @@ func deserializeMiddleware(stack *middleware.Stack) error {
 			return out, metadata, err
 		}
 
+		// Lock subseg before updating
+		subseg.Lock()
+
 		subseg.GetHTTP().GetResponse().ContentLength = int(resp.ContentLength)
 		requestID, ok := v2Middleware.GetRequestIDMetadata(metadata)
 
@@ -76,6 +79,8 @@ func deserializeMiddleware(stack *middleware.Stack) error {
 		if extendedRequestID := resp.Header.Get(xray.S3ExtendedRequestIDHeaderKey); extendedRequestID != "" {
 			subseg.GetAWS()[xray.ExtendedRequestIDKey] = extendedRequestID
 		}
+
+		subseg.Unlock()
 
 		xray.HttpCaptureResponse(subseg, resp.StatusCode)
 		return out, metadata, err
