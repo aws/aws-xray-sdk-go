@@ -6,6 +6,7 @@
 //
 // or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
+//go:build go1.10
 // +build go1.10
 
 package xray
@@ -47,7 +48,7 @@ type driverConnector struct {
 	name     string
 
 	mu   sync.RWMutex
-	attr *dbAttribute
+	attr *DBAttribute
 }
 
 func (c *driverConnector) Connect(ctx context.Context) (driver.Conn, error) {
@@ -56,7 +57,7 @@ func (c *driverConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = Capture(ctx, attr.dbname+attr.host, func(ctx context.Context) error {
+	err = Capture(ctx, attr.DBname+attr.Host, func(ctx context.Context) error {
 		attr.populate(ctx, "CONNECT")
 		var err error
 		rawConn, err = c.Connector.Connect(ctx)
@@ -73,7 +74,7 @@ func (c *driverConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	return conn, nil
 }
 
-func (c *driverConnector) getAttr(ctx context.Context) (*dbAttribute, error) {
+func (c *driverConnector) getAttr(ctx context.Context) (*DBAttribute, error) {
 	c.mu.RLock()
 	attr := c.attr
 	c.mu.RUnlock()
