@@ -24,7 +24,7 @@ import (
 )
 
 // SDKVersion records the current X-Ray Go SDK version.
-const SDKVersion = "1.8.3"
+const SDKVersion = "1.8.4"
 
 // SDKType records which X-Ray SDK customer uses.
 const SDKType = "X-Ray for Go"
