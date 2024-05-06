@@ -9,6 +9,8 @@
 package xray
 
 import (
+	"context"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"testing"
@@ -42,6 +44,24 @@ func mockOracle(mock sqlmock.Sqlmock, err error) {
 		AddRow("test version", "test user", "test database").
 		RowError(0, err)
 	mock.ExpectPrepare(`SELECT version FROM v\$instance UNION SELECT user, ora_database_name FROM dual`).ExpectQuery().WillReturnRows(row)
+}
+
+func mockSnowflakeDB(mock sqlmock.Sqlmock, err error) {
+	row := sqlmock.NewRows([]string{"current_version()", "current_user()", "current_database()"}).
+		AddRow("test version", "test user", "test database").
+		RowError(0, err)
+	mock.ExpectPrepare(`SELECT current_version\(\), current_user\(\), current_database\(\)`).ExpectQuery().WillReturnRows(row)
+}
+
+func registerSnowflakeDriver() {
+	RegisterSQLDetector("snowflake", func(ctx context.Context, conn driver.Conn, attr *DBAttribute) error {
+		attr.DatabaseType = "Snowflake"
+		return queryRow(
+			ctx, conn,
+			"SELECT current_version(), current_user(), current_database()",
+			&attr.DatabaseVersion, &attr.User, &attr.DBname,
+		)
+	})
 }
 
 func capturePing(dsn string) (*Segment, error) {
