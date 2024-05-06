@@ -6,14 +6,25 @@ Unreleased
 
 ### SDK Bugs
 
+Release v1.8.4 (2024-04-24)
+================================
+### SDK Enhancements
+
+### SDK Bugs
+*  Updated go-sqlmock to v1.5.1 [#PR 451](https://github.com/aws/aws-xray-sdk-go/pull/451)
+*  Fix HTTP2 rapid reset vulnerability [#PR 428](https://github.com/aws/aws-xray-sdk-go/pull/428)
+*  Omit URL's password when stringifying URL for segment name [#PR 422](https://github.com/aws/aws-xray-sdk-go/pull/422)
+
+
 Release v1.8.3 (2023-11-13)
 ================================
 ### SDK Enhancements
 
 ### SDK Bugs
-*  Update AWS SDK for Go depdencies [#PR 430](https://github.com/aws/aws-xray-sdk-go/pull/430)
-*  Fix HTTP2 rapid reset vulnerability [#PR 428](https://github.com/aws/aws-xray-sdk-go/pull/428)
-*  Omit URL's password when stringifying URL for segment name [#PR 422](https://github.com/aws/aws-xray-sdk-go/pull/422)
+* Update AWS SDK for Go depdencies [#PR 430](https://github.com/aws/aws-xray-sdk-go/pull/430)
+* Fix fatal error: concurrent map iteration and map write [#PR 457](https://github.com/aws/aws-xray-sdk-go/pull/457)
+* Bump google.golang.org/protobuf from 1.31.0 to 1.33.0 [#PR 459](https://github.com/aws/aws-xray-sdk-go/pull/459)
+* Bump golang.org/x/net from 0.18.0 to 0.23.0 [#PR 464](https://github.com/aws/aws-xray-sdk-go/pull/464)
 
 
 Release v1.8.2 (2023-09-28)
