@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/header"
-	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
-	pb "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
+	pb "github.com/grpc-ecosystem/go-grpc-middleware/v2/testing/testpb"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -43,7 +43,7 @@ func (s *testGRPCPingService) Ping(_ context.Context, req *pb.PingRequest) (*pb.
 	}, nil
 }
 
-func (s *testGRPCPingService) PingError(_ context.Context, req *pb.PingRequest) (*pb.Empty, error) {
+func (s *testGRPCPingService) PingError(_ context.Context, req *pb.PingErrorRequest) (*pb.PingErrorResponse, error) {
 	code := codes.Code(req.ErrorCodeReturned)
 	return nil, status.Errorf(code, "Userspace error.")
 }
@@ -176,7 +176,7 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 			} else {
 				_, err = client.PingError(
 					ctx2,
-					&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(tc.responseErrorStatusCode)})
+					&pb.PingErrorRequest{Value: "something", ErrorCodeReturned: uint32(tc.responseErrorStatusCode)})
 				require.Error(t, err)
 			}
 			root.Close(nil)
@@ -316,7 +316,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 			} else {
 				_, err := client.PingError(
 					context.Background(),
-					&pb.PingRequest{Value: "something", ErrorCodeReturned: uint32(tc.responseErrorStatusCode)},
+					&pb.PingErrorRequest{Value: "something", ErrorCodeReturned: uint32(tc.responseErrorStatusCode)},
 					grpc.Header(&respHeaders),
 				)
 				require.Error(t, err)
