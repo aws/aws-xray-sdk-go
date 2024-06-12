@@ -106,9 +106,9 @@ func (t testCase) isTestForSuccessResponse() bool {
 
 func (t testCase) getExpectedURL() string {
 	if t.isTestForSuccessResponse() {
-		return "grpc://bufnet/mwitkow.testproto.TestService/Ping"
+		return "grpc://bufnet/testing.testpb.v1.TestService/Ping"
 	}
-	return "grpc://bufnet/mwitkow.testproto.TestService/PingError"
+	return "grpc://bufnet/testing.testpb.v1.TestService/PingError"
 }
 
 func (t testCase) getExpectedContentLength() int {
@@ -219,8 +219,8 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 
 		var subseg *Segment
 		assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
-		assert.Equal(t, "mwitkow.testproto.TestService", subseg.Name)
-		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/Ping", subseg.HTTP.Request.URL)
+		assert.Equal(t, "testing.testpb.v1.TestService", subseg.Name)
+		assert.Equal(t, "grpc://bufnet/testing.testpb.v1.TestService/Ping", subseg.HTTP.Request.URL)
 	})
 	t.Run("custom namer", func(t *testing.T) {
 		lis := newGrpcServer(
@@ -249,7 +249,7 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 		var subseg *Segment
 		assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
 		assert.Equal(t, "custom", subseg.Name)
-		assert.Equal(t, "grpc://bufnet/mwitkow.testproto.TestService/Ping", subseg.HTTP.Request.URL)
+		assert.Equal(t, "grpc://bufnet/testing.testpb.v1.TestService/Ping", subseg.HTTP.Request.URL)
 	})
 }
 
@@ -359,7 +359,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		assert.NoError(t, err)
 		segment, err := td.Recv()
 		assert.NoError(t, err)
-		assert.Equal(t, "mwitkow.testproto.TestService", segment.Name)
+		assert.Equal(t, "testing.testpb.v1.TestService", segment.Name)
 	})
 
 	t.Run("chained interceptor", func(t *testing.T) {
