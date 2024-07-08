@@ -13,8 +13,8 @@ import (
 
 	"google.golang.org/grpc/codes"
 
-	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/aws/aws-xray-sdk-go/header"
 	"google.golang.org/grpc"
