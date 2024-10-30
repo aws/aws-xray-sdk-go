@@ -14,7 +14,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.4
-	github.com/valyala/fasthttp v1.57.0
+	github.com/valyala/fasthttp v1.52.0
 	golang.org/x/net v0.30.0
 	google.golang.org/grpc v1.64.1
 	google.golang.org/protobuf v1.33.0
