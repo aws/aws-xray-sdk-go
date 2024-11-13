@@ -6,6 +6,15 @@ Unreleased
 
 ### SDK Bugs
 
+Release v1.8.5 (2024-11-13)
+================================
+### SDK Enhancements
+
+### SDK Bugs
+*  Fix and upgrade protobuf  [#PR 469](https://github.com/aws/aws-xray-sdk-go/pull/469)
+*  Update fasthttp to v1.52.0 for RSA support [#PR 478](https://github.com/aws/aws-xray-sdk-go/pull/478)
+
+
 Release v1.8.4 (2024-04-24)
 ================================
 ### SDK Enhancements
