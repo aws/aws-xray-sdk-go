@@ -5,6 +5,10 @@ on:
     branches:
       - master
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   package_SDK:
     name: Build X-Ray Go SDK With Sample App
