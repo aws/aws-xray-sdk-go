@@ -2,6 +2,11 @@ on:
   push:
     branches:
       - master
+
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build_push_sample_app_image:
     name: Build and Push Sample App docker image
