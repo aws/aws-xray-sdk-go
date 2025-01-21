@@ -33,7 +33,7 @@ jobs:
         working-directory: ./sample-apps/http-server
 
       - name: Upload WebApp with X-Ray SDK build artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: deployment-package
           path: sample-apps/http-server/deploy.zip
@@ -123,7 +123,7 @@ jobs:
 
     steps:
       - name: Download terraform state artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: terraform-state-artifact
 
