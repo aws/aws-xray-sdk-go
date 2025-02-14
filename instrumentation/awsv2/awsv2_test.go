@@ -143,8 +143,8 @@ func TestAWSV2(t *testing.T) {
 				t.Errorf("expected namespace to be %s, got %s", e, a)
 			}
 
-			if subseg.GetAWS()[xray.RequestIDKey] != nil {
-				if e, a := c.expectedRequestID, fmt.Sprintf("%v", subseg.GetAWS()[xray.RequestIDKey]); !strings.EqualFold(e, a) {
+			if subseg.GetAWS()[RequestIDKey] != nil {
+				if e, a := c.expectedRequestID, fmt.Sprintf("%v", subseg.GetAWS()[RequestIDKey]); !strings.EqualFold(e, a) {
 					t.Errorf("expected request id to be %s, got %s", e, a)
 				}
 			}

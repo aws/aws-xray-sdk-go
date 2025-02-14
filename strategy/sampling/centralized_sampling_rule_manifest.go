@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 
-	xraySvc "github.com/aws/aws-sdk-go/service/xray"
 	"github.com/aws/aws-xray-sdk-go/utils"
 )
 
@@ -37,7 +36,7 @@ type CentralizedManifest struct {
 
 // putRule updates the named rule if it already exists or creates it if it does not.
 // May break ordering of the sorted rules array if it creates a new rule.
-func (m *CentralizedManifest) putRule(svcRule *xraySvc.SamplingRule) (r *CentralizedRule, err error) {
+func (m *CentralizedManifest) putRule(svcRule *SamplingRule) (r *CentralizedRule, err error) {
 	defer func() {
 		if x := recover(); x != nil {
 			err = fmt.Errorf("%v", x)
@@ -87,8 +86,8 @@ func (m *CentralizedManifest) putRule(svcRule *xraySvc.SamplingRule) (r *Central
 // adds it to the index, and returns the newly created rule.
 // Appends new rule to the sorted array which may break its ordering.
 // Panics if svcRule contains nil pointers
-func (m *CentralizedManifest) createUserRule(svcRule *xraySvc.SamplingRule) *CentralizedRule {
-	// Create CentralizedRule from xraySvc.SamplingRule
+func (m *CentralizedManifest) createUserRule(svcRule *SamplingRule) *CentralizedRule {
+	// Create CentralizedRule from SamplingRule
 	clock := &utils.DefaultClock{}
 	rand := &utils.DefaultRand{}
 
@@ -140,10 +139,10 @@ func (m *CentralizedManifest) createUserRule(svcRule *xraySvc.SamplingRule) *Cen
 }
 
 // updateUserRule updates the properties of the user-defined CentralizedRule using the given
-// xraySvc.SamplingRule.
+// SamplingRule.
 // Panics if svcRule contains nil pointers.
-func (m *CentralizedManifest) updateUserRule(r *CentralizedRule, svcRule *xraySvc.SamplingRule) {
-	// Preemptively dereference xraySvc.SamplingRule fields and panic early on nil pointers.
+func (m *CentralizedManifest) updateUserRule(r *CentralizedRule, svcRule *SamplingRule) {
+	// Preemptively dereference SamplingRule fields and panic early on nil pointers.
 	// A panic in the middle of an update may leave the rule in an inconsistent state.
 	pr := &Properties{
 		ServiceName: *svcRule.ServiceName,
@@ -169,8 +168,8 @@ func (m *CentralizedManifest) updateUserRule(r *CentralizedRule, svcRule *xraySv
 
 // createDefaultRule creates a default CentralizedRule and adds it to the manifest.
 // Panics if svcRule contains nil values for FixedRate and ReservoirSize.
-func (m *CentralizedManifest) createDefaultRule(svcRule *xraySvc.SamplingRule) *CentralizedRule {
-	// Create CentralizedRule from xraySvc.SamplingRule
+func (m *CentralizedManifest) createDefaultRule(svcRule *SamplingRule) *CentralizedRule {
+	// Create CentralizedRule from SamplingRule
 	clock := &utils.DefaultClock{}
 	rand := &utils.DefaultRand{}
 
@@ -214,12 +213,12 @@ func (m *CentralizedManifest) createDefaultRule(svcRule *xraySvc.SamplingRule) *
 }
 
 // updateDefaultRule updates the properties of the default CentralizedRule using the given
-// xraySvc.SamplingRule.
+// SamplingRule.
 // Panics if svcRule contains nil values for FixedRate and ReservoirSize.
-func (m *CentralizedManifest) updateDefaultRule(svcRule *xraySvc.SamplingRule) {
+func (m *CentralizedManifest) updateDefaultRule(svcRule *SamplingRule) {
 	r := m.Default
 
-	// Preemptively dereference xraySvc.SamplingRule fields and panic early on nil pointers.
+	// Preemptively dereference SamplingRule fields and panic early on nil pointers.
 	// A panic in the middle of an update may leave the rule in an inconsistent state.
 	p := &Properties{
 		FixedTarget: *svcRule.ReservoirSize,
