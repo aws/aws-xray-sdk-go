@@ -1,3 +1,6 @@
+// Copied from:
+// https://github.com/aws/aws-sdk-go/blob/v1.55.6/aws/awserr/types.go
+
 package awserr
 
 import (

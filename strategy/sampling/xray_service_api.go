@@ -1,3 +1,6 @@
+// Types in this file are copied from:
+// https://github.com/aws/aws-sdk-go/blob/v1.55.6/service/xray/api.go
+
 package sampling
 
 import "time"
