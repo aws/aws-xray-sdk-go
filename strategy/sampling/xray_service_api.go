@@ -1,11 +1,9 @@
-// Types in this file are copied from:
+// Types in this file are modified from:
 // https://github.com/aws/aws-sdk-go/blob/v1.55.6/service/xray/api.go
 
 package sampling
 
 type SamplingStatisticsDocument struct {
-	_ struct{} `type:"structure"`
-
 	// The number of requests recorded with borrowed reservoir quota.
 	BorrowCount *int64 `type:"integer"`
 
@@ -39,8 +37,6 @@ type SamplingStatisticsDocument struct {
 // Rule fields can match properties of the service, or properties of a request.
 // The service can ignore rules that don't match its properties.
 type SamplingRule struct {
-	_ struct{} `type:"structure"`
-
 	// Matches attributes derived from the request.
 	Attributes map[string]*string `json:"Attributes"`
 
@@ -110,8 +106,6 @@ type SamplingRule struct {
 // A SamplingRule (https://docs.aws.amazon.com/xray/latest/api/API_SamplingRule.html)
 // and its metadata.
 type SamplingRuleRecord struct {
-	_ struct{} `type:"structure"`
-
 	// When the rule was created.
 	CreatedAt *float64 `json:"CreatedAt"`
 
@@ -123,8 +117,6 @@ type SamplingRuleRecord struct {
 }
 
 type GetSamplingTargetsOutput struct {
-	_ struct{} `type:"structure"`
-
 	// The last time a user changed the sampling rule configuration. If the sampling
 	// rule configuration changed since the service last retrieved it, the service
 	// should call GetSamplingRules (https://docs.aws.amazon.com/xray/latest/api/API_GetSamplingRules.html)
@@ -144,8 +136,6 @@ type GetSamplingTargetsOutput struct {
 // on the recent sampling results of all services that called GetSamplingTargets
 // (https://docs.aws.amazon.com/xray/latest/api/API_GetSamplingTargets.html).
 type SamplingTargetDocument struct {
-	_ struct{} `type:"structure"`
-
 	// The percentage of matching requests to instrument, after the reservoir is
 	// exhausted.
 	FixedRate *float64 `json:"FixedRate"`
@@ -167,8 +157,6 @@ type SamplingTargetDocument struct {
 // Sampling statistics from a call to GetSamplingTargets (https://docs.aws.amazon.com/xray/latest/api/API_GetSamplingTargets.html)
 // that X-Ray could not process.
 type UnprocessedStatistics struct {
-	_ struct{} `type:"structure"`
-
 	// The error code.
 	ErrorCode *string `json:"ErrorCode"`
 
@@ -180,8 +168,6 @@ type UnprocessedStatistics struct {
 }
 
 type GetSamplingTargetsInput struct {
-	_ struct{} `type:"structure"`
-
 	// Information about rules that the service is using to sample requests.
 	//
 	// SamplingStatisticsDocuments is a required field
@@ -189,15 +175,11 @@ type GetSamplingTargetsInput struct {
 }
 
 type GetSamplingRulesInput struct {
-	_ struct{} `type:"structure"`
-
 	// Pagination token.
 	NextToken *string `type:"string"`
 }
 
 type GetSamplingRulesOutput struct {
-	_ struct{} `type:"structure"`
-
 	// Pagination token.
 	NextToken *string `json:"NextToken"`
 
