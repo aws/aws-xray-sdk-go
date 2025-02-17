@@ -437,7 +437,7 @@ func TestSnapshots(t *testing.T) {
 	}
 
 	id := "c1"
-	time := clock.Now()
+	time := clock.Now().Unix()
 
 	name1 := "r1"
 	requests1 := int64(1000)
@@ -517,7 +517,7 @@ func TestMixedSnapshots(t *testing.T) {
 	}
 
 	id := "c1"
-	time := clock.Now()
+	time := clock.Now().Unix()
 
 	// Stale and active rule
 	name1 := "r1"
@@ -613,7 +613,7 @@ func TestUpdateTarget(t *testing.T) {
 	// Sampling target received from centralized sampling backend
 	rate := float64(0.05)
 	quota := int64(10)
-	ttl := time.Unix(1500000060, 0)
+	ttl := float64(1500000060)
 	name := "r1"
 	st := &SamplingTargetDocument{
 		FixedRate:         &rate,
@@ -687,7 +687,7 @@ func TestUpdateTargetMissingRule(t *testing.T) {
 	// Sampling target received from centralized sampling backend
 	rate := float64(0.05)
 	quota := int64(10)
-	ttl := time.Unix(1500000060, 0)
+	ttl := float64(1500000060)
 	name := "r1"
 	st := &SamplingTargetDocument{
 		FixedRate:         &rate,
@@ -717,7 +717,7 @@ func TestUpdateTargetMissingRule(t *testing.T) {
 func TestUpdateTargetPanicRecovery(t *testing.T) {
 	// Invalid sampling target missing FixedRate.
 	quota := int64(10)
-	ttl := time.Unix(1500000060, 0)
+	ttl := float64(1500000060)
 	name := "r1"
 	st := &SamplingTargetDocument{
 		ReservoirQuota:    &quota,
@@ -1887,7 +1887,7 @@ func TestRefreshTargets(t *testing.T) {
 	// Sampling Target for 'r1'
 	rate1 := 0.07
 	quota1 := int64(3)
-	quotaTTL1 := time.Unix(1500000060, 0)
+	quotaTTL1 := float64(1500000060)
 	name1 := "r1"
 	t1 := &SamplingTargetDocument{
 		FixedRate:         &rate1,
@@ -1899,7 +1899,7 @@ func TestRefreshTargets(t *testing.T) {
 	// Sampling Target for 'r3'
 	rate3 := 0.11
 	quota3 := int64(15)
-	quotaTTL3 := time.Unix(1500000060, 0)
+	quotaTTL3 := float64(1500000060)
 	name3 := "r3"
 	t3 := &SamplingTargetDocument{
 		FixedRate:         &rate3,
@@ -1909,7 +1909,7 @@ func TestRefreshTargets(t *testing.T) {
 	}
 
 	// 'LastRuleModification' attribute
-	modifiedAt := time.Unix(1499999900, 0)
+	modifiedAt := float64(1499999900)
 
 	// Mock proxy with targets for 'r1' and 'r3'
 	proxy := &mockProxy{
@@ -2065,7 +2065,7 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 	// Sampling Target for 'r1'
 	rate1 := 0.07
 	quota1 := int64(3)
-	quotaTTL1 := time.Unix(1500000060, 0)
+	quotaTTL1 := float64(1500000060)
 	name1 := "r1"
 	t1 := &SamplingTargetDocument{
 		FixedRate:         &rate1,
@@ -2077,7 +2077,7 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 	// Sampling Target for 'r3'
 	rate3 := 0.11
 	quota3 := int64(15)
-	quotaTTL3 := time.Unix(1500000060, 0)
+	quotaTTL3 := float64(1500000060)
 	name3 := "r3"
 	t3 := &SamplingTargetDocument{
 		FixedRate:         &rate3,
@@ -2087,7 +2087,7 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 	}
 
 	// 'LastRuleModification' attribute
-	modifiedAt := time.Unix(1499999900, 0)
+	modifiedAt := float64(1499999900)
 
 	// Mock proxy with targets for 'r1' and 'r3'
 	proxy := &mockProxy{
@@ -2288,7 +2288,7 @@ func TestRefreshTargetsInvalidTarget(t *testing.T) {
 
 	// Invalid sampling Target for 'r1' (missing fixed rate)
 	quota1 := int64(3)
-	quotaTTL1 := time.Unix(1500000060, 0)
+	quotaTTL1 := float64(1500000060)
 	name1 := "r1"
 	t1 := &SamplingTargetDocument{
 		RuleName:          &name1,
@@ -2299,7 +2299,7 @@ func TestRefreshTargetsInvalidTarget(t *testing.T) {
 	// Valid sampling Target for 'r3'
 	rate3 := 0.11
 	quota3 := int64(15)
-	quotaTTL3 := time.Unix(1500000060, 0)
+	quotaTTL3 := float64(1500000060)
 	name3 := "r3"
 	t3 := &SamplingTargetDocument{
 		FixedRate:         &rate3,
@@ -2309,7 +2309,7 @@ func TestRefreshTargetsInvalidTarget(t *testing.T) {
 	}
 
 	// 'LastRuleModification' attribute
-	modifiedAt := time.Unix(1499999900, 0)
+	modifiedAt := float64(1499999900)
 
 	// Mock proxy with targets for 'r1' and 'r3'
 	proxy := &mockProxy{
@@ -2442,7 +2442,7 @@ func TestRefreshTargetsOutdatedManifest(t *testing.T) {
 	// Valid sampling Target for 'r3'
 	rate3 := 0.11
 	quota3 := int64(15)
-	quotaTTL3 := time.Unix(1500000060, 0)
+	quotaTTL3 := float64(1500000060)
 	name3 := "r3"
 	t3 := &SamplingTargetDocument{
 		FixedRate:         &rate3,
@@ -2478,7 +2478,7 @@ func TestRefreshTargetsOutdatedManifest(t *testing.T) {
 	}
 
 	// 'LastRuleModification' attribute
-	modifiedAt := time.Unix(1499999900, 0)
+	modifiedAt := float64(1499999900)
 
 	// Mock proxy with `LastRuleModification` attribute and sampling rules
 	proxy := &mockProxy{

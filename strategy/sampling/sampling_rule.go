@@ -176,7 +176,7 @@ func (r *CentralizedRule) snapshot() *SamplingStatisticsDocument {
 
 	r.mu.Unlock()
 
-	now := r.clock.Now()
+	now := r.clock.Now().Unix()
 	s := &SamplingStatisticsDocument{
 		RequestCount: &requests,
 		SampledCount: &sampled,

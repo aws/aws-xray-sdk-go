@@ -3,8 +3,6 @@
 
 package sampling
 
-import "time"
-
 type SamplingStatisticsDocument struct {
 	_ struct{} `type:"structure"`
 
@@ -34,7 +32,7 @@ type SamplingStatisticsDocument struct {
 	// The current time.
 	//
 	// Timestamp is a required field
-	Timestamp *time.Time `type:"timestamp" required:"true"`
+	Timestamp *int64 `type:"integer" required:"true"`
 }
 
 // A sampling rule that services use to decide whether to instrument a request.
@@ -44,69 +42,69 @@ type SamplingRule struct {
 	_ struct{} `type:"structure"`
 
 	// Matches attributes derived from the request.
-	Attributes map[string]*string `type:"map"`
+	Attributes map[string]*string `json:"Attributes"`
 
 	// The percentage of matching requests to instrument, after the reservoir is
 	// exhausted.
 	//
 	// FixedRate is a required field
-	FixedRate *float64 `type:"double" required:"true"`
+	FixedRate *float64 `json:"FixedRate" required:"true"`
 
 	// Matches the HTTP method of a request.
 	//
 	// HTTPMethod is a required field
-	HTTPMethod *string `type:"string" required:"true"`
+	HTTPMethod *string `json:"HTTPMethod" required:"true"`
 
 	// Matches the hostname from a request URL.
 	//
 	// Host is a required field
-	Host *string `type:"string" required:"true"`
+	Host *string `json:"Host" required:"true"`
 
 	// The priority of the sampling rule.
 	//
 	// Priority is a required field
-	Priority *int64 `min:"1" type:"integer" required:"true"`
+	Priority *int64 `min:"1" json:"Priority" required:"true"`
 
 	// A fixed number of matching requests to instrument per second, prior to applying
 	// the fixed rate. The reservoir is not used directly by services, but applies
 	// to all services using the rule collectively.
 	//
 	// ReservoirSize is a required field
-	ReservoirSize *int64 `type:"integer" required:"true"`
+	ReservoirSize *int64 `json:"ReservoirSize" required:"true"`
 
 	// Matches the ARN of the Amazon Web Services resource on which the service
 	// runs.
 	//
 	// ResourceARN is a required field
-	ResourceARN *string `type:"string" required:"true"`
+	ResourceARN *string `json:"ResourceARN" required:"true"`
 
 	// The ARN of the sampling rule. Specify a rule by either name or ARN, but not
 	// both.
-	RuleARN *string `type:"string"`
+	RuleARN *string `json:"RuleARN"`
 
 	// The name of the sampling rule. Specify a rule by either name or ARN, but
 	// not both.
-	RuleName *string `min:"1" type:"string"`
+	RuleName *string `min:"1" json:"RuleName"`
 
 	// Matches the name that the service uses to identify itself in segments.
 	//
 	// ServiceName is a required field
-	ServiceName *string `type:"string" required:"true"`
+	ServiceName *string `json:"ServiceName" required:"true"`
 
 	// Matches the origin that the service uses to identify its type in segments.
 	//
 	// ServiceType is a required field
-	ServiceType *string `type:"string" required:"true"`
+	ServiceType *string `json:"ServiceType" required:"true"`
 
 	// Matches the path from a request URL.
 	//
 	// URLPath is a required field
-	URLPath *string `type:"string" required:"true"`
+	URLPath *string `json:"URLPath" required:"true"`
 
 	// The version of the sampling rule format (1).
 	//
 	// Version is a required field
-	Version *int64 `min:"1" type:"integer" required:"true"`
+	Version *int64 `min:"1" json:"Version" required:"true"`
 }
 
 // A SamplingRule (https://docs.aws.amazon.com/xray/latest/api/API_SamplingRule.html)
@@ -115,13 +113,13 @@ type SamplingRuleRecord struct {
 	_ struct{} `type:"structure"`
 
 	// When the rule was created.
-	CreatedAt *time.Time `type:"timestamp"`
+	CreatedAt *float64 `json:"CreatedAt"`
 
 	// When the rule was last modified.
-	ModifiedAt *time.Time `type:"timestamp"`
+	ModifiedAt *float64 `json:"ModifiedAt"`
 
 	// The sampling rule.
-	SamplingRule *SamplingRule `type:"structure"`
+	SamplingRule *SamplingRule `json:"SamplingRule"`
 }
 
 type GetSamplingTargetsOutput struct {
@@ -131,14 +129,14 @@ type GetSamplingTargetsOutput struct {
 	// rule configuration changed since the service last retrieved it, the service
 	// should call GetSamplingRules (https://docs.aws.amazon.com/xray/latest/api/API_GetSamplingRules.html)
 	// to get the latest version.
-	LastRuleModification *time.Time `type:"timestamp"`
+	LastRuleModification *float64 `json:"LastRuleModification"`
 
 	// Updated rules that the service should use to sample requests.
-	SamplingTargetDocuments []*SamplingTargetDocument `type:"list"`
+	SamplingTargetDocuments []*SamplingTargetDocument `json:"SamplingTargetDocuments"`
 
 	// Information about SamplingStatisticsDocument (https://docs.aws.amazon.com/xray/latest/api/API_SamplingStatisticsDocument.html)
 	// that X-Ray could not process.
-	UnprocessedStatistics []*UnprocessedStatistics `type:"list"`
+	UnprocessedStatistics []*UnprocessedStatistics `json:"UnprocessedStatistics"`
 }
 
 // Temporary changes to a sampling rule configuration. To meet the global sampling
@@ -150,20 +148,20 @@ type SamplingTargetDocument struct {
 
 	// The percentage of matching requests to instrument, after the reservoir is
 	// exhausted.
-	FixedRate *float64 `type:"double"`
+	FixedRate *float64 `json:"FixedRate"`
 
 	// The number of seconds for the service to wait before getting sampling targets
 	// again.
-	Interval *int64 `type:"integer"`
+	Interval *int64 `json:"Interval"`
 
 	// The number of requests per second that X-Ray allocated for this service.
-	ReservoirQuota *int64 `type:"integer"`
+	ReservoirQuota *int64 `json:"ReservoirQuota"`
 
 	// When the reservoir quota expires.
-	ReservoirQuotaTTL *time.Time `type:"timestamp"`
+	ReservoirQuotaTTL *float64 `json:"ReservoirQuotaTTL"`
 
 	// The name of the sampling rule.
-	RuleName *string `type:"string"`
+	RuleName *string `json:"RuleName"`
 }
 
 // Sampling statistics from a call to GetSamplingTargets (https://docs.aws.amazon.com/xray/latest/api/API_GetSamplingTargets.html)
@@ -172,13 +170,13 @@ type UnprocessedStatistics struct {
 	_ struct{} `type:"structure"`
 
 	// The error code.
-	ErrorCode *string `type:"string"`
+	ErrorCode *string `json:"ErrorCode"`
 
 	// The error message.
-	Message *string `type:"string"`
+	Message *string `json:"Message"`
 
 	// The name of the sampling rule.
-	RuleName *string `type:"string"`
+	RuleName *string `json:"RuleName"`
 }
 
 type GetSamplingTargetsInput struct {
@@ -201,8 +199,8 @@ type GetSamplingRulesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Pagination token.
-	NextToken *string `type:"string"`
+	NextToken *string `json:"NextToken"`
 
 	// Rule definitions and metadata.
-	SamplingRuleRecords []*SamplingRuleRecord `type:"list"`
+	SamplingRuleRecords []*SamplingRuleRecord `json:"SamplingRuleRecords"`
 }

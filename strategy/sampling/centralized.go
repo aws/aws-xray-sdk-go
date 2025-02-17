@@ -420,7 +420,7 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 		local := ss.manifest.refreshedAt
 		ss.manifest.mu.RUnlock()
 
-		if remote.Unix() >= local {
+		if *remote >= float64(local) {
 			refresh = true
 		}
 	}
@@ -504,7 +504,7 @@ func (ss *CentralizedStrategy) updateTarget(t *SamplingTargetDocument) (err erro
 		r.reservoir.quota = *t.ReservoirQuota
 	}
 	if t.ReservoirQuotaTTL != nil {
-		r.reservoir.expiresAt = t.ReservoirQuotaTTL.Unix()
+		r.reservoir.expiresAt = int64(*t.ReservoirQuotaTTL)
 	}
 	if t.Interval != nil {
 		r.reservoir.interval = *t.Interval
