@@ -14,19 +14,17 @@ import (
 	"time"
 
 	"github.com/aws/aws-xray-sdk-go/daemoncfg"
-
-	xraySvc "github.com/aws/aws-sdk-go/service/xray"
 	"github.com/aws/aws-xray-sdk-go/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 // Mock implementation of xray service proxy. Used for unit testing.
 type mockProxy struct {
-	samplingRules        []*xraySvc.SamplingRuleRecord
-	samplingTargetOutput *xraySvc.GetSamplingTargetsOutput
+	samplingRules        []*SamplingRuleRecord
+	samplingTargetOutput *GetSamplingTargetsOutput
 }
 
-func (p *mockProxy) GetSamplingRules() ([]*xraySvc.SamplingRuleRecord, error) {
+func (p *mockProxy) GetSamplingRules() ([]*SamplingRuleRecord, error) {
 	if p.samplingRules == nil {
 		return nil, errors.New("Error encountered retrieving sampling rules")
 	}
@@ -34,12 +32,12 @@ func (p *mockProxy) GetSamplingRules() ([]*xraySvc.SamplingRuleRecord, error) {
 	return p.samplingRules, nil
 }
 
-func (p *mockProxy) GetSamplingTargets(s []*xraySvc.SamplingStatisticsDocument) (*xraySvc.GetSamplingTargetsOutput, error) {
+func (p *mockProxy) GetSamplingTargets(s []*SamplingStatisticsDocument) (*GetSamplingTargetsOutput, error) {
 	if p.samplingTargetOutput == nil {
 		return nil, errors.New("Error encountered retrieving sampling targets")
 	}
 
-	targets := make([]*xraySvc.SamplingTargetDocument, 0, len(s))
+	targets := make([]*SamplingTargetDocument, 0, len(s))
 
 	for _, s := range s {
 		for _, t := range p.samplingTargetOutput.SamplingTargetDocuments {
@@ -439,7 +437,7 @@ func TestSnapshots(t *testing.T) {
 	}
 
 	id := "c1"
-	time := clock.Now()
+	time := clock.Now().Unix()
 
 	name1 := "r1"
 	requests1 := int64(1000)
@@ -488,7 +486,7 @@ func TestSnapshots(t *testing.T) {
 	}
 
 	// Expected SamplingStatistics structs
-	ss1 := xraySvc.SamplingStatisticsDocument{
+	ss1 := SamplingStatisticsDocument{
 		ClientID:     &id,
 		RequestCount: &requests1,
 		RuleName:     &name1,
@@ -497,7 +495,7 @@ func TestSnapshots(t *testing.T) {
 		Timestamp:    &time,
 	}
 
-	ss2 := xraySvc.SamplingStatisticsDocument{
+	ss2 := SamplingStatisticsDocument{
 		ClientID:     &id,
 		RequestCount: &requests2,
 		RuleName:     &name2,
@@ -519,7 +517,7 @@ func TestMixedSnapshots(t *testing.T) {
 	}
 
 	id := "c1"
-	time := clock.Now()
+	time := clock.Now().Unix()
 
 	// Stale and active rule
 	name1 := "r1"
@@ -591,7 +589,7 @@ func TestMixedSnapshots(t *testing.T) {
 	}
 
 	// Expected SamplingStatistics structs
-	ss1 := xraySvc.SamplingStatisticsDocument{
+	ss1 := SamplingStatisticsDocument{
 		ClientID:     &id,
 		RequestCount: &requests1,
 		RuleName:     &name1,
@@ -615,9 +613,9 @@ func TestUpdateTarget(t *testing.T) {
 	// Sampling target received from centralized sampling backend
 	rate := float64(0.05)
 	quota := int64(10)
-	ttl := time.Unix(1500000060, 0)
+	ttl := float64(1500000060)
 	name := "r1"
-	st := &xraySvc.SamplingTargetDocument{
+	st := &SamplingTargetDocument{
 		FixedRate:         &rate,
 		ReservoirQuota:    &quota,
 		ReservoirQuotaTTL: &ttl,
@@ -689,9 +687,9 @@ func TestUpdateTargetMissingRule(t *testing.T) {
 	// Sampling target received from centralized sampling backend
 	rate := float64(0.05)
 	quota := int64(10)
-	ttl := time.Unix(1500000060, 0)
+	ttl := float64(1500000060)
 	name := "r1"
-	st := &xraySvc.SamplingTargetDocument{
+	st := &SamplingTargetDocument{
 		FixedRate:         &rate,
 		ReservoirQuota:    &quota,
 		ReservoirQuotaTTL: &ttl,
@@ -719,9 +717,9 @@ func TestUpdateTargetMissingRule(t *testing.T) {
 func TestUpdateTargetPanicRecovery(t *testing.T) {
 	// Invalid sampling target missing FixedRate.
 	quota := int64(10)
-	ttl := time.Unix(1500000060, 0)
+	ttl := float64(1500000060)
 	name := "r1"
-	st := &xraySvc.SamplingTargetDocument{
+	st := &SamplingTargetDocument{
 		ReservoirQuota:    &quota,
 		ReservoirQuotaTTL: &ttl,
 		RuleName:          &name,
@@ -847,8 +845,8 @@ func TestRefreshManifestRuleAddition(t *testing.T) {
 	serviceName1 := "www.foo.com"
 	urlPath1 := "/resource/bar"
 	version1 := int64(1)
-	u1 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u1 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name1,
 			ServiceName:   &serviceName1,
 			URLPath:       &urlPath1,
@@ -872,8 +870,8 @@ func TestRefreshManifestRuleAddition(t *testing.T) {
 	serviceName2 := "www.fizz.com"
 	urlPath2 := "/resource/fizz"
 	version2 := int64(1)
-	u2 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u2 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name2,
 			ServiceName:   &serviceName2,
 			URLPath:       &urlPath2,
@@ -897,8 +895,8 @@ func TestRefreshManifestRuleAddition(t *testing.T) {
 	serviceName3 := "www.bar.com"
 	urlPath3 := "/resource/foo"
 	version3 := int64(1)
-	u3 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u3 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name3,
 			ServiceName:   &serviceName3,
 			URLPath:       &urlPath3,
@@ -915,7 +913,7 @@ func TestRefreshManifestRuleAddition(t *testing.T) {
 
 	// Mock proxy with updates u1, u2, and u3
 	proxy := &mockProxy{
-		samplingRules: []*xraySvc.SamplingRuleRecord{u1, u2, u3},
+		samplingRules: []*SamplingRuleRecord{u1, u2, u3},
 	}
 
 	// Mock clock with time incremented to 60 seconds past current
@@ -1013,8 +1011,8 @@ func TestRefreshManifestRuleAdditionInvalidRule1(t *testing.T) { // ResourceARN 
 	serviceName1 := "www.foo.com"
 	urlPath1 := "/resource/bar"
 	version1 := int64(1)
-	u1 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u1 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name1,
 			ServiceName:   &serviceName1,
 			URLPath:       &urlPath1,
@@ -1031,7 +1029,7 @@ func TestRefreshManifestRuleAdditionInvalidRule1(t *testing.T) { // ResourceARN 
 
 	// Mock proxy with updates u1
 	proxy := &mockProxy{
-		samplingRules: []*xraySvc.SamplingRuleRecord{u1},
+		samplingRules: []*SamplingRuleRecord{u1},
 	}
 
 	// Mock clock with time incremented to 60 seconds past current
@@ -1093,8 +1091,8 @@ func TestRefreshManifestRuleAdditionInvalidRule2(t *testing.T) { // non nil Attr
 	serviceName1 := "www.foo.com"
 	urlPath1 := "/resource/bar"
 	version1 := int64(1)
-	u1 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u1 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name1,
 			ServiceName:   &serviceName1,
 			URLPath:       &urlPath1,
@@ -1112,7 +1110,7 @@ func TestRefreshManifestRuleAdditionInvalidRule2(t *testing.T) { // non nil Attr
 
 	// Mock proxy with updates u1
 	proxy := &mockProxy{
-		samplingRules: []*xraySvc.SamplingRuleRecord{u1},
+		samplingRules: []*SamplingRuleRecord{u1},
 	}
 
 	// Mock clock with time incremented to 60 seconds past current
@@ -1187,8 +1185,8 @@ func TestRefreshManifestRuleAdditionInvalidRule3(t *testing.T) { // 1 valid and 
 	serviceName1 := "www.foo.com"
 	urlPath1 := "/resource/bar"
 	version1 := int64(1)
-	u1 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u1 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name1,
 			ServiceName:   &serviceName1,
 			URLPath:       &urlPath1,
@@ -1205,8 +1203,8 @@ func TestRefreshManifestRuleAdditionInvalidRule3(t *testing.T) { // 1 valid and 
 	}
 
 	name2 := "r2"
-	u2 := &xraySvc.SamplingRuleRecord{ // valid rule
-		SamplingRule: &xraySvc.SamplingRule{
+	u2 := &SamplingRuleRecord{ // valid rule
+		SamplingRule: &SamplingRule{
 			RuleName:      &name2,
 			ServiceName:   &serviceName1,
 			URLPath:       &urlPath1,
@@ -1223,7 +1221,7 @@ func TestRefreshManifestRuleAdditionInvalidRule3(t *testing.T) { // 1 valid and 
 
 	// Mock proxy with updates u1
 	proxy := &mockProxy{
-		samplingRules: []*xraySvc.SamplingRuleRecord{u1, u2},
+		samplingRules: []*SamplingRuleRecord{u1, u2},
 	}
 
 	// Mock clock with time incremented to 60 seconds past current
@@ -1336,8 +1334,8 @@ func TestRefreshManifestRuleRemoval(t *testing.T) {
 	urlPath1 := "/resource/bar"
 	version1 := int64(1)
 	host1 := "h1"
-	u1 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u1 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name1,
 			ServiceName:   &serviceName1,
 			URLPath:       &urlPath1,
@@ -1365,8 +1363,8 @@ func TestRefreshManifestRuleRemoval(t *testing.T) {
 	urlPath3 := "/resource/foo"
 	version3 := int64(1)
 	host3 := "h3"
-	u3 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u3 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name3,
 			ServiceName:   &serviceName3,
 			URLPath:       &urlPath3,
@@ -1384,7 +1382,7 @@ func TestRefreshManifestRuleRemoval(t *testing.T) {
 
 	// Mock proxy with updates u1 and u3
 	proxy := &mockProxy{
-		samplingRules: []*xraySvc.SamplingRuleRecord{u1, u3},
+		samplingRules: []*SamplingRuleRecord{u1, u3},
 	}
 
 	// Mock clock with time incremented to 60 seconds past current
@@ -1484,8 +1482,8 @@ func TestRefreshManifestInvalidRuleUpdate(t *testing.T) {
 	serviceName1 := "www.foo.com"
 	urlPath1 := "/resource/bar"
 	version1 := int64(1)
-	u1 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u1 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name1,
 			ServiceName:   &serviceName1,
 			URLPath:       &urlPath1,
@@ -1508,8 +1506,8 @@ func TestRefreshManifestInvalidRuleUpdate(t *testing.T) {
 	serviceName3 := "www.bar.com"
 	urlPath3 := "/resource/foo"
 	version3 := int64(1)
-	u3 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u3 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name3,
 			ServiceName:   &serviceName3,
 			URLPath:       &urlPath3,
@@ -1527,7 +1525,7 @@ func TestRefreshManifestInvalidRuleUpdate(t *testing.T) {
 
 	// Mock proxy with updates u1 and u3
 	proxy := &mockProxy{
-		samplingRules: []*xraySvc.SamplingRuleRecord{u1, u3},
+		samplingRules: []*SamplingRuleRecord{u1, u3},
 	}
 
 	// Mock clock with time incremented to 60 seconds past current
@@ -1630,8 +1628,8 @@ func TestRefreshManifestInvalidNewRule(t *testing.T) {
 	serviceName1 := "www.foo.com"
 	urlPath1 := "/resource/bar"
 	version1 := int64(1)
-	u1 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u1 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name1,
 			ServiceName:   &serviceName1,
 			URLPath:       &urlPath1,
@@ -1654,8 +1652,8 @@ func TestRefreshManifestInvalidNewRule(t *testing.T) {
 	serviceName2 := "www.fizz.com"
 	urlPath2 := "/resource/fizz"
 	version2 := int64(1)
-	u2 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u2 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name2,
 			ServiceName:   &serviceName2,
 			URLPath:       &urlPath2,
@@ -1676,8 +1674,8 @@ func TestRefreshManifestInvalidNewRule(t *testing.T) {
 	serviceName3 := "www.bar.com"
 	urlPath3 := "/resource/foo"
 	version3 := int64(1)
-	u3 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u3 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name3,
 			ServiceName:   &serviceName3,
 			URLPath:       &urlPath3,
@@ -1700,8 +1698,8 @@ func TestRefreshManifestInvalidNewRule(t *testing.T) {
 	reservoirSize4 := int64(60)
 	serviceName4 := "www.fizz.com"
 	urlPath4 := "/resource/fizz"
-	u4 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u4 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name4,
 			ServiceName:   &serviceName4,
 			URLPath:       &urlPath4,
@@ -1722,8 +1720,8 @@ func TestRefreshManifestInvalidNewRule(t *testing.T) {
 	serviceName5 := "www.fizz.com"
 	urlPath5 := "/resource/fizz"
 	version5 := int64(0)
-	u5 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u5 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name5,
 			ServiceName:   &serviceName5,
 			URLPath:       &urlPath5,
@@ -1738,7 +1736,7 @@ func TestRefreshManifestInvalidNewRule(t *testing.T) {
 
 	// Mock proxy with updates u1 and u3
 	proxy := &mockProxy{
-		samplingRules: []*xraySvc.SamplingRuleRecord{u1, u2, u3, u4, u5},
+		samplingRules: []*SamplingRuleRecord{u1, u2, u3, u4, u5},
 	}
 
 	// Mock clock with time incremented to 60 seconds past current
@@ -1889,9 +1887,9 @@ func TestRefreshTargets(t *testing.T) {
 	// Sampling Target for 'r1'
 	rate1 := 0.07
 	quota1 := int64(3)
-	quotaTTL1 := time.Unix(1500000060, 0)
+	quotaTTL1 := float64(1500000060)
 	name1 := "r1"
-	t1 := &xraySvc.SamplingTargetDocument{
+	t1 := &SamplingTargetDocument{
 		FixedRate:         &rate1,
 		ReservoirQuota:    &quota1,
 		ReservoirQuotaTTL: &quotaTTL1,
@@ -1901,9 +1899,9 @@ func TestRefreshTargets(t *testing.T) {
 	// Sampling Target for 'r3'
 	rate3 := 0.11
 	quota3 := int64(15)
-	quotaTTL3 := time.Unix(1500000060, 0)
+	quotaTTL3 := float64(1500000060)
 	name3 := "r3"
-	t3 := &xraySvc.SamplingTargetDocument{
+	t3 := &SamplingTargetDocument{
 		FixedRate:         &rate3,
 		ReservoirQuota:    &quota3,
 		ReservoirQuotaTTL: &quotaTTL3,
@@ -1911,13 +1909,13 @@ func TestRefreshTargets(t *testing.T) {
 	}
 
 	// 'LastRuleModification' attribute
-	modifiedAt := time.Unix(1499999900, 0)
+	modifiedAt := float64(1499999900)
 
 	// Mock proxy with targets for 'r1' and 'r3'
 	proxy := &mockProxy{
-		samplingTargetOutput: &xraySvc.GetSamplingTargetsOutput{
+		samplingTargetOutput: &GetSamplingTargetsOutput{
 			LastRuleModification: &modifiedAt,
-			SamplingTargetDocuments: []*xraySvc.SamplingTargetDocument{
+			SamplingTargetDocuments: []*SamplingTargetDocument{
 				t1,
 				t3,
 			},
@@ -2067,9 +2065,9 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 	// Sampling Target for 'r1'
 	rate1 := 0.07
 	quota1 := int64(3)
-	quotaTTL1 := time.Unix(1500000060, 0)
+	quotaTTL1 := float64(1500000060)
 	name1 := "r1"
-	t1 := &xraySvc.SamplingTargetDocument{
+	t1 := &SamplingTargetDocument{
 		FixedRate:         &rate1,
 		ReservoirQuota:    &quota1,
 		ReservoirQuotaTTL: &quotaTTL1,
@@ -2079,9 +2077,9 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 	// Sampling Target for 'r3'
 	rate3 := 0.11
 	quota3 := int64(15)
-	quotaTTL3 := time.Unix(1500000060, 0)
+	quotaTTL3 := float64(1500000060)
 	name3 := "r3"
-	t3 := &xraySvc.SamplingTargetDocument{
+	t3 := &SamplingTargetDocument{
 		FixedRate:         &rate3,
 		ReservoirQuota:    &quota3,
 		ReservoirQuotaTTL: &quotaTTL3,
@@ -2089,13 +2087,13 @@ func TestRefreshTargetsVariableIntervals(t *testing.T) {
 	}
 
 	// 'LastRuleModification' attribute
-	modifiedAt := time.Unix(1499999900, 0)
+	modifiedAt := float64(1499999900)
 
 	// Mock proxy with targets for 'r1' and 'r3'
 	proxy := &mockProxy{
-		samplingTargetOutput: &xraySvc.GetSamplingTargetsOutput{
+		samplingTargetOutput: &GetSamplingTargetsOutput{
 			LastRuleModification: &modifiedAt,
-			SamplingTargetDocuments: []*xraySvc.SamplingTargetDocument{
+			SamplingTargetDocuments: []*SamplingTargetDocument{
 				t1,
 				t3,
 			},
@@ -2290,9 +2288,9 @@ func TestRefreshTargetsInvalidTarget(t *testing.T) {
 
 	// Invalid sampling Target for 'r1' (missing fixed rate)
 	quota1 := int64(3)
-	quotaTTL1 := time.Unix(1500000060, 0)
+	quotaTTL1 := float64(1500000060)
 	name1 := "r1"
-	t1 := &xraySvc.SamplingTargetDocument{
+	t1 := &SamplingTargetDocument{
 		RuleName:          &name1,
 		ReservoirQuota:    &quota1,
 		ReservoirQuotaTTL: &quotaTTL1,
@@ -2301,9 +2299,9 @@ func TestRefreshTargetsInvalidTarget(t *testing.T) {
 	// Valid sampling Target for 'r3'
 	rate3 := 0.11
 	quota3 := int64(15)
-	quotaTTL3 := time.Unix(1500000060, 0)
+	quotaTTL3 := float64(1500000060)
 	name3 := "r3"
-	t3 := &xraySvc.SamplingTargetDocument{
+	t3 := &SamplingTargetDocument{
 		FixedRate:         &rate3,
 		ReservoirQuota:    &quota3,
 		ReservoirQuotaTTL: &quotaTTL3,
@@ -2311,13 +2309,13 @@ func TestRefreshTargetsInvalidTarget(t *testing.T) {
 	}
 
 	// 'LastRuleModification' attribute
-	modifiedAt := time.Unix(1499999900, 0)
+	modifiedAt := float64(1499999900)
 
 	// Mock proxy with targets for 'r1' and 'r3'
 	proxy := &mockProxy{
-		samplingTargetOutput: &xraySvc.GetSamplingTargetsOutput{
+		samplingTargetOutput: &GetSamplingTargetsOutput{
 			LastRuleModification: &modifiedAt,
-			SamplingTargetDocuments: []*xraySvc.SamplingTargetDocument{
+			SamplingTargetDocuments: []*SamplingTargetDocument{
 				t1,
 				t3,
 			},
@@ -2444,9 +2442,9 @@ func TestRefreshTargetsOutdatedManifest(t *testing.T) {
 	// Valid sampling Target for 'r3'
 	rate3 := 0.11
 	quota3 := int64(15)
-	quotaTTL3 := time.Unix(1500000060, 0)
+	quotaTTL3 := float64(1500000060)
 	name3 := "r3"
-	t3 := &xraySvc.SamplingTargetDocument{
+	t3 := &SamplingTargetDocument{
 		FixedRate:         &rate3,
 		ReservoirQuota:    &quota3,
 		ReservoirQuotaTTL: &quotaTTL3,
@@ -2463,8 +2461,8 @@ func TestRefreshTargetsOutdatedManifest(t *testing.T) {
 	urlPath := "/resource/bar"
 	version := int64(1)
 
-	new := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	new := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name,
 			ServiceName:   &serviceName,
 			URLPath:       &urlPath,
@@ -2480,15 +2478,15 @@ func TestRefreshTargetsOutdatedManifest(t *testing.T) {
 	}
 
 	// 'LastRuleModification' attribute
-	modifiedAt := time.Unix(1499999900, 0)
+	modifiedAt := float64(1499999900)
 
 	// Mock proxy with `LastRuleModification` attribute and sampling rules
 	proxy := &mockProxy{
-		samplingTargetOutput: &xraySvc.GetSamplingTargetsOutput{
+		samplingTargetOutput: &GetSamplingTargetsOutput{
 			LastRuleModification:    &modifiedAt,
-			SamplingTargetDocuments: []*xraySvc.SamplingTargetDocument{t3},
+			SamplingTargetDocuments: []*SamplingTargetDocument{t3},
 		},
-		samplingRules: []*xraySvc.SamplingRuleRecord{new},
+		samplingRules: []*SamplingRuleRecord{new},
 	}
 
 	ss := &CentralizedStrategy{
@@ -2659,8 +2657,8 @@ func BenchmarkNewCentralizedStrategy_refreshManifest(b *testing.B) {
 	serviceName1 := "www.foo.com"
 	urlPath1 := "/resource/bar"
 	version1 := int64(1)
-	u1 := &xraySvc.SamplingRuleRecord{
-		SamplingRule: &xraySvc.SamplingRule{
+	u1 := &SamplingRuleRecord{
+		SamplingRule: &SamplingRule{
 			RuleName:      &name1,
 			ServiceName:   &serviceName1,
 			URLPath:       &urlPath1,
@@ -2726,7 +2724,7 @@ func BenchmarkNewCentralizedStrategy_refreshManifest(b *testing.B) {
 
 	// Mock proxy with updates u1, u2, and u3
 	proxy := &mockProxy{
-		samplingRules: []*xraySvc.SamplingRuleRecord{u1},
+		samplingRules: []*SamplingRuleRecord{u1},
 	}
 
 	// Mock clock with time incremented to 60 seconds past current

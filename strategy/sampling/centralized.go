@@ -21,8 +21,6 @@ import (
 	"github.com/aws/aws-xray-sdk-go/internal/plugins"
 
 	"github.com/aws/aws-xray-sdk-go/utils"
-
-	xraySvc "github.com/aws/aws-sdk-go/service/xray"
 )
 
 // CentralizedStrategy is an implementation of SamplingStrategy. It
@@ -58,8 +56,8 @@ type CentralizedStrategy struct {
 
 // svcProxy is the interface for API calls to X-Ray service.
 type svcProxy interface {
-	GetSamplingTargets(s []*xraySvc.SamplingStatisticsDocument) (*xraySvc.GetSamplingTargetsOutput, error)
-	GetSamplingRules() ([]*xraySvc.SamplingRuleRecord, error)
+	GetSamplingTargets(s []*SamplingStatisticsDocument) (*GetSamplingTargetsOutput, error)
+	GetSamplingRules() ([]*SamplingRuleRecord, error)
 }
 
 // NewCentralizedStrategy creates a centralized sampling strategy with a fallback on
@@ -422,7 +420,7 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 		local := ss.manifest.refreshedAt
 		ss.manifest.mu.RUnlock()
 
-		if remote.Unix() >= local {
+		if *remote >= float64(local) {
 			refresh = true
 		}
 	}
@@ -441,13 +439,13 @@ func (ss *CentralizedStrategy) refreshTargets() (err error) {
 
 // samplingStatistics takes a snapshot of sampling statistics from all rules, resetting
 // statistics counters in the process.
-func (ss *CentralizedStrategy) snapshots() []*xraySvc.SamplingStatisticsDocument {
+func (ss *CentralizedStrategy) snapshots() []*SamplingStatisticsDocument {
 	now := ss.clock.Now().Unix()
 
 	ss.manifest.mu.RLock()
 	defer ss.manifest.mu.RUnlock()
 
-	statistics := make([]*xraySvc.SamplingStatisticsDocument, 0, len(ss.manifest.Rules)+1)
+	statistics := make([]*SamplingStatisticsDocument, 0, len(ss.manifest.Rules)+1)
 
 	// Generate sampling statistics for user-defined rules
 	for _, r := range ss.manifest.Rules {
@@ -473,8 +471,8 @@ func (ss *CentralizedStrategy) snapshots() []*xraySvc.SamplingStatisticsDocument
 }
 
 // updateTarget updates sampling targets for the rule specified in the target struct.
-func (ss *CentralizedStrategy) updateTarget(t *xraySvc.SamplingTargetDocument) (err error) {
-	// Pre-emptively dereference xraySvc.SamplingTarget fields and return early on nil values
+func (ss *CentralizedStrategy) updateTarget(t *SamplingTargetDocument) (err error) {
+	// Pre-emptively dereference SamplingTarget fields and return early on nil values
 	// A panic in the middle of an update may leave the rule in an inconsistent state.
 	if t.RuleName == nil {
 		return errors.New("invalid sampling target. Missing rule name")
@@ -506,7 +504,7 @@ func (ss *CentralizedStrategy) updateTarget(t *xraySvc.SamplingTargetDocument) (
 		r.reservoir.quota = *t.ReservoirQuota
 	}
 	if t.ReservoirQuotaTTL != nil {
-		r.reservoir.expiresAt = t.ReservoirQuotaTTL.Unix()
+		r.reservoir.expiresAt = int64(*t.ReservoirQuotaTTL)
 	}
 	if t.Interval != nil {
 		r.reservoir.interval = *t.Interval

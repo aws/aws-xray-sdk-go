@@ -9,12 +9,11 @@
 package sampling
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	xraySvc "github.com/aws/aws-sdk-go/service/xray"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+
 	"github.com/aws/aws-xray-sdk-go/daemoncfg"
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 )
@@ -22,56 +21,110 @@ import (
 // proxy is an implementation of svcProxy that forwards requests to the XRay daemon
 type proxy struct {
 	// XRay client for sending unsigned proxied requests to the daemon
-	xray *xraySvc.XRay
+	xray *xrayClient
 }
 
 // NewProxy returns a Proxy
 func newProxy(d *daemoncfg.DaemonEndpoints) (svcProxy, error) {
-
 	if d == nil {
 		d = daemoncfg.GetDaemonEndpoints()
 	}
 	logger.Infof("X-Ray proxy using address : %v", d.TCPAddr.String())
 	url := "http://" + d.TCPAddr.String()
 
-	// Endpoint resolver for proxying requests through the daemon
-	f := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
-		return endpoints.ResolvedEndpoint{
-			URL: url,
-		}, nil
+	// Construct resolved URLs for getSamplingRules and getSamplingTargets API calls.
+	samplingRulesURL := url + "/GetSamplingRules"
+	samplingTargetsURL := url + "/SamplingTargets"
+
+	p := &proxy{
+		xray: &xrayClient{
+			httpClient:         &http.Client{},
+			samplingRulesURL:   samplingRulesURL,
+			samplingTargetsURL: samplingTargetsURL,
+		},
 	}
-
-	// Dummy session for unsigned requests
-	sess, err := session.NewSession(&aws.Config{
-		Region:           aws.String("us-west-1"),
-		Credentials:      credentials.NewStaticCredentials("", "", ""),
-		EndpointResolver: endpoints.ResolverFunc(f),
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	x := xraySvc.New(sess)
-
-	// Remove Signer and replace with No-Op handler
-	x.Handlers.Sign.Clear()
-	x.Handlers.Sign.PushBack(func(*request.Request) {
-		// Do nothing
-	})
-
-	p := &proxy{xray: x}
 
 	return p, nil
 }
 
-// GetSamplingTargets calls the XRay daemon for sampling targets
-func (p *proxy) GetSamplingTargets(s []*xraySvc.SamplingStatisticsDocument) (*xraySvc.GetSamplingTargetsOutput, error) {
-	input := &xraySvc.GetSamplingTargetsInput{
+type xrayClient struct {
+	// HTTP client for sending sampling requests to the collector.
+	httpClient *http.Client
+
+	// Resolved URL to call getSamplingRules API.
+	samplingRulesURL string
+
+	// Resolved URL to call getSamplingTargets API.
+	samplingTargetsURL string
+}
+
+// getSamplingRules calls the collector(aws proxy enabled) for sampling rules.
+func (c *xrayClient) getSamplingRules() (*GetSamplingRulesOutput, error) {
+	emptySamplingRulesInputJSON := []byte(`{"NextToken": null}`)
+
+	body := bytes.NewReader(emptySamplingRulesInputJSON)
+
+	req, err := http.NewRequest(http.MethodPost, c.samplingRulesURL, body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve sampling rules, error on http request: %w", err)
+	}
+
+	output, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("xray client: unable to retrieve sampling rules, error on http request:  %w", err)
+	}
+	defer output.Body.Close()
+
+	if output.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("xray client: unable to retrieve sampling rules, expected response status code 200, got: %d", output.StatusCode)
+	}
+
+	var samplingRulesOutput *GetSamplingRulesOutput
+	if err := json.NewDecoder(output.Body).Decode(&samplingRulesOutput); err != nil {
+		return nil, fmt.Errorf("xray client: unable to retrieve sampling rules, unable to unmarshal the response body: %w", err)
+	}
+
+	return samplingRulesOutput, nil
+}
+
+// getSamplingTargets calls the Daemon (aws proxy enabled) for sampling targets.
+func (c *xrayClient) getSamplingTargets(s []*SamplingStatisticsDocument) (*GetSamplingTargetsOutput, error) {
+	statistics := GetSamplingTargetsInput{
 		SamplingStatisticsDocuments: s,
 	}
 
-	output, err := p.xray.GetSamplingTargets(input)
+	statisticsByte, err := json.Marshal(statistics)
+	if err != nil {
+		return nil, err
+	}
+	body := bytes.NewReader(statisticsByte)
+
+	req, err := http.NewRequest(http.MethodPost, c.samplingTargetsURL, body)
+	if err != nil {
+		return nil, fmt.Errorf("xray client: failed to create http request: %w", err)
+	}
+
+	output, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("xray client: unable to retrieve sampling targets, error on http request: %w", err)
+	}
+	defer output.Body.Close()
+
+	if output.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("xray client: unable to retrieve sampling targets, expected response status code 200, got: %d", output.StatusCode)
+	}
+
+	var samplingTargetsOutput *GetSamplingTargetsOutput
+	if err := json.NewDecoder(output.Body).Decode(&samplingTargetsOutput); err != nil {
+		return nil, fmt.Errorf("xray client: unable to retrieve sampling targets, unable to unmarshal the response body: %w", err)
+	}
+
+	return samplingTargetsOutput, nil
+}
+
+// GetSamplingTargets calls the XRay daemon for sampling targets
+func (p *proxy) GetSamplingTargets(s []*SamplingStatisticsDocument) (*GetSamplingTargetsOutput, error) {
+	output, err := p.xray.getSamplingTargets(s)
 	if err != nil {
 		return nil, err
 	}
@@ -80,10 +133,8 @@ func (p *proxy) GetSamplingTargets(s []*xraySvc.SamplingStatisticsDocument) (*xr
 }
 
 // GetSamplingRules calls the XRay daemon for sampling rules
-func (p *proxy) GetSamplingRules() ([]*xraySvc.SamplingRuleRecord, error) {
-	input := &xraySvc.GetSamplingRulesInput{}
-
-	output, err := p.xray.GetSamplingRules(input)
+func (p *proxy) GetSamplingRules() ([]*SamplingRuleRecord, error) {
+	output, err := p.xray.getSamplingRules()
 	if err != nil {
 		return nil, err
 	}

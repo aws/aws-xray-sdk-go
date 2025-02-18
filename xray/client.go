@@ -19,6 +19,9 @@ import (
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 )
 
+// TraceIDHeaderKey is the HTTP header name used for tracing.
+const TraceIDHeaderKey = "x-amzn-trace-id"
+
 const emptyHostRename = "empty_host_error"
 
 // Client creates a shallow copy of the provided http client,

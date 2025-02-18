@@ -16,9 +16,38 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/pkg/errors"
 )
+
+// Copied from:
+// https://github.com/aws/aws-sdk-go/blob/v1.55.6/aws/awserr/error.go#L31-L43
+type Error interface {
+	// Satisfy the generic error interface.
+	error
+
+	// Returns the short phrase depicting the classification of the error.
+	Code() string
+
+	// Returns the error details message.
+	Message() string
+
+	// Returns the original error if one was set.  Nil is returned if not set.
+	OrigErr() error
+}
+
+// Copied from:
+// https://github.com/aws/aws-sdk-go/blob/v1.55.6/aws/awserr/error.go#L129-L139
+type RequestFailure interface {
+	Error
+
+	// The status code of the HTTP response.
+	StatusCode() int
+
+	// The request ID returned by the service for a request failure. This will
+	// be empty if no request ID is available such as the request failed due
+	// to a connection error.
+	RequestID() string
+}
 
 // StackTracer is an interface for implementing StackTrace method.
 type StackTracer interface {
@@ -116,7 +145,7 @@ func (dEFS *DefaultFormattingStrategy) Panicf(formatString string, args ...inter
 // ExceptionFromError takes an error and returns value of Exception
 func (dEFS *DefaultFormattingStrategy) ExceptionFromError(err error) Exception {
 	var isRemote bool
-	var reqErr awserr.RequestFailure
+	var reqErr RequestFailure
 	if goerrors.As(err, &reqErr) {
 		// A service error occurs
 		if reqErr.RequestID() != "" {

@@ -10,7 +10,6 @@ package sampling
 
 import (
 	"testing"
-	"time"
 
 	"github.com/aws/aws-xray-sdk-go/utils"
 	"github.com/stretchr/testify/assert"
@@ -304,7 +303,7 @@ func TestSnapshot(t *testing.T) {
 	assert.Equal(t, int64(0), csr.borrows)
 
 	// Assert on SamplingStatistics counters
-	now := time.Unix(1500000000, 0)
+	now := int64(1500000000)
 
 	assert.Equal(t, int64(100), *ss.RequestCount)
 	assert.Equal(t, int64(12), *ss.SampledCount)

@@ -17,6 +17,15 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
+// RequestIDKey is the key name of the request id.
+const RequestIDKey string = "request_id"
+
+// ExtendedRequestIDKey is the key name of the extend request id.
+const ExtendedRequestIDKey string = "id_2"
+
+// S3ExtendedRequestIDHeaderKey is the key name of the s3 extend request id.
+const S3ExtendedRequestIDHeaderKey string = "x-amz-id-2"
+
 type awsV2SubsegmentKey struct{}
 
 func initializeMiddlewareAfter(stack *middleware.Stack) error {
@@ -74,10 +83,10 @@ func deserializeMiddleware(stack *middleware.Stack) error {
 		requestID, ok := v2Middleware.GetRequestIDMetadata(metadata)
 
 		if ok {
-			subseg.GetAWS()[xray.RequestIDKey] = requestID
+			subseg.GetAWS()[RequestIDKey] = requestID
 		}
-		if extendedRequestID := resp.Header.Get(xray.S3ExtendedRequestIDHeaderKey); extendedRequestID != "" {
-			subseg.GetAWS()[xray.ExtendedRequestIDKey] = extendedRequestID
+		if extendedRequestID := resp.Header.Get(S3ExtendedRequestIDHeaderKey); extendedRequestID != "" {
+			subseg.GetAWS()[ExtendedRequestIDKey] = extendedRequestID
 		}
 
 		subseg.Unlock()

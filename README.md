@@ -206,6 +206,9 @@ func getExample(ctx context.Context) ([]byte, error) {
 
 **AWS SDK Instrumentation**
 
+> [!WARNING]
+> Support for AWS SDK Instrumentation has been removed in V2 of the AWS X-Ray SDK for Go
+
 ```go
 func main() {
   // Create a segment

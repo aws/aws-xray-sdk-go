@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-xray-sdk-go/xray"
-	"golang.org/x/net/context/ctxhttp"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-xray-sdk-go/instrumentation/awsv2"
+	"github.com/aws/aws-xray-sdk-go/xray"
+	"golang.org/x/net/context/ctxhttp"
 )
 
 func webServer() {
@@ -42,15 +43,20 @@ func webServer() {
 }
 
 func testAWSCalls(ctx context.Context) {
-	awsSess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String("us-west-2")},))
-
-	s3Client := s3.New(awsSess)
-	xray.AWS(s3Client.Client)
-	if _, err := s3Client.ListBucketsWithContext(ctx, nil); err != nil {
-		log.Println(err)
-		return
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-west-2"))
+	if err != nil {
+		log.Fatalf("unable to load SDK config, %v", err)
 	}
+	// Instrumenting AWS SDK v2
+	awsv2.AWSV2Instrumentor(&cfg.APIOptions)
+	// Using the Config value, create the S3 client
+	svc := s3.NewFromConfig(cfg)
+	// Build the request with its input parameters
+	_, err = svc.ListBuckets(ctx, &s3.ListBucketsInput{})
+	if err != nil {
+		log.Fatalf("failed to list buckets, %v", err)
+	}
+
 	log.Println("Successfully traced aws sdk call")
 }
 

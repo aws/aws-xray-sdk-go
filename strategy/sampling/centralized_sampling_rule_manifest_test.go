@@ -11,10 +11,8 @@ package sampling
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
-	xraySvc "github.com/aws/aws-sdk-go/service/xray"
 	"github.com/aws/aws-xray-sdk-go/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 // Assert that putRule() creates a new user-defined rule and adds to manifest
@@ -42,7 +40,7 @@ func TestCreateUserRule(t *testing.T) {
 		Index: index,
 	}
 
-	// New xraySvc.CentralizedSamplingRule. Input to putRule().
+	// New CentralizedSamplingRule. Input to putRule().
 	serviceName := "www.foo.com"
 	httpMethod := "POST"
 	urlPath := "/bar/*"
@@ -52,7 +50,7 @@ func TestCreateUserRule(t *testing.T) {
 	host := "local"
 	priority := int64(6)
 	serviceTye := "*"
-	new := &xraySvc.SamplingRule{
+	new := &SamplingRule{
 		ServiceName:   &serviceName,
 		HTTPMethod:    &httpMethod,
 		URLPath:       &urlPath,
@@ -117,11 +115,11 @@ func TestCreateDefaultRule(t *testing.T) {
 		Index: map[string]*CentralizedRule{},
 	}
 
-	// New xraySvc.CentralizedSamplingRule. Input to putRule().
+	// New CentralizedSamplingRule. Input to putRule().
 	reservoirSize := int64(10)
 	fixedRate := float64(0.05)
 	ruleName := "Default"
-	new := &xraySvc.SamplingRule{
+	new := &SamplingRule{
 		ReservoirSize: &reservoirSize,
 		FixedRate:     &fixedRate,
 		RuleName:      &ruleName,
@@ -183,11 +181,11 @@ func TestUpdateDefaultRule(t *testing.T) {
 		Default: r,
 	}
 
-	// Updated xraySvc.CentralizedSamplingRule. Input to putRule().
+	// Updated CentralizedSamplingRule. Input to putRule().
 	reservoirSize := int64(20)
 	fixedRate := float64(0.06)
 	ruleName := "Default"
-	updated := &xraySvc.SamplingRule{
+	updated := &SamplingRule{
 		ReservoirSize: &reservoirSize,
 		FixedRate:     &fixedRate,
 		RuleName:      &ruleName,
@@ -250,7 +248,7 @@ func TestCreateUserRuleNoOp(t *testing.T) {
 		Index: index,
 	}
 
-	// Duplicate xraySvc.CentralizedSamplingRule. 'r3' already exists. Input to updateRule().
+	// Duplicate CentralizedSamplingRule. 'r3' already exists. Input to updateRule().
 	serviceName := "www.foo.com"
 	httpMethod := "POST"
 	urlPath := "/bar/*"
@@ -259,7 +257,7 @@ func TestCreateUserRuleNoOp(t *testing.T) {
 	ruleName := "r3"
 	priority := int64(6)
 	host := "h"
-	new := &xraySvc.SamplingRule{
+	new := &SamplingRule{
 		ServiceName:   &serviceName,
 		HTTPMethod:    &httpMethod,
 		URLPath:       &urlPath,
@@ -320,7 +318,7 @@ func TestUpdateUserRule(t *testing.T) {
 		Index: index,
 	}
 
-	// Updated xraySvc.CentralizedSamplingRule. Input to updateRule().
+	// Updated CentralizedSamplingRule. Input to updateRule().
 	serviceName := "www.foo.com"
 	httpMethod := "POST"
 	urlPath := "/bar/*"
@@ -329,7 +327,7 @@ func TestUpdateUserRule(t *testing.T) {
 	ruleName := "r1"
 	priority := int64(6)
 	host := "h"
-	updated := &xraySvc.SamplingRule{
+	updated := &SamplingRule{
 		ServiceName:   &serviceName,
 		HTTPMethod:    &httpMethod,
 		URLPath:       &urlPath,
@@ -393,13 +391,13 @@ func TestPutRuleRecovery(t *testing.T) {
 		Index: index,
 	}
 
-	// Invalid xraySvc.CentralizedSamplingRule with nil fileds. Input to putRule().
+	// Invalid CentralizedSamplingRule with nil fileds. Input to putRule().
 	serviceName := "www.foo.com"
 	httpMethod := "POST"
 	fixedRate := float64(0.05)
 	ruleName := "r2"
 	priority := int64(6)
-	new := &xraySvc.SamplingRule{
+	new := &SamplingRule{
 		ServiceName: &serviceName,
 		HTTPMethod:  &httpMethod,
 		FixedRate:   &fixedRate,
@@ -802,7 +800,7 @@ func BenchmarkCentralizedManifest_putRule(b *testing.B) {
 		Rules: rules,
 		Index: index,
 	}
-	// New xraySvc.CentralizedSamplingRule. Input to putRule().
+	// New CentralizedSamplingRule. Input to putRule().
 	resARN := "*"
 	serviceName := "www.foo.com"
 	httpMethod := "POST"
@@ -813,7 +811,7 @@ func BenchmarkCentralizedManifest_putRule(b *testing.B) {
 	host := "local"
 	priority := int64(6)
 	serviceTye := "*"
-	new := &xraySvc.SamplingRule{
+	new := &SamplingRule{
 		ServiceName:   &serviceName,
 		HTTPMethod:    &httpMethod,
 		URLPath:       &urlPath,

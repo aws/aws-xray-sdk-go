@@ -14,8 +14,6 @@ import (
 	"github.com/aws/aws-xray-sdk-go/internal/logger"
 	"github.com/aws/aws-xray-sdk-go/pattern"
 	"github.com/aws/aws-xray-sdk-go/utils"
-
-	xraySvc "github.com/aws/aws-sdk-go/service/xray"
 )
 
 // Properties is the base set of properties that define a sampling rule.
@@ -163,13 +161,13 @@ func (r *CentralizedRule) bernoulliSample() bool {
 }
 
 // snapshot takes a snapshot of the sampling statistics counters, returning
-// xraySvc.SamplingStatistics. It also resets statistics counters.
-func (r *CentralizedRule) snapshot() *xraySvc.SamplingStatisticsDocument {
+// SamplingStatistics. It also resets statistics counters.
+func (r *CentralizedRule) snapshot() *SamplingStatisticsDocument {
 	r.mu.Lock()
 
 	name := &r.ruleName
 
-	// Copy statistics counters since xraySvc.SamplingStatistics expects
+	// Copy statistics counters since SamplingStatistics expects
 	// pointers to counters, and ours are mutable.
 	requests, sampled, borrows := r.requests, r.sampled, r.borrows
 
@@ -178,8 +176,8 @@ func (r *CentralizedRule) snapshot() *xraySvc.SamplingStatisticsDocument {
 
 	r.mu.Unlock()
 
-	now := r.clock.Now()
-	s := &xraySvc.SamplingStatisticsDocument{
+	now := r.clock.Now().Unix()
+	s := &SamplingStatisticsDocument{
 		RequestCount: &requests,
 		SampledCount: &sampled,
 		BorrowCount:  &borrows,
