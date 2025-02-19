@@ -9,6 +9,8 @@ If you want additional features when tracing your Go applications, please [open 
 
 # AWS X-Ray SDK for Go
 
+Important: Due to deprecation of AWS SDK v1, we have dropped support and removed it as a dependency in v2.0.0.
+
 ![Screenshot of the AWS X-Ray console](/images/example.png?raw=true)
 
 ## Installing into GOPATH

@@ -6,6 +6,15 @@ Unreleased
 
 ### SDK Bugs
 
+Release v2.0.0 (2025-02-19)
+===============================
+### SDK Breaking Changes
+* Remove v1 of aws-sdk-go and update sampler to use http client instead of aws sdk [#PR 485](https://github.com/aws/aws-xray-sdk-go/pull/485)
+
+### SDK Enhancements
+
+### SDK Bugs
+
 Release v1.8.5 (2024-11-13)
 ================================
 ### SDK Enhancements
