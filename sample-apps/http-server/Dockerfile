@@ -1,8 +1,8 @@
-FROM golang:1.20
+FROM golang:1.21
 
 WORKDIR /app
 COPY . .
-ENV GOPROXY direct
+ENV GOPROXY=direct
 
 RUN go mod download
 RUN cd sample-apps/http-server/ && go install .
