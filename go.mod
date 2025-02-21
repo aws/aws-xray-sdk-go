@@ -1,4 +1,4 @@
-module github.com/aws/aws-xray-sdk-go
+module github.com/aws/aws-xray-sdk-go/v2
 
 go 1.19
 

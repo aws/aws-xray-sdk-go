@@ -12,7 +12,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/aws/aws-xray-sdk-go/utils"
+	"github.com/aws/aws-xray-sdk-go/v2/utils"
 	"github.com/stretchr/testify/assert"
 )
 

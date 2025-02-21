@@ -13,8 +13,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
-	"github.com/aws/aws-xray-sdk-go/internal/plugins"
+	"github.com/aws/aws-xray-sdk-go/v2/internal/logger"
+	"github.com/aws/aws-xray-sdk-go/v2/internal/plugins"
 )
 
 // Origin is the type of AWS resource that runs your application.
@@ -27,7 +27,7 @@ type metadata struct {
 	InstanceType     string
 }
 
-//Init activates EC2Plugin at runtime.
+// Init activates EC2Plugin at runtime.
 func Init() {
 	if plugins.InstancePluginMetadata != nil && plugins.InstancePluginMetadata.EC2Metadata == nil {
 		addPluginMetadata(plugins.InstancePluginMetadata)

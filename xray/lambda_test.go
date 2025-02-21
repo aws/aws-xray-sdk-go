@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-xray-sdk-go/header"
+	"github.com/aws/aws-xray-sdk-go/v2/header"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,7 +56,7 @@ func TestLambdaMix(t *testing.T) {
 }
 
 /*
-	This helper function creates a request and validates the response using the context provided.
+This helper function creates a request and validates the response using the context provided.
 */
 func testHelper(ctx context.Context, t *testing.T, td *TestDaemon, sampled bool) {
 	var subseg = GetSegment(ctx)

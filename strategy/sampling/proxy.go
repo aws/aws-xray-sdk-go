@@ -14,8 +14,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/aws/aws-xray-sdk-go/daemoncfg"
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
+	"github.com/aws/aws-xray-sdk-go/v2/daemoncfg"
+	"github.com/aws/aws-xray-sdk-go/v2/internal/logger"
 )
 
 // proxy is an implementation of svcProxy that forwards requests to the XRay daemon

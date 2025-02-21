@@ -13,7 +13,7 @@ import (
 	"errors"
 	"sync/atomic"
 
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
+	"github.com/aws/aws-xray-sdk-go/v2/internal/logger"
 )
 
 var defaultMaxSubsegmentCount uint32 = 20

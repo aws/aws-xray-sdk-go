@@ -11,9 +11,9 @@ package sampling
 import (
 	"sync"
 
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
-	"github.com/aws/aws-xray-sdk-go/pattern"
-	"github.com/aws/aws-xray-sdk-go/utils"
+	"github.com/aws/aws-xray-sdk-go/v2/internal/logger"
+	"github.com/aws/aws-xray-sdk-go/v2/pattern"
+	"github.com/aws/aws-xray-sdk-go/v2/utils"
 )
 
 // Properties is the base set of properties that define a sampling rule.
