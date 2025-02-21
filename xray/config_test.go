@@ -16,9 +16,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-xray-sdk-go/strategy/ctxmissing"
-	"github.com/aws/aws-xray-sdk-go/strategy/exception"
-	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
+	"github.com/aws/aws-xray-sdk-go/v2/strategy/ctxmissing"
+	"github.com/aws/aws-xray-sdk-go/v2/strategy/exception"
+	"github.com/aws/aws-xray-sdk-go/v2/strategy/sampling"
 	"github.com/stretchr/testify/assert"
 )
 

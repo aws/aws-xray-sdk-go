@@ -8,7 +8,7 @@
 
 package sampling
 
-import "github.com/aws/aws-xray-sdk-go/utils"
+import "github.com/aws/aws-xray-sdk-go/v2/utils"
 
 // Reservoirs allow a specified (`perSecond`) amount of `Take()`s per second.
 

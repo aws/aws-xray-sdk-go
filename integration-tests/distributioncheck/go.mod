@@ -1,9 +1,9 @@
 module distributioncheck
 
-replace github.com/aws/aws-xray-sdk-go => ../../
+replace github.com/aws/aws-xray-sdk-go/v2 => ../../
 
 require (
-	github.com/aws/aws-xray-sdk-go v1.8.0
+	github.com/aws/aws-xray-sdk-go/v2 v2.0.0
 	github.com/stretchr/testify v1.8.4
 )
 

@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/aws/aws-xray-sdk-go/daemoncfg"
+	"github.com/aws/aws-xray-sdk-go/v2/daemoncfg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

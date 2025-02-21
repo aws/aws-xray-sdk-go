@@ -13,7 +13,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/aws/aws-xray-sdk-go/strategy/exception"
+	"github.com/aws/aws-xray-sdk-go/v2/strategy/exception"
 	"github.com/stretchr/testify/assert"
 )
 

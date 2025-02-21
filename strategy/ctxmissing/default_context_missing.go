@@ -8,7 +8,7 @@
 
 package ctxmissing
 
-import "github.com/aws/aws-xray-sdk-go/internal/logger"
+import "github.com/aws/aws-xray-sdk-go/v2/internal/logger"
 
 // RuntimeErrorStrategy provides the AWS_XRAY_CONTEXT_MISSING
 // environment variable value for enabling the runtime error

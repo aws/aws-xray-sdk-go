@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-xray-sdk-go/xraylog"
+	"github.com/aws/aws-xray-sdk-go/v2/xraylog"
 )
 
 func TestLogger(t *testing.T) {

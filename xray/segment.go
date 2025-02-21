@@ -19,10 +19,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/aws/aws-xray-sdk-go/header"
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
-	"github.com/aws/aws-xray-sdk-go/internal/plugins"
-	"github.com/aws/aws-xray-sdk-go/strategy/sampling"
+	"github.com/aws/aws-xray-sdk-go/v2/header"
+	"github.com/aws/aws-xray-sdk-go/v2/internal/logger"
+	"github.com/aws/aws-xray-sdk-go/v2/internal/plugins"
+	"github.com/aws/aws-xray-sdk-go/v2/strategy/sampling"
 )
 
 // NewTraceID generates a string format of random trace ID.
@@ -405,7 +405,7 @@ func (seg *Segment) CloseAndStream(err error) {
 	if SdkDisabled() {
 		return
 	}
-	
+
 	if seg.parent != nil {
 		logger.Debugf("Ending subsegment named: %s", seg.Name)
 		seg.Lock()
@@ -417,7 +417,7 @@ func (seg *Segment) CloseAndStream(err error) {
 			logger.Debugf("Removing subsegment named: %s", seg.Name)
 		}
 	}
-	
+
 	seg.Lock()
 	defer seg.Unlock()
 

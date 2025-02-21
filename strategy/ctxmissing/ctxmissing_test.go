@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-xray-sdk-go/internal/logger"
-	"github.com/aws/aws-xray-sdk-go/xraylog"
+	"github.com/aws/aws-xray-sdk-go/v2/internal/logger"
+	"github.com/aws/aws-xray-sdk-go/v2/xraylog"
 	"github.com/stretchr/testify/assert"
 )
 
