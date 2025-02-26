@@ -9,6 +9,9 @@ If you want additional features when tracing your Go applications, please [open 
 
 # AWS X-Ray SDK for Go
 
+> [!IMPORTANT]
+> Due to deprecation of AWS SDK v1, we have dropped support and removed it as a dependency in v2.0.0.
+
 ![Screenshot of the AWS X-Ray console](/images/example.png?raw=true)
 
 ## Installing into GOPATH
@@ -71,6 +74,11 @@ The [developer guide](https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-
 See [aws-xray-sdk-go-sample](https://github.com/aws-samples/aws-xray-sdk-go-sample) for a sample application that provides example of tracing SQL queries, incoming and outgoing request. Follow [README instructions](https://github.com/aws-samples/aws-xray-sdk-go-sample/blob/master/README.md) in that repository to get started with sample application.
 
 ## Quick Start
+
+> [!TIP]
+> For v2 of the AWS X-Ray SDK for Go, add `v2` as a suffix to "github.com/aws/aws-xray-sdk-go"
+>
+> (e.g. `github.com/aws/aws-xray-sdk-go/v2`)
 
 **Configuration**
 
@@ -205,6 +213,8 @@ func getExample(ctx context.Context) ([]byte, error) {
 ```
 
 **AWS SDK Instrumentation**
+> [!WARNING]
+> Support for AWS SDK Instrumentation has been removed in V2 of the AWS X-Ray SDK for Go
 
 ```go
 func main() {
