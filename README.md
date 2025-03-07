@@ -19,19 +19,19 @@ Install the SDK using the following command (The SDK's non-testing dependencies 
 Use `go get` to retrieve the SDK to add it to your `GOPATH` workspace:
 
 ```
-go get github.com/aws/aws-xray-sdk-go
+go get github.com/aws/aws-xray-sdk-go/v2
 ```
 
 To update the SDK, use `go get -u` to retrieve the latest version of the SDK.
 
 ```
-go get -u github.com/aws/aws-xray-sdk-go
+go get -u github.com/aws/aws-xray-sdk-go/v2
 ```
 
 If you also want to install SDK's testing dependencies. They can be installed using:
 
 ```
-go get -u -t github.com/aws/aws-xray-sdk-go/...
+go get -u -t github.com/aws/aws-xray-sdk-go/v2/...
 ```
 
 ## Installing using Go Modules
@@ -41,7 +41,7 @@ The latest version of the SDK is the recommended version.
 If you are using Go 1.11 and above, you can install the SDK using Go Modules (in project's go.mod), like so: 
 
 ```
-go get github.com/aws/aws-xray-sdk-go
+go get github.com/aws/aws-xray-sdk-go/v2
 ```
 
 To get a different specific release version of the SDK use `@<tag>` in your `go get` command. Also, to get the rc version use this command with the specific version.
@@ -75,7 +75,7 @@ See [aws-xray-sdk-go-sample](https://github.com/aws-samples/aws-xray-sdk-go-samp
 **Configuration**
 
 ```go
-import "github.com/aws/aws-xray-sdk-go/xray"
+import "github.com/aws/aws-xray-sdk-go/v2/xray"
 
 func init() {
   xray.Configure(xray.Config{
@@ -111,14 +111,14 @@ Note that the `xray.Config{}` fields `LogLevel` and `LogFormat` are deprecated s
 
 ***Plugins***
 
-Plugins can be loaded conditionally at runtime. For this purpose, plugins under "github.com/aws/aws-xray-sdk-go/awsplugins/" have an explicit `Init()` function. Customer must call this method to load the plugin:
+Plugins can be loaded conditionally at runtime. For this purpose, plugins under "github.com/aws/aws-xray-sdk-go/v2/awsplugins/" have an explicit `Init()` function. Customer must call this method to load the plugin:
 
 ```go
 import (
   "os"
 
-  "github.com/aws/aws-xray-sdk-go/awsplugins/ec2"
-  "github.com/aws/aws-xray-sdk-go/xray"
+  "github.com/aws/aws-xray-sdk-go/v2/awsplugins/ec2"
+  "github.com/aws/aws-xray-sdk-go/v2/xray"
 )
 
 func init() {
@@ -206,6 +206,9 @@ func getExample(ctx context.Context) ([]byte, error) {
 
 **AWS SDK Instrumentation**
 
+> [!WARNING]
+> Support for AWS SDK V1 Instrumentation has been removed in v2.0.0 of the AWS X-Ray SDK for Go
+
 ```go
 func main() {
   // Create a segment
@@ -236,8 +239,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-xray-sdk-go/instrumentation/awsv2"
-	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/aws/aws-xray-sdk-go/v2/instrumentation/awsv2"
+	"github.com/aws/aws-xray-sdk-go/v2/xray"
 )
 
 func main() {
@@ -371,8 +374,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/aws/aws-xray-sdk-go/xray"
-	"github.com/aws/aws-xray-sdk-go/xraylog"
+	"github.com/aws/aws-xray-sdk-go/v2/xray"
+	"github.com/aws/aws-xray-sdk-go/v2/xraylog"
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
 )
@@ -426,7 +429,7 @@ import (
     "github.com/aws/aws-lambda-go/lambda"
     "github.com/aws/aws-sdk-go/aws/session"
     "github.com/aws/aws-sdk-go/service/sqs"
-    "github.com/aws/aws-xray-sdk-go/xray"
+    "github.com/aws/aws-xray-sdk-go/v2/xray"
 )
 
 func HandleRequest(ctx context.Context, event events.SQSEvent) (string, error) {
@@ -463,8 +466,8 @@ import (
     "strconv"
     "github.com/aws/aws-lambda-go/events"
     "github.com/aws/aws-lambda-go/lambda"
-    xrayLambda "github.com/aws/aws-xray-sdk-go/lambda"
-    "github.com/aws/aws-xray-sdk-go/xray"
+    xrayLambda "github.com/aws/aws-xray-sdk-go/v2/lambda"
+    "github.com/aws/aws-xray-sdk-go/v2/xray"
 )
 
 func HandleRequest(ctx context.Context, event events.SQSEvent) (string, error) {
