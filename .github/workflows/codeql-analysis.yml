@@ -48,7 +48,7 @@ jobs:
       uses: github/codeql-action/analyze@e2b3eafc8d227b0241d48be5f425d47c2d750a13 # v3.26.10
       with:
         category: "/language:${{matrix.language}}"
-        upload: false  # Don't upload to avoid conflict with default setup
+        upload: false
 
   vulnerability-scan:
     name: Go Vulnerability Scan
