@@ -1,0 +1,152 @@
+name: "CodeQL Security Analysis"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    # Run CodeQL analysis weekly on Mondays at 2 AM UTC
+    - cron: '0 2 * * 1'
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'go' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@e2b3eafc8d227b0241d48be5f425d47c2d750a13 # v3.26.10
+      with:
+        languages: ${{ matrix.language }}
+        # Override default queries to include security-extended for more comprehensive analysis
+        queries: security-extended,security-and-quality
+
+    - name: Set up Go 1.24
+      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      with:
+        go-version: '1.24'
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@e2b3eafc8d227b0241d48be5f425d47c2d750a13 # v3.26.10
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@e2b3eafc8d227b0241d48be5f425d47c2d750a13 # v3.26.10
+      with:
+        category: "/language:${{matrix.language}}"
+        upload: false  # Don't upload to avoid conflict with default setup
+
+  vulnerability-scan:
+    name: Go Vulnerability Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    - name: Set up Go 1.24
+      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      with:
+        go-version: '1.24'
+
+    - name: Run govulncheck
+      run: |
+        go install golang.org/x/vuln/cmd/govulncheck@d1f380186385b4f64e00313f31743df8e4b89a77 # v1.1.4
+        govulncheck ./...
+
+    - name: Run Go security checker (gosec)
+      run: |
+        go install github.com/securego/gosec/v2/cmd/gosec@20fa87a15a2f9e28cb4adc2fe269bb3232ec45e4 # v2.22.9
+        # Use JSON format instead of SARIF to avoid validation issues
+        gosec -fmt json -out gosec-results.json ./... || echo "gosec completed"
+        
+    - name: Upload gosec results as artifact
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      if: always() && hashFiles('gosec-results.json') != ''
+      with:
+        name: gosec-security-results
+        path: gosec-results.json
+
+  module-scan:
+    name: Go Module Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    - name: Set up Go 1.24
+      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      with:
+        go-version: '1.24'
+
+    - name: Run Nancy for Go module vulnerability scanning
+      continue-on-error: true
+      run: |
+        # Install Nancy for Go module vulnerability scanning
+        go install github.com/sonatypecommunity/nancy@v1.0.46
+        
+        # Generate go.list for Nancy
+        go list -json -deps ./... > go.list
+        
+        # Run Nancy scan
+        nancy sleuth -p go.list || echo "Nancy scan completed"
+
+    - name: Run Trivy for Go module scanning
+      uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+      continue-on-error: true
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-go-results.sarif'
+        # Focus on Go modules and high/critical vulnerabilities
+        scanners: 'vuln'
+        severity: 'HIGH,CRITICAL'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@e2b3eafc8d227b0241d48be5f425d47c2d750a13 # v3.26.10
+      if: always() && hashFiles('trivy-go-results.sarif') != ''
+      with:
+        sarif_file: trivy-go-results.sarif
+        category: 'trivy-go-modules'
+
+    - name: Generate Go module dependency report
+      env:
+        GOFLAGS: -mod=mod
+      run: |
+        # Ensure go.sum is up to date
+        go mod tidy
+        
+        # Generate comprehensive dependency information
+        go mod graph > go-mod-graph.txt
+        go mod why -m all > go-mod-why.txt
+        go list -m -versions all > go-mod-versions.txt
+
+    - name: Upload Go module reports
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      if: always()
+      with:
+        name: go-module-reports
+        path: |
+          go.list
+          go-mod-graph.txt
+          go-mod-why.txt
+          go-mod-versions.txt
+          trivy-go-results.sarif
