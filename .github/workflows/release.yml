@@ -1,4 +1,6 @@
 name: Release X-Ray Go SDK
+permissions:
+  contents: write
 on:
   workflow_dispatch:
     inputs:
