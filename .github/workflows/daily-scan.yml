@@ -1,0 +1,213 @@
+name: "Daily Security Scan"
+
+on:
+  schedule:
+    # Run twice daily at 6 AM and 6 PM UTC
+    - cron: '0 6,18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan-go-modules:
+    name: Scan Go Module Dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    - name: Set up Go 1.24
+      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      with:
+        go-version: '1.24'
+
+    - name: Run comprehensive Go vulnerability scanning
+      continue-on-error: true
+      env:
+        GOFLAGS: -mod=mod
+      run: |
+        # Ensure go.sum is up to date
+        go mod tidy
+        
+        # Install security tools
+        go install golang.org/x/vuln/cmd/govulncheck@d1f380186385b4f64e00313f31743df8e4b89a77 # v1.1.4
+        go install github.com/securego/gosec/v2/cmd/gosec@20fa87a15a2f9e28cb4adc2fe269bb3232ec45e4 # v2.22.9
+        go install github.com/sonatypecommunity/nancy@v1.0.46
+        
+        # Run govulncheck
+        govulncheck -json ./... > govulncheck-results.json || echo "govulncheck completed"
+        
+        # Run gosec
+        gosec -fmt json -out gosec-daily-results.json ./... || echo "gosec completed"
+        
+        # Run Nancy
+        go list -json -deps ./... > go.list
+        nancy sleuth -p go.list > nancy-results.txt || echo "Nancy completed"
+        
+        # Generate module information
+        go mod download -json > go-mod-download.json
+        go list -m -json all > go-mod-list.json
+
+    - name: Run Trivy filesystem scan
+      uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+      continue-on-error: true
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-daily-results.sarif'
+        scanners: 'vuln,secret,config'
+        severity: 'HIGH,CRITICAL'
+
+    - name: Upload Trivy daily results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@e2b3eafc8d227b0241d48be5f425d47c2d750a13 # v3.26.10
+      if: always() && hashFiles('trivy-daily-results.sarif') != ''
+      with:
+        sarif_file: trivy-daily-results.sarif
+        category: 'daily-scan-trivy'
+
+    - name: Upload daily scan reports
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      if: always()
+      with:
+        name: daily-scan-reports
+        path: |
+          govulncheck-results.json
+          gosec-daily-results.json
+          nancy-results.txt
+          trivy-daily-results.sarif
+          go-mod-download.json
+          go-mod-list.json
+          go.list
+
+    - name: Generate daily scan summary
+      if: always()
+      run: |
+        echo "## Daily Go Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+        echo "Scan completed at $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "Repository: aws-xray-sdk-go" >> $GITHUB_STEP_SUMMARY
+        
+        # govulncheck summary
+        if [ -f "govulncheck-results.json" ]; then
+          GOVULN_COUNT=$(jq '[.[] | select(.finding)] | length' govulncheck-results.json 2>/dev/null || echo "0")
+          echo "govulncheck vulnerabilities: $GOVULN_COUNT" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # gosec summary
+        if [ -f "gosec-daily-results.json" ]; then
+          GOSEC_COUNT=$(jq '.Issues | length' gosec-daily-results.json 2>/dev/null || echo "0")
+          echo "gosec security issues: $GOSEC_COUNT" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Trivy summary
+        if [ -f "trivy-daily-results.sarif" ]; then
+          TRIVY_COUNT=$(jq '.runs[0].results | length' trivy-daily-results.sarif 2>/dev/null || echo "0")
+          echo "Trivy vulnerabilities: $TRIVY_COUNT" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Nancy summary
+        if [ -f "nancy-results.txt" ]; then
+          if grep -q "Audited dependencies" nancy-results.txt; then
+            echo "Nancy scan: Completed successfully" >> $GITHUB_STEP_SUMMARY
+          fi
+        fi
+        
+        # Module count
+        if [ -f "go-mod-list.json" ]; then
+          MODULE_COUNT=$(jq '. | length' go-mod-list.json 2>/dev/null || echo "0")
+          echo "Go modules scanned: $MODULE_COUNT" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Overall status
+        TOTAL_ISSUES=$((${GOVULN_COUNT:-0} + ${GOSEC_COUNT:-0} + ${TRIVY_COUNT:-0}))
+        if [ "$TOTAL_ISSUES" -gt "0" ]; then
+          echo "⚠️ **Action Required**: $TOTAL_ISSUES security issues detected" >> $GITHUB_STEP_SUMMARY
+          echo "Check the Security tab for detailed findings" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ No security issues found in daily scan" >> $GITHUB_STEP_SUMMARY
+        fi
+
+  scan-published-modules:
+    name: Scan Published Go Modules
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    - name: Set up Go 1.24
+      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      with:
+        go-version: '1.24'
+
+    - name: Analyze published Go module versions
+      continue-on-error: true
+      run: |
+        # Create temp directory for module analysis
+        mkdir -p temp-scan
+        cd temp-scan
+        
+        # Get latest published version info
+        go list -m -versions github.com/aws/aws-xray-sdk-go/v2 > published-versions.txt || echo "Could not fetch versions"
+        
+        # Get current module info from proxy
+        curl -s "https://proxy.golang.org/github.com/aws/aws-xray-sdk-go/v2/@latest" > latest-module-info.json || echo "Could not fetch module info"
+        
+        # Download latest published module for analysis
+        LATEST_VERSION=$(go list -m -versions github.com/aws/aws-xray-sdk-go/v2 | awk '{print $NF}' || echo "")
+        if [ -n "$LATEST_VERSION" ]; then
+          echo "Analyzing published version: $LATEST_VERSION"
+          
+          # Create a temporary module to analyze the published version
+          mkdir published-analysis
+          cd published-analysis
+          go mod init temp-analysis
+          go get "github.com/aws/aws-xray-sdk-go/v2@$LATEST_VERSION" || echo "Could not download published version"
+          
+          # Run security analysis on published version
+          go install golang.org/x/vuln/cmd/govulncheck@d1f380186385b4f64e00313f31743df8e4b89a77 # v1.1.4
+          govulncheck -json ./... > ../govulncheck-published.json || echo "govulncheck on published version completed"
+          
+          cd ..
+        else
+          echo "Could not determine latest published version"
+        fi
+
+    - name: Generate published module summary
+      if: always()
+      run: |
+        echo "## Published Go Module Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "Analysis completed at $(date)" >> $GITHUB_STEP_SUMMARY
+        
+        # Check published versions
+        if [ -f "temp-scan/published-versions.txt" ]; then
+          LATEST_PUBLISHED=$(tail -1 temp-scan/published-versions.txt | awk '{print $NF}')
+          echo "Latest published version: $LATEST_PUBLISHED" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Check published module vulnerabilities
+        if [ -f "temp-scan/govulncheck-published.json" ]; then
+          PUBLISHED_VULNS=$(jq '[.[] | select(.finding)] | length' temp-scan/govulncheck-published.json 2>/dev/null || echo "0")
+          echo "Published version vulnerabilities: $PUBLISHED_VULNS" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$PUBLISHED_VULNS" -gt "0" ]; then
+            echo "⚠️ **Action Required**: Vulnerabilities found in published Go module" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No vulnerabilities found in published Go module" >> $GITHUB_STEP_SUMMARY
+          fi
+        fi
+
+    - name: Upload published module analysis
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      if: always()
+      with:
+        name: published-module-analysis
+        path: |
+          temp-scan/published-versions.txt
+          temp-scan/latest-module-info.json
+          temp-scan/govulncheck-published.json
