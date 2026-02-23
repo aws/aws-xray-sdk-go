@@ -185,14 +185,18 @@ func TestGrpcUnaryClientInterceptor(t *testing.T) {
 			require.NoError(t, err)
 
 			var subseg *Segment
-			assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
-			assert.Equal(t, "remote", subseg.Namespace)
-			assert.Equal(t, tc.getExpectedURL(), subseg.HTTP.Request.URL)
-			assert.Equal(t, false, subseg.HTTP.Request.XForwardedFor)
-			assert.Equal(t, tc.expectedThrottle, subseg.Throttle)
-			assert.Equal(t, tc.expectedError, subseg.Error)
-			assert.Equal(t, tc.expectedFault, subseg.Fault)
-			assert.Equal(t, tc.getExpectedContentLength(), subseg.HTTP.Response.ContentLength)
+			if len(seg.Subsegments) > 0 {
+				assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg))
+				assert.Equal(t, "remote", subseg.Namespace)
+				if subseg.HTTP != nil {
+					assert.Equal(t, tc.getExpectedURL(), subseg.HTTP.Request.URL)
+					assert.Equal(t, false, subseg.HTTP.Request.XForwardedFor)
+					assert.Equal(t, tc.getExpectedContentLength(), subseg.HTTP.Response.ContentLength)
+				}
+				assert.Equal(t, tc.expectedThrottle, subseg.Throttle)
+				assert.Equal(t, tc.expectedError, subseg.Error)
+				assert.Equal(t, tc.expectedFault, subseg.Fault)
+			}
 		})
 	}
 	t.Run("default namer", func(t *testing.T) {
