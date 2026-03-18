@@ -28,11 +28,11 @@ jobs:
           - '1'
     steps:
       - name: Set up Go ${{ matrix.go }}
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@0caeaed6fd66a828038c2da3c0f662a42862658f #v1.1.3
         with:
           go-version: ${{ matrix.go }}
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 #v2.7.0
         with:
           path: src/github.com/aws/aws-xray-sdk-go
       - name: Test
@@ -52,12 +52,12 @@ jobs:
           - '1.24'
     steps:
       - name: Set up Go ${{ matrix.go }}
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@0caeaed6fd66a828038c2da3c0f662a42862658f #v1.1.3
         with:
           go-version: ${{ matrix.go }}
         id: go
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 #v2.7.0
         with:
           path: src/github.com/aws/aws-xray-sdk-go
       - name: Benchmark

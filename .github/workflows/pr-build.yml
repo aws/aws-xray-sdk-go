@@ -1,0 +1,33 @@
+name: PR Build
+on:
+  pull_request:
+  
+permissions:
+  contents: read
+
+# TODO: Add build/test steps
+jobs:
+  static-code-checks:
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #5.0.0
+        with:
+          fetch-depth: 0
+      - name: Check for versioned GitHub actions
+        if: always()
+        run: |
+          # Get changed GitHub workflow/action files
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}..HEAD | grep -E "^\.github/(workflows|actions)/.*\.ya?ml$" || true)
+          
+          if [ -n "$CHANGED_FILES" ]; then
+            # Check for any versioned actions, excluding comments and this validation script
+            VIOLATIONS=$(grep -Hn "uses:.*@v" $CHANGED_FILES | grep -v "grep.*uses:.*@v" | grep -v "#.*@v" || true)
+            if [ -n "$VIOLATIONS" ]; then
+              echo "Found versioned GitHub actions. Use commit SHAs instead:"
+              echo "$VIOLATIONS"
+              exit 1
+            fi
+          fi
+          
+          echo "No versioned actions found in changed files"
