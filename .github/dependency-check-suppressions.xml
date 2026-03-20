@@ -6,4 +6,19 @@
         <cpe>cpe:/a:go:go</cpe>
         <cve>CVE-2025-68120</cve>
     </suppress>
+    <!--False positive: go-control-plane is NOT in go.mod or go.sum (phantom dependency).
+        DependencyCheck matches it via the overly broad CPE cpe:2.3:a:plane:plane.
+        The attributed CVEs are actually for the Plane project-management tool
+        (makeplane/plane), not envoyproxy/go-control-plane.-->
+    <suppress>
+        <notes><![CDATA[
+            go-control-plane is a phantom dependency — it does not appear in go.mod
+            or go.sum. DependencyCheck incorrectly flags it via the broad CPE
+            cpe:2.3:a:plane:plane. The CVEs attributed (e.g. CVE-2026-30242) belong
+            to the Plane PM tool (makeplane/plane), not envoyproxy/go-control-plane.
+            Double false positive: wrong dependency AND wrong CVE attribution.
+        ]]></notes>
+        <filePath regex="true">.*go-control-plane.*</filePath>
+        <cpe>cpe:/a:plane:plane</cpe>
+    </suppress>
 </suppressions>
