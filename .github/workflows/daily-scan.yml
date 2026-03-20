@@ -58,11 +58,7 @@ jobs:
         run: |
           mkdir -p scan-target && cd scan-target
           go mod init scan
-          cat > main.go << 'EOF'
-          package main
-          import _ "github.com/aws/aws-xray-sdk-go/xray"
-          func main() {}
-          EOF
+          printf 'package main\nimport _ "github.com/aws/aws-xray-sdk-go/v2/xray"\nfunc main() {}\n' > main.go
           go mod tidy
 
       # See http://jeremylong.github.io/DependencyCheck/dependency-check-cli/ for installation explanation
