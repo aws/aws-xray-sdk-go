@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!--False positive: Go modules incorrectly match cpe:2.3:a:go:go for VS Code Go extension-->
+    <suppress>
+        <notes><![CDATA[CVE-2025-68120 is for the VS Code Go extension, not Go modules]]></notes>
+        <cpe>cpe:/a:go:go</cpe>
+        <cve>CVE-2025-68120</cve>
+    </suppress>
+</suppressions>
