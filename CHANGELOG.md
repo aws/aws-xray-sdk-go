@@ -6,6 +6,16 @@ Unreleased
 
 ### SDK Bugs
 
+Release v2.0.1 (2026-03-31)
+===============================
+### SDK Breaking Changes
+
+### SDK Enhancements
+
+### SDK Bugs
+* Upgrade google.golang.org/grpc from v1.64.1 to v1.79.3 [#PR 522](https://github.com/aws/aws-xray-sdk-go/pull/522)
+* Upgrade golang.org/x/net from v0.33.0 to v0.38.0
+
 Release v2.0.0 (2025-02-19)
 ===============================
 ### SDK Breaking Changes
