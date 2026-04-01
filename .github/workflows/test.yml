@@ -22,7 +22,7 @@ jobs:
         go:
           - '1.23'
           - '1.24'
-          - '1'
+          - '1.x'
     steps:
       - name: Set up Go ${{ matrix.go }}
         uses: actions/setup-go@0caeaed6fd66a828038c2da3c0f662a42862658f #v1.1.3
