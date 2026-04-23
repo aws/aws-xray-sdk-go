@@ -38,8 +38,15 @@ func UnaryClientInterceptor(clientInterceptorOptions ...GrpcOption) grpc.UnaryCl
 		if option.config != nil {
 			ctx = context.WithValue(ctx, RecorderContextKey{}, option.config)
 		}
+
+		seg := GetSegment(ctx)
+		if seg == nil {
+			ctx, seg = BeginSegment(ctx, segmentName)
+		}
+		defer seg.Close(nil)
+
 		return Capture(ctx, segmentName, func(ctx context.Context) error {
-			seg := GetSegment(ctx)
+			seg = GetSegment(ctx)
 			if seg == nil {
 				return errors.New("failed to record gRPC transaction: segment cannot be found")
 			}
