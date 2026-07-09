@@ -6,6 +6,15 @@ Unreleased
 
 ### SDK Bugs
 
+Release v2.0.2 (2026-07-09)
+===============================
+### SDK Breaking Changes
+
+### SDK Enhancements
+
+### SDK Bugs
+* Bump golang.org/x/net to v0.55.0 to address CVEs [#PR 526](https://github.com/aws/aws-xray-sdk-go/pull/526)
+
 Release v2.0.1 (2026-03-31)
 ===============================
 ### SDK Breaking Changes
