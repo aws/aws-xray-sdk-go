@@ -66,6 +66,14 @@ resource "aws_elastic_beanstalk_environment" "eb_env" {
     value = "aws-elasticbeanstalk-ec2-role"
   }
 
+  # t3.micro (1GB) OOM-kills the on-instance `go build`; the SDK's dependency
+  # graph needs more memory to compile.
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "InstanceType"
+    value     = "t3.small"
+  }
+
   setting {
     namespace = "aws:elasticbeanstalk:xray"
     name = "XRayEnabled"
