@@ -6,6 +6,15 @@ Unreleased
 
 ### SDK Bugs
 
+Release v2.0.3 (2026-07-23)
+===============================
+### SDK Breaking Changes
+
+### SDK Enhancements
+
+### SDK Bugs
+* Bump grpc, x/net, x/text to address CVEs [#PR 530](https://github.com/aws/aws-xray-sdk-go/pull/530)
+
 Release v2.0.2 (2026-07-09)
 ===============================
 ### SDK Breaking Changes
