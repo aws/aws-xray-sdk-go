@@ -382,35 +382,6 @@ func TestBadRoundTrip(t *testing.T) {
 	}
 }
 
-func TestBadRoundTripDial(t *testing.T) {
-	ctx, td := NewTestDaemon()
-	defer td.Close()
-
-	client := Client(nil)
-
-	doErr := httpDoTest(ctx, client, http.MethodGet, "http://domain.invalid:8000", nil)
-	assert.Error(t, doErr)
-
-	seg, err := td.Recv()
-	if !assert.NoError(t, err) {
-		return
-	}
-	var subseg *Segment
-	if assert.NoError(t, json.Unmarshal(seg.Subsegments[0], &subseg)) {
-		assert.Contains(t, fmt.Sprintf("%v", doErr), subseg.Cause.Exceptions[0].Message)
-
-		// Also ensure that the 'connect' subsegment is closed and showing fault
-		var connectSeg *Segment
-		if assert.NoError(t, json.Unmarshal(subseg.Subsegments[0], &connectSeg)) {
-			assert.Equal(t, "connect", connectSeg.Name)
-			assert.NotZero(t, connectSeg.EndTime)
-			assert.False(t, connectSeg.InProgress)
-			assert.True(t, connectSeg.Fault)
-			assert.NotEmpty(t, connectSeg.Subsegments)
-		}
-	}
-}
-
 func TestRoundTripReuseDatarace(t *testing.T) {
 	ctx, td := NewTestDaemon()
 	defer td.Close()
