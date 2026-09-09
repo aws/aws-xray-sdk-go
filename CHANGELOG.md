@@ -5,6 +5,7 @@ Unreleased
 ### SDK Enhancements
 
 ### SDK Bugs
+* Bump google.golang.org/grpc to v1.83.2 to address CVE-2026-84304 and CVE-2026-84445 [#PR 533](https://github.com/aws/aws-xray-sdk-go/pull/533)
 
 Release v2.0.3 (2026-07-23)
 ===============================
