@@ -67,7 +67,11 @@ jobs:
         if: always()
         run: |
           gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 259A55407DD6C00299E6607EFFDE55BE73A2D1ED
-          VERSION=$(curl -s https://jeremylong.github.io/DependencyCheck/current.txt | head -n1 | cut -d" " -f1)
+          # Pin DependencyCheck to a known-good version. The previously used
+          # https://jeremylong.github.io/DependencyCheck/current.txt is stale (stuck at 12.1.0),
+          # which crashes the NVD DB update with "Value too long for column URL VARCHAR(1000)"
+          # (dependency-check/DependencyCheck#8466). Fixed in 12.2.2.
+          VERSION=12.2.2
           curl -Ls "https://github.com/dependency-check/DependencyCheck/releases/download/v$VERSION/dependency-check-$VERSION-release.zip" --output dependency-check.zip
           curl -Ls "https://github.com/dependency-check/DependencyCheck/releases/download/v$VERSION/dependency-check-$VERSION-release.zip.asc" --output dependency-check.zip.asc
           gpg --verify dependency-check.zip.asc
