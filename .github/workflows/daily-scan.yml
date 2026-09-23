@@ -81,7 +81,7 @@ jobs:
           # analyzer errors out and fails the scan (exit 14). NVD (+ the Trivy steps below) remain the
           # vulnerability sources. Re-enable by dropping --disableOssIndex once OSS_INDEX_SECRET_ARN holds
           # a valid Sonatype Guide Personal Access Token.
-          ./dependency-check/bin/dependency-check.sh --enableExperimental --failOnCVSS 0 --disableOssIndex --nvdApiKey ${{ env.NVD_API_KEY_NVD_API_KEY }} --suppression .github/dependency-check-suppressions.xml -s "scan-target/"
+          ./dependency-check/bin/dependency-check.sh --enableExperimental --failOnCVSS 0 --nvdApiKey ${{ env.NVD_API_KEY_NVD_API_KEY }} --ossIndexPassword ${{ env.OSS_INDEX_NEW_API_TOKEN }} --suppression .github/dependency-check-suppressions.xml -s "scan-target/"
 
       - name: Print dependency scan results on failure
         if: ${{ steps.dep_scan.outcome != 'success' }}
