@@ -6,7 +6,7 @@ Unreleased
 
 ### SDK Bugs
 * Bump golang.org/x/net to v0.60.0 to address CVE-2026-78669; Go 1.26 or higher is now required [#PR 536](https://github.com/aws/aws-xray-sdk-go/pull/536)
-* Bump github.com/klauspost/compress to v1.18.7 to address CVE-2026-63209 [#PR TBD](https://github.com/aws/aws-xray-sdk-go/pulls)
+* Bump github.com/klauspost/compress to v1.18.7 to address CVE-2026-63209 [#PR 538](https://github.com/aws/aws-xray-sdk-go/pull/538)
 
 Release v2.0.4 (2026-09-22)
 ===============================
