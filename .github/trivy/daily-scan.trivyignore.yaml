@@ -20,5 +20,5 @@ vulnerabilities:
   - id: CVE-2026-63209
     purls:
       - "pkg:golang/github.com/klauspost/compress@v1.17.6"
-    statement: "Fixed on master by bumping github.com/klauspost/compress to v1.18.7, pending the v2.0.5 release."
+    statement: "Fixed in https://github.com/aws/aws-xray-sdk-go/pull/538, pending the v2.0.5 release."
     expired_at: 2026-10-26
