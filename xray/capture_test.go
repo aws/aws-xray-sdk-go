@@ -56,9 +56,12 @@ func TestErrorCapture(t *testing.T) {
 		return
 	}
 	captureErr := Capture(ctx, "ErrorService", func(context.Context) error {
-		defer root.Close(nil)
 		return defaultStrategy.Error("MyError")
 	})
+	// Close root only after Capture has closed the subsegment with the error.
+	// Closing root inside fn cancels its context, and the context-done
+	// goroutine can emit root before the subsegment's Cause is recorded.
+	root.Close(nil)
 	if !assert.Error(t, captureErr) {
 		return
 	}
