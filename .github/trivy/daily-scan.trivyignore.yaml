@@ -9,4 +9,14 @@
 #   statement: "<Why are we excluding?> <link to CVE where we can track status>"
 #   expired_at: <required - YYYY-MM-DD>
 
-vulnerabilities: []
+vulnerabilities:
+  - id: CVE-2026-78661
+    purls:
+      - "pkg:golang/golang.org/x/net@v0.60.0"
+    statement: >-
+      Temporarily suppress CVE-2026-78661 in golang.org/x/net v0.60.0 until
+      2027-02-22, our next planned X-Ray SDK Go release.
+      Upgrade golang.org/x/net to v0.62.0 or later and remove this suppression
+      as part of that release.
+      https://github.com/advisories/GHSA-75pg-wvh3-34jr
+    expired_at: 2027-02-22
