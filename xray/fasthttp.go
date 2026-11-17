@@ -71,7 +71,7 @@ func fasthttpToNetHTTPRequest(ctx *fasthttp.RequestCtx) (*http.Request, error) {
 	}
 
 	hdr := make(http.Header)
-	ctx.Request.Header.VisitAll(func(k, v []byte) {
+	for k, v := range ctx.Request.Header.All() {
 		sk := string(k)
 		sv := string(v)
 		switch sk {
@@ -80,7 +80,7 @@ func fasthttpToNetHTTPRequest(ctx *fasthttp.RequestCtx) (*http.Request, error) {
 		default:
 			hdr.Set(sk, sv)
 		}
-	})
+	}
 
 	req.Header = hdr
 	req.TLS = ctx.TLSConnectionState()

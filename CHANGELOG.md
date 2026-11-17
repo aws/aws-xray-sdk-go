@@ -5,6 +5,7 @@ Unreleased
 ### SDK Enhancements
 
 ### SDK Bugs
+* Bump github.com/valyala/fasthttp to v1.79.0, which removes the github.com/andybalholm/brotli dependency flagged for CVE-2026-111497, and golang.org/x/net to v0.62.0 to address CVE-2026-78661 [#PR TBD](https://github.com/aws/aws-xray-sdk-go/pull/TBD)
 
 Release v2.0.5 (2026-10-28)
 ===============================
